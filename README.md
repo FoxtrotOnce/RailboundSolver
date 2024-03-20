@@ -41,7 +41,7 @@ worldt = {
 }
 ```
 You can add more custom levels by adding new keys, adding in boards, cars, tracks, and interactions, and then simply running the keyed level in the main program.  
-If you don't use a parameter in your level, replace it with `None`.  
+If you don't use a parameter in your level, replace it with `None` or `0`.  
 The parameters are: `[board, cars, tracks, interactions, decoys, semaphores, ncars]`.  
 - Interactions is a board with mechanic details like tunnels, gates, switches, stations, and so on.  
 - Decoys are the cars from world 7, and ncars are the Numeral Cars from worlds 11 & 12.  
