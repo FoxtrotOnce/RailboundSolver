@@ -5,8 +5,6 @@ import time  # used for time reports on minimum solutions and final completion
 import levels_cars as lc  # separate file with every single level setup variable
 from timeit import timeit  # used for line testing
 import itertools  # used for generating different board combinations
-import pandas as pd
-import math  # used for getting the amount of combinations (math.prod)
 
 sys.setrecursionlimit(100000)
 startstarttime = time.time()
@@ -182,8 +180,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                         not (p_car[2] == semPos[0, 0] * -1 and p_car[3] == semPos[0, 1] * -1)
                 pos1 = p_car[0] == pos_ahead[0] + semPos[1, 0] and p_car[1] == pos_ahead[1] + semPos[1, 1] and\
                         not (p_car[2] == semPos[1, 0] * -1 and p_car[3] == semPos[1, 1] * -1)
-                # print(p_car, [pos_ahead[0] + semPos[0, 0], pos_ahead[1] + semPos[0, 1], *semPos[0]], pos0)
-                # print(p_car, [pos_ahead[0] + semPos[1, 0], pos_ahead[1] + semPos[1, 1], *semPos[1]], pos1)
                 if pos0 or pos1:
                     heatmaps[car_index, xyToIndex[car[2], car[3]], car[1], car[0]] -= 1
                     ints_to_use[pos_ahead[1], pos_ahead[0]] = 26
@@ -223,7 +219,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
         tile_ahead = board_to_use[pos_ahead[1], pos_ahead[0]]
         tile_ahead_redirect = directions[tile_ahead][car_direction]
-        car_heat = heatmap_limits
 
         # tile picking
         tracks_to_check = ()
@@ -297,13 +292,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
                 continue
             else:
-                # print()
-                # print(board_to_use)
-                # print(cars_to_use)
-                # print(iterations)
-                # print(cars_generated)
-                # print(crashed_decoys)
-                # print(car, tracks_to_check)
                 return False
 
         # head-on crashing
@@ -439,8 +427,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             semaphoresRemaining = available_semaphores
             print(f'Found a new minimum solution! ({round((time.time() - boardSolveTime) * 10e3) / 10e3}s)')
             boardSolveTime = time.time()
-            # print(iterations)
-            # statistics.append([board_to_use, cars_to_use])
             return
         else:
             mvmts_since_solved += 1
@@ -480,18 +466,8 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         ints_to_pass = np.array(ints_to_use)
         stalled_to_pass = list(stalled)
         heatmap_limits_pass = np.array(heatmap_limits)
-        # car_combo = [0] * len(track_combo)
-        # for i, track in enumerate(track_combo):
-        #     car = cars_to_use[i]
-        #     redirect = directions[track][xyToIndex[car[2], car[3]]]
-        #     car_combo[i] = [car[0] + car[2], car[1] + car[3], redirect[0], redirect[1], car[4], car[5]]
-        # print(car_combo)
-        # print(car_combos[combo_num])
-        # print(car_combo[0] == car_combos[combo_num][0])
-        # print()
         for i, car in enumerate(car_combos[combo_num]):
             if car[:2] in [c[:2] for c in car_combos[combo_num][i + 1:]]:
-                print(cars_generated)
                 same_tile_mistake = True
                 break
             track_placing = track_combo[i]
@@ -527,7 +503,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             continue
         if amt_placed_decoy == -1:
             return
-        # statistics.append([board_to_pass, list(car_combos[combo_num])])
         generate_tracks(list(car_combos[combo_num]), board_to_pass, ints_to_pass,
                         available_tracks - amt_placed_decoy, np.array(heatmaps), [list(solved[0]), list(solved[1])],
                         stalled_to_pass, np.array(switch_queue), list(station_stalled),
@@ -537,18 +512,14 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
 l, c, sr, mhv = [], [], [], []
 statistics = []
-# RE-RUN 8-3A
 # use 11-8b for visualizer
 # 10-7 problem needs to be fixed where semaphores only check for last generated car
-for lvl in [lc.levels["10-1A"]]:
+for lvl in [lc.levels["8-3A"]]:
 # for key in lc.world10:
 #     lvl = lc.world10[key]
 #     print(key)
     lowestTracksRemaining = -1
     semaphoresRemaining = -1
-    # 4_3b (3m), 4_5 (5m), 4_5a (5m), 4_8b (1m), 4_9a (7m) take excessively long
-    # 5_4c (23m), 5_5b (4h+??) takes ungodly long
-    # 4_6b, 4_9b (3h23m) take ungodly long
     if len(lvl) == 4:
         board, cars, maxTracks, interactions = lvl
         decoys = []
@@ -579,8 +550,6 @@ for lvl in [lc.levels["10-1A"]]:
     for num, car in enumerate(ncars):
         car.append(num)
         car.append(2)
-    #cars = np.asarray(cars)
-    #cars[:, :2] = cars[:, 1::-1]
     bestBoard = None
 
     if interactions is None:
@@ -633,24 +602,7 @@ for lvl in [lc.levels["10-1A"]]:
     for semaphore_pos in np.argwhere((bestInts == 25) | (bestInts == 26)):
         if interactions[semaphore_pos[0], semaphore_pos[1]] == 0:
             print(f'~~ Semaphore at: {semaphore_pos[::-1]} (On a [{bestBoard[semaphore_pos[0], semaphore_pos[1]]}] tile)')
-    # if lowestTracksRemaining > 0:
-        # statistics.append([key, lowestTracksRemaining])
     print('--------------------------------------------------')
     if bestBoard is None:
         break
-# print(statistics)
-#     l.append(key)
-#     c.append(len(cars))
-#     sr.append(np.count_nonzero(((16 <= interactions) & (interactions <= 19)) | (interactions == 24)))
-#     mhv.append(highestHeatmap)
-# data = {
-#     'Level': l,
-#     '# of Cars': c,
-#     '# of Switch Rails': sr,
-#     'Max Heatmap Value': mhv
-# }
-#
-# df = pd.DataFrame(data)
-# df.to_csv('Railbound.csv', index=False)
-# print(df)
 print(f'\nFully Complete in: {round((time.time() - startstarttime) * 10e3) / 10e3}s')
