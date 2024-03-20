@@ -1,14 +1,19 @@
 import numpy as np
-# car positions are accessed with: index 0/1 = car tile on board (x/y), index 2/3 = car x/y velocity
 
-bt1 = np.asarray([[5, 1, 9, 6, 0, 0, 0, 0, 0],
-                  [7, 1, 0, 0, 1, 1, 1, 1, 3]])
-ct1 = [[1, 1, 1, 0], [6, 1, -1, 0]]
-it1 = np.asarray([[0, 0, 0, 0, 0, 0, 0, 0, 0],
-                  [1, 0, 0, 0, 0, 0, 0, 8, 0]])
+board1 = np.asarray([[1, 0, 0, 2, 5,21],
+                     [0, 0, 0,13,12, 0],
+                     [1, 0, 0, 0, 7, 3],
+                     [0, 0, 0, 0, 1, 0]])
+cars1 = [[0, 2, 1, 0]]
+decoys1 = [[4, 3, -1, 0]]
+ncars1 = [[0, 0, 1, 0]]
+interactions1 = np.asarray([[0, 0, 0, 1, 0, 0],
+                            [0, 0, 0,24,16, 0],
+                            [0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0]])
 
 worldt = {
-    "1": [bt1, ct1, 2, it1]
+    "1": [board1, cars1, 7, interactions1, decoys1, 0, ncars1]
 }
 
 board1_1 = np.asarray([[1, 0, 0, 0, 3]])
@@ -3150,8 +3155,6 @@ world0 = {
 
 
 levels = dict()
-# levels.update(worldt)
-# levels.update(world0)
 levels.update(world1)
 levels.update(world2)
 levels.update(world3)
@@ -3164,3 +3167,5 @@ levels.update(world9)
 levels.update(world10)
 levels.update(world11)
 levels.update(world12)
+levels.update(worldt)
+levels.update(world0)
