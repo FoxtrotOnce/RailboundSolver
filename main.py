@@ -7,7 +7,7 @@ from timeit import timeit  # used for line testing
 import itertools  # used for generating different board combinations
 
 sys.setrecursionlimit(100000)
-startstarttime = time.time()
+program_start_time = time.time()
 
 # xyToIndex contains the index for movement in direction, but you access it here with (x, y).
 # this greatly simplifies the index grabbing as you no longer need 3x3x4 values of movement for direction and only 2x4s.
@@ -22,12 +22,16 @@ generatableTracks = (
     (2, 5, 6),  # up accessible tracks
     ()  # standstill accessible tracks
 )
+# the 3-ways a car can generate for each direction.
+# the first list is 3-ways for horizontal tracks, and the second list is for vertical tracks
 generatable3Ways = (
     ((9, 13), (10, 14)),  # left
     ((11, 15), (12, 16)),  # right
     ((13, 15), (14, 16)),  # down
     ((9, 11), (10, 12))  # up
 )
+# the positions adjacent to a tile where a car can trigger a semaphore
+# aka tile entry/exit positions
 semaphorePass = np.asarray((
     ((-1, 0), (1, 0)),  # 1 Horizontal Track
     ((0, 1), (0, -1)),  # 2 Vertical Track
@@ -38,11 +42,11 @@ semaphorePass = np.asarray((
     ((0, -1), (1, 0)),  # 7 Top-Right Turn
     ((0, -1), (-1, 0)),  # 8 Top-Left Turn
 ))
-# directions contains instructions on which axis to move a car if it's on the given track in (x, y) format
-# the instruction for each direction is listed by index shown by xyToIndex (0=left, 1=right, 2=down, 3=up)
+# directions contains instructions on where to move a car if it's on the given track in (xvelo, yvelo) format
+# the instruction for each direction is listed by index shown by xyToIndex (0=left, 1=right, 2=down, 3=up, 4=standstill)
 # directions are shown in form of "car is going (left, right, down, up)"
 # e.g. car going down onto a vertical track will be 0-1-2nd index. 2nd index of vertical track instructs to go down 1.
-# (2, 2) indicates a crash, (3, 3) for empty and (4, 4) for ending might be used later
+# (2, 2) indicates a crash, (0, 0) represents no movement
 directions = np.asarray((
     ((2, 2), (2, 2), (2, 2), (2, 2), (0, 0)),  # 0 Empty
     ((-1, 0), (1, 0), (2, 2), (2, 2), (0, 0)),  # 1 Horizontal Track
@@ -72,15 +76,23 @@ directions = np.asarray((
 ))
 
 
+# returns the swapped version of a track for swapping tracks
 def swap_track(track_id):
     return [11, 14, 9, 16, 15, 10, 13, 12][track_id - 9]
 
 
+# main generation function. uses given board and variables to generate tracks every game movement.
+# VERY condensed: it first looks if cars are on switches and does interaction shenanigans, then
+# generates tracks for every car BASED ON ITS VELOCITY. it then does checks for the generated tracks to determine
+# which ones are valid, and adds those as well as the generated car for each track to a list.
+# after every car is generated, it gets every possible track combination between every car, and calls the function
+# again with every new game movement.
 def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, heatmaps,
                     solved, stalled, switch_queue, station_stalled, crashed_decoys,
                     mvmts_since_solved, available_semaphores, heatmap_limits):
     global iterations, bestBoard, bestInts, lowestTracksRemaining, boardSolveTime, semaphoresRemaining, statistics
 
+    # remove decoys if they crashed last frame and do all the proper removal things
     crashed = [i for i in range(len(cars_to_use) - 1, -1, -1) if cars_to_use[i][4] == -1]
     for crashed_decoy in crashed:
         decoy_car = cars_to_use[crashed_decoy]
@@ -88,14 +100,16 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         cars_to_use.pop(crashed_decoy)
         stalled.pop(crashed_decoy)
 
-    if len(cars_to_use) == 0:
-        mvmts_since_solved = 2
-
+    # add stalled_cars to a list for crashing. this could likely be changing to be faster, but I did it
+    # this way because of how the game treats crashes. on 7-3B, there is a false solution that could save 1 track
+    # but doesn't actually work because cars crash before they move through a gate, if the gate is opened on the
+    # same frame of a crash.
     if any(stalled):
         stalled_cars = [stalled_car[:2] for i, stalled_car in enumerate(cars_to_use) if stalled[i]]
     else:
         stalled_cars = []
 
+    # some debug variables to check before generation
     # print()
     # print(board_to_use)
     # print(cars_to_use)
@@ -107,20 +121,25 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
     # switch code
     for c, car in enumerate(cars_to_use):
+        # if a car is no longer under a queued gate, close it and remove it from the queue
         queued_gate = switch_queue[c]
         if queued_gate[0] != -1 and not (car[0] == queued_gate[0] and car[1] == queued_gate[1]):
             ints_to_use[queued_gate[1], queued_gate[0]] -= 1
             switch_queue[c] = [-1, -1]
         switch_num = interactions[car[1], car[0]]
 
+        # if a car steps on a switch...
         if not stalled[c] and 1 <= switch_num <= 4:
             gate_mask = (ints_to_use == switch_num * 2 + 6) | (ints_to_use == switch_num * 2 + 7)
             gate_poses = np.argwhere(gate_mask)
             gates = ints_to_use[gate_mask]
 
+            # close/open related gates to switch
             for i, gate_pos in enumerate(gate_poses[:, ::-1]):
                 if gates[i] % 2 == 1:
                     hold_gate = False
+                    # do a check to see if any cars are under the gate for switch_queue. could possibly be
+                    # faster by not having to iterate over every car.
                     for car_under_gate in cars_to_use:
                         if car_under_gate[0] == gate_pos[0] and car_under_gate[1] == gate_pos[1]:
                             car_index = car_under_gate[4] + car_under_gate[5] * len(cars)
@@ -136,6 +155,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 else:
                     ints_to_use[gate_pos[1], gate_pos[0]] += 1
 
+            # swap related swapping tracks to a switch
             for swap_pos in swap_positions[switch_num - 1]:
                 board_to_use[swap_pos[0], swap_pos[1]] = swap_track(board_to_use[swap_pos[0], swap_pos[1]])
         elif not stalled[c] and interactions[car[1], car[0]] == 24:
@@ -150,14 +170,19 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         pos_ahead = (car[0] + car[2], car[1] + car[3])
         ncar_station_offset = car[5] // 2
 
+        # skip semaphore and heatmap checks if car is out of bounds
         if not (0 <= pos_ahead[1] < boardDims[0] and 0 <= pos_ahead[0] < boardDims[1]):
             continue
 
+        # if the car is moving, add to heatmap
         if not (car[5] != 1 and (ints_to_use[car[1], car[0]] == car[4] + 20 + ncar_station_offset * 8 or
                                  station_stalled[ncar_station_offset * len(cars) + car[4]])) and not\
                 ints_to_use[pos_ahead[1], pos_ahead[0]] in [8, 10, 12, 14, 25]:
+            # increase heatmap limit to 1 if car is placing a tile
             if heatmap_limits[car_index, car_direction, car[1], car[0]] == 0:
                 heatmap_limits[car_index, car_direction, car[1], car[0]] += 1
+            # decoys have no heatmap limit due to how they work, so I set it to a soft 15 to make the program
+            # run faster. increase if the board requires it.
             if car[5] == 1:
                 heatmaps[car_index, car_direction, car[1], car[0]] += 1
                 decoy_heat = heatmaps[car_index, car_direction, car[1], car[0]]
@@ -167,12 +192,12 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 heatmaps[car_index, car_direction, car[1], car[0]] += 1
                 car_heat = heatmaps[car_index, car_direction, car[1], car[0]]
                 if car_heat > heatmap_limits[car_index, car_direction, car[1], car[0]]:
-                # if car_heat > 10:
                     return False
 
+        # semaphore processing
         if ints_to_use[pos_ahead[1], pos_ahead[0]] == 25:
             semPos = semaphorePass[board_to_use[pos_ahead[1], pos_ahead[0]] - 1]
-            # if the direction is left/right, car has to go up/down and vice versa
+            # check if any cars are passing the semaphore, and open it if they are
             for p_car in cars_to_use:
                 if p_car[4] == car[4] and p_car[5] == car[5]:
                     continue
@@ -184,6 +209,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                     heatmaps[car_index, xyToIndex[car[2], car[3]], car[1], car[0]] -= 1
                     ints_to_use[pos_ahead[1], pos_ahead[0]] = 26
                     break
+    # could probably use numpy lists and not use pops to make program faster, but this works for now.
     cars_generated = [[] for _ in cars_to_use]
     usable_tracks = [[] for _ in cars_to_use]
     decoy_placing = [False] * len(cars_to_use)
@@ -196,10 +222,12 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         ncar_station_offset = car[5] // 2
 
         pos_ahead = [car[0] + car[2], car[1] + car[3]]
+        # crash decoys if they hit the board border
         if not (0 <= pos_ahead[1] < boardDims[0] and 0 <= pos_ahead[0] < boardDims[1]):
             cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
             continue
 
+        # station processing
         if car[5] != 1:
             if ints_to_use[car[1], car[0]] == car[4] + 20 + ncar_station_offset * 8:
                 station_stalled[ncar_station_offset * len(cars) + car[4]] = True
@@ -210,6 +238,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 station_stalled[ncar_station_offset * len(cars) + car[4]] = False
                 cars_generated[c], usable_tracks[c] = [list(car)], [board_to_use[car[1], car[0]]]
                 continue
+        # gate processing
         if ints_to_use[pos_ahead[1], pos_ahead[0]] in [8, 10, 12, 14, 25]:
             stalled[c] = True
             cars_generated[c], usable_tracks[c] = [list(car)], [board_to_use[car[1], car[0]]]
@@ -262,7 +291,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 available_tracks -= 1
                 tracks_to_check = generatableTracks[car_direction]
 
-        # pre-anything track checks
+        # false train checks to make sure cars dont go to the wrong train
         if (tracks_to_check[0] == 3 and car[5] != 0) or (21 <= tracks_to_check[0] <= 22 and car[5] != 2):
             return False
 
@@ -275,6 +304,9 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
         if pos_ahead in poses:
             car_num = poses.index(pos_ahead)
+            # this is a solve I made for the 10-7 issue. I commented it out until I make something faster
+            # because it's extremely slow, and doesn't hinder the program too much currently.
+
             # if car_num < c:
             #     if poses[car_num] == cars_to_use[car_num][:2]:
             #         if len(cars_generated[car_num]) > 1:
@@ -324,7 +356,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
         # track confirming
         for i, possibleTrack in enumerate(tracks_to_check):
-            # car going to incorrect train
+            # crash a decoy if it chooses to crash
             if possibleTrack == 0:
                 if car[:2] in poses:
                     continue
@@ -357,7 +389,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                 elif ints_to_use[pos_ahead[1], pos_ahead[0]] == 25 or ints_to_use[pos_ahead[1], pos_ahead[0]] == 26:
                     continue
 
-            # out of bounds?
+            # kill out of bounds cars, crash decoys
             if not (0 <= end_on[1] < boardDims[0] and 0 <= end_on[0] < boardDims[1]):
                 if car[5] == 1:
                     cars_generated[c].append([*pos_ahead, *possible_redirect, car[4], 1])
@@ -380,6 +412,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             else:
                 usable_tracks[c].append(possibleTrack)
 
+                # checks if the car can also place a semaphore.
                 if available_semaphores > 0 and (1 <= possibleTrack <= 2 or 5 <= possibleTrack <= 8) and\
                         ints_to_use[pos_ahead[1], pos_ahead[0]] == 0:
                     semPos = semaphorePass[possibleTrack - 1]
@@ -389,7 +422,6 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                     pos0_starting = 27 == ints_to_use[pos_ahead[1] + semPos[0, 1], pos_ahead[0] + semPos[0, 0]]
                     pos1_starting = 27 == ints_to_use[pos_ahead[1] + semPos[1, 1], pos_ahead[0] + semPos[1, 0]]
 
-                    # have to change so index is correct for decoys as well
                     if car[5] == 0:
                         if car[0] == cars[car[4]][0] and car[1] == cars[car[4]][1] and\
                                 ints_to_use[car[1], car[0]] == 27:
@@ -403,9 +435,10 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                                 ints_to_use[car[1], car[0]] == 27:
                             pos0_starting -= 1
 
-                    # print(car, possibleTrack, pos_ahead_heat, pos0_heat, pos1_heat)
                     if not pos_ahead_heat and pos0_heat + pos1_heat - 1 - pos0_starting - pos1_starting == 0:
                         cars_generated[c].append(car)
+                        # a semaphore track is basically just track index + 22 because it's a simple way
+                        # to tell the program to place a semaphore without interfering with track indices.
                         usable_tracks[c].append(possibleTrack + 22)
         # if no tracks were generated, kill it
         if len(usable_tracks[c]) == 0:
@@ -430,12 +463,14 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             return
         else:
             mvmts_since_solved += 1
+    # if a car solved this frame, remove it from generation
     if just_solved[0] != -1:
         sc = just_solved[0]
         cars_generated.pop(sc)
         usable_tracks.pop(sc)
         stalled.pop(sc)
         decoy_placing.pop(sc)
+    # if a numeral car solved this frame, remove it from generation
     if just_solved[1] != -1:
         sc = just_solved[1] - int(just_solved[0] > -1)
         cars_generated.pop(sc)
@@ -445,6 +480,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
     car_combos = list(itertools.product(*cars_generated))
     track_combos = list(itertools.product(*usable_tracks))
 
+    # some debug variables to check after generation
     # print(board_to_use)
     # print()
     # print(ints_to_use)
@@ -458,6 +494,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
     # print(iterations)
     # print()
 
+    # branch creation
     for combo_num, track_combo in enumerate(track_combos):
         amt_placed_decoy = 0
         placed_semaphores = 0
@@ -466,7 +503,11 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         ints_to_pass = np.array(ints_to_use)
         stalled_to_pass = list(stalled)
         heatmap_limits_pass = np.array(heatmap_limits)
+
         for i, car in enumerate(car_combos[combo_num]):
+            # if 2 cars are on the same tile, kill it.
+            # there's likely something in the program I can change to make this not happen because it shouldn't
+            # and it wastes resources killing it here, but this works for now.
             if car[:2] in [c[:2] for c in car_combos[combo_num][i + 1:]]:
                 same_tile_mistake = True
                 break
@@ -477,6 +518,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                     amt_placed_decoy = -1
                     break
                 amt_placed_decoy += 1
+            # if the car is placing a semaphore, check if it has enough to do so and then do it.
             if 22 < track_placing:
                 if available_semaphores - placed_semaphores - 1 >= 0:
                     placed_semaphores += 1
@@ -488,6 +530,9 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             elif track_placing != 0:
                 board_to_pass[car[1], car[0]] = track_placing
 
+            # if the car is on a swapping track, add 1 to all heatmap limits because of something, something
+            # game logic. read the discord thread to learn more.
+            # the heatmap limit will never go above 9.
             if 16 <= ints_to_pass[car[1], car[0]] <= 19 or ints_to_pass[car[1], car[0]] == 24:
                 car_direction = xyToIndex[car[2], car[3]]
                 car_index = car[4] + car[5] * len(cars)
@@ -510,16 +555,17 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                         heatmap_limits_pass)
 
 
-l, c, sr, mhv = [], [], [], []
-statistics = []
 # use 11-8b for visualizer
 # 10-7 problem needs to be fixed where semaphores only check for last generated car
-for lvl in [lc.levels["8-3A"]]:
-# for key in lc.world10:
-#     lvl = lc.world10[key]
+for lvl in [lc.levels["10-7"]]:
+# for key in lc.world7:
+#     lvl = lc.world7[key]
 #     print(key)
     lowestTracksRemaining = -1
     semaphoresRemaining = -1
+    # check how many parameters are in the level before doing it to load it properly
+    # I will change this eventually because it's more consistent that way, and I'll have to redo every single
+    # level setup, but this works for now.
     if len(lvl) == 4:
         board, cars, maxTracks, interactions = lvl
         decoys = []
@@ -541,6 +587,9 @@ for lvl in [lc.levels["8-3A"]]:
         if decoys is None:
             decoys = []
 
+    # add additional car numbers and car types to car data making it [x, y, xvelo, yvelo, car_num, car_type]
+    # with car_type being 1=car, 2=decoy, 3=numeral car
+    # I will remove this once I redo level setup. again, I have to do it for every single one.
     for num, car in enumerate(cars):
         car.append(num)
         car.append(0)
@@ -555,12 +604,12 @@ for lvl in [lc.levels["8-3A"]]:
     if interactions is None:
         interactions = np.zeros(board.shape)
     print(board)
+    # add an interaction index of 27 to the starting positions of cars so semaphore can refer to them for
+    # something, something semaphores are weird for starting positions. read the discord thread to learn more.
     for car in cars + decoys + ncars:
         interactions[car[1], car[0]] = 27
 
     iterations = 0
-    completeBoards = []
-    testlist = []
 
     boardDims = np.shape(board)
     permanent_tiles = board != 0
@@ -571,19 +620,6 @@ for lvl in [lc.levels["8-3A"]]:
     boardSolveTime = time.time()
     startTime = time.time()
 
-    # cars_to_use = list(cars + decoys + ncars)
-    # board_to_use = np.array(board)
-    # ints_to_use = np.array(interactions)
-    # available_tracks = maxTracks
-    # heatmaps = np.zeros((len(cars + decoys + ncars), 4, *boardDims))
-    # solved = [[-1] * len(cars), [-1] * len(ncars)]
-    # stalled = [False] * len(cars + decoys + ncars)
-    # switch_queue = np.full((len(cars + decoys + ncars), 2), -1)
-    # station_stalled = [False] * len(cars + ncars)
-    # crashed_decoys = np.full((len(decoys), 2 ), -1)
-    # mvmts_since_stalled = 0
-    # available_semaphores = semaphores
-    # heatmap_limits = np.zeros((len(cars + decoys + ncars), 4, *boardDims))
     generate_tracks(list(cars + decoys + ncars), np.array(board), np.array(interactions), maxTracks,
                     np.zeros((len(cars + decoys + ncars), 4, *boardDims)), [[-1] * len(cars), [-1] * len(ncars)],
                     [False] * len(cars + decoys + ncars), np.full((len(cars + decoys + ncars), 2), -1),
@@ -605,4 +641,4 @@ for lvl in [lc.levels["8-3A"]]:
     print('--------------------------------------------------')
     if bestBoard is None:
         break
-print(f'\nFully Complete in: {round((time.time() - startstarttime) * 10e3) / 10e3}s')
+print(f'\nFully Complete in: {round((time.time() - program_start_time) * 10e3) / 10e3}s')
