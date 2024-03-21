@@ -1,5 +1,5 @@
 # A solver for every level in Railbound.
-I made this project over 7 months during my sophomore year of high school.
+I made this project over 7 months during my sophomore year of high school.  
 Want to see data on it? Check out this [Google Doc.](https://docs.google.com/document/d/1gb9UQcFA16MThvKxfTPQSfTJFo51ytKI-Dpijypth2A/edit?usp=sharing)
 
 
