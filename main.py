@@ -1,4 +1,5 @@
-import sys  # used for setting recursion limit higher so program doesn't quit after a while
+import functools
+import typing
 
 import numpy as np  # used for absolutely everything.
 import time  # used for time reports on minimum solutions and final completion
@@ -6,7 +7,6 @@ import levels_cars as lc  # separate file with every single level setup variable
 from timeit import timeit  # used for line testing
 import itertools  # used for generating different board combinations
 
-sys.setrecursionlimit(100000)
 program_start_time = time.time()
 
 # xyToIndex contains the index for movement in direction, but you access it here with (x, y).
@@ -81,12 +81,33 @@ def swap_track(track_id):
     return [11, 14, 9, 16, 15, 10, 13, 12][track_id - 9]
 
 
+def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
+    """
+    Decorator to implement tail call optimisation as a generator
+
+    instead of calling itself the tail of the function should
+    yield the arguments for its call. the facilitator can then
+    handle the calls in a way far more lightweight than the call
+    stack, and avoiding blowing the stack with really deep recursion.
+    """
+    @functools.wraps(func)
+    def facilitator(*args):
+        argslist = [args]
+
+        while argslist:
+            args = [*func(*argslist.pop())]
+            argslist.extend(reversed(args))
+
+    return facilitator
+
+
 # main generation function. uses given board and variables to generate tracks every game movement.
 # VERY condensed: it first looks if cars are on switches and does interaction shenanigans, then
 # generates tracks for every car BASED ON ITS VELOCITY. it then does checks for the generated tracks to determine
 # which ones are valid, and adds those as well as the generated car for each track to a list.
 # after every car is generated, it gets every possible track combination between every car, and calls the function
 # again with every new game movement.
+@tail_call_gen
 def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, heatmaps,
                     solved, stalled, switch_queue, station_stalled, crashed_decoys,
                     mvmts_since_solved, available_semaphores, heatmap_limits):
@@ -548,11 +569,13 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             continue
         if amt_placed_decoy == -1:
             return
-        generate_tracks(list(car_combos[combo_num]), board_to_pass, ints_to_pass,
-                        available_tracks - amt_placed_decoy, np.array(heatmaps), [list(solved[0]), list(solved[1])],
-                        stalled_to_pass, np.array(switch_queue), list(station_stalled),
-                        np.array(crashed_decoys), mvmts_since_solved, available_semaphores - placed_semaphores,
-                        heatmap_limits_pass)
+        yield (
+                list(car_combos[combo_num]), board_to_pass, ints_to_pass,
+                available_tracks - amt_placed_decoy, np.array(heatmaps), [list(solved[0]), list(solved[1])],
+                stalled_to_pass, np.array(switch_queue), list(station_stalled),
+                np.array(crashed_decoys), mvmts_since_solved, available_semaphores - placed_semaphores,
+                heatmap_limits_pass
+        )
 
 
 # use 11-8b for visualizer
