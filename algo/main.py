@@ -1,3 +1,4 @@
+import collections
 import functools
 import typing
 
@@ -6,8 +7,31 @@ import time  # used for time reports on minimum solutions and final completion
 import levels_cars as lc  # separate file with every single level setup variable
 from timeit import timeit  # used for line testing
 import itertools  # used for generating different board combinations
+from PIL import Image  # used for generation visualization (optional)
 
 program_start_time = time.time()
+
+img_arrays = np.zeros((17, 90, 90, 4), dtype=np.int8)
+img_fps = 60
+capture_img = True
+if capture_img:
+    img_arrays[0] = np.asarray(Image.open("Images/#0 Empty Tile.png"))
+    img_arrays[1] = np.asarray(Image.open("Images/#1 Horizontal Track.png"))
+    img_arrays[2] = np.asarray(Image.open("Images/#2 Vertical Track.png"))
+    img_arrays[3] = np.asarray(Image.open("Images/#3 Ending Track.png"))
+    img_arrays[4] = np.asarray(Image.open("Images/#4 Fence.png"))
+    img_arrays[5] = np.asarray(Image.open("Images/#5 Bottom-Right Turn.png"))
+    img_arrays[6] = np.asarray(Image.open("Images/#6 Bottom-Left Turn.png"))
+    img_arrays[7] = np.asarray(Image.open("Images/#7 Top-Right Turn.png"))
+    img_arrays[8] = np.asarray(Image.open("Images/#8 Top-Left Turn.png"))
+    img_arrays[9] = np.asarray(Image.open("Images/#9 Bottom-Right & Left 3-Way.png"))
+    img_arrays[10] = np.asarray(Image.open("Images/#10 Bottom-Right & Top 3-Way.png"))
+    img_arrays[11] = np.asarray(Image.open("Images/#11 Bottom-Left & Right 3-Way.png"))
+    img_arrays[12] = np.asarray(Image.open("Images/#12 Bottom-Left & Top 3-Way.png"))
+    img_arrays[13] = np.asarray(Image.open("Images/#13 Top-Right & Left 3-Way.png"))
+    img_arrays[14] = np.asarray(Image.open("Images/#14 Top-Right & Bottom 3-Way.png"))
+    img_arrays[15] = np.asarray(Image.open("Images/#15 Top-Left & Right 3-Way.png"))
+    img_arrays[16] = np.asarray(Image.open("Images/#16 Top-Left & Bottom 3-Way.png"))
 
 # xyToIndex contains the index for movement in direction, but you access it here with (x, y).
 # this greatly simplifies the index grabbing as you no longer need 3x3x4 values of movement for direction and only 2x4s.
@@ -81,6 +105,13 @@ def swap_track(track_id):
     return [11, 14, 9, 16, 15, 10, 13, 12][track_id - 9]
 
 
+def board_to_img(board):
+    full_img = np.zeros((boardDims[0]*90, boardDims[1]*90, 3), dtype=np.int8)
+    for i, track in np.ndenumerate(board):
+        full_img[i[0]*90:(i[0]+1)*90, i[1]*90:(i[1]+1)*90] = img_arrays[track][:,:,:3]
+    return Image.fromarray(full_img, "RGB")
+
+
 def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
     """
     Decorator to implement tail call optimisation as a generator
@@ -101,17 +132,26 @@ def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
     return facilitator
 
 
-# main generation function. uses given board and variables to generate tracks every game movement.
-# VERY condensed: it first looks if cars are on switches and does interaction shenanigans, then
-# generates tracks for every car BASED ON ITS VELOCITY. it then does checks for the generated tracks to determine
-# which ones are valid, and adds those as well as the generated car for each track to a list.
-# after every car is generated, it gets every possible track combination between every car, and calls the function
-# again with every new game movement.
 @tail_call_gen
 def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, heatmaps,
                     solved, stalled, switch_queue, station_stalled, crashed_decoys,
                     mvmts_since_solved, available_semaphores, heatmap_limits):
-    global iterations, bestBoard, bestInts, lowestTracksRemaining, boardSolveTime, semaphoresRemaining, statistics
+    """
+    Main generation function. Uses the given board and variables to
+    generate tracks every game movement.
+
+    VERY condensed: it first looks if cars are on switches and does
+    some interaction shenanigans, then generates tracks for every
+    car BASED ON ITS VELOCITY. It then does checks for the generated
+    tracks to determine which ones are valid, and adds those as well
+    as the generated car for each track to a list.
+
+    After every car is generated, it gets every possible track
+    combination between every car, and calls the function again with
+    every new game movement.
+    """
+    global iterations, bestBoard, bestInts, lowestTracksRemaining, boardSolveTime, semaphoresRemaining,\
+        frame_arrays, stored_frame
 
     # remove decoys if they crashed last frame and do all the proper removal things
     crashed = [i for i in range(len(cars_to_use) - 1, -1, -1) if cars_to_use[i][4] == -1]
@@ -235,7 +275,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
     usable_tracks = [[] for _ in cars_to_use]
     decoy_placing = [False] * len(cars_to_use)
     just_solved = [-1, -1]
-
+    shortened_cars = [scar[:4] for scar in cars_to_use]
     # generation code
     for c, car in enumerate(cars_to_use):
         iterations += 1
@@ -253,16 +293,16 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             if ints_to_use[car[1], car[0]] == car[4] + 20 + ncar_station_offset * 8:
                 station_stalled[ncar_station_offset * len(cars) + car[4]] = True
                 ints_to_use[car[1], car[0]] = 26
-                cars_generated[c], usable_tracks[c] = [list(car)], [board_to_use[car[1], car[0]]]
+                cars_generated[c], usable_tracks[c] = [car], [board_to_use[car[1], car[0]]]
                 continue
             elif station_stalled[ncar_station_offset * len(cars) + car[4]]:
                 station_stalled[ncar_station_offset * len(cars) + car[4]] = False
-                cars_generated[c], usable_tracks[c] = [list(car)], [board_to_use[car[1], car[0]]]
+                cars_generated[c], usable_tracks[c] = [car], [board_to_use[car[1], car[0]]]
                 continue
         # gate processing
         if ints_to_use[pos_ahead[1], pos_ahead[0]] in [8, 10, 12, 14, 25]:
             stalled[c] = True
-            cars_generated[c], usable_tracks[c] = [list(car)], [board_to_use[car[1], car[0]]]
+            cars_generated[c], usable_tracks[c] = [car], [board_to_use[car[1], car[0]]]
             continue
         elif stalled[c]:
             stalled[c] = False
@@ -276,7 +316,8 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             if permanent_tiles[pos_ahead[1], pos_ahead[0]]:
                 if tile_ahead_redirect[0] == 2:
                     if car[5] == 1:
-                        cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
+                        cars_generated[c] = [[car[0], car[1], car[2], car[3], -1, 1]]
+                        usable_tracks[c] = [board_to_use[car[1], car[0]]]
                         continue
                     else:
                         return False
@@ -295,7 +336,8 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
                             tracks_to_check = (tile_ahead, *generatable3Ways[car_direction][tile_ahead - 1])
                 elif tile_ahead_redirect[0] == 2:
                     if car[5] == 1:
-                        cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
+                        cars_generated[c] = [[car[0], car[1], car[2], car[3], -1, 1]]
+                        usable_tracks[c] = [board_to_use[car[1], car[0]]]
                         continue
                     else:
                         return False
@@ -321,7 +363,8 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             return False
 
         # same tile crashing
-        poses = [gen_car[-1][:2] for gen_car in cars_generated[:c]] + crashed_decoys.tolist() + stalled_cars
+        # print(timeit(lambda: [gen_car[0][:2] for gen_car in cars_generated[:c]] + crashed_decoys.tolist() + stalled_cars, number=1000000))
+        poses = [gen_car[0][:2] for gen_car in cars_generated[:c]] + crashed_decoys.tolist() + stalled_cars
 
         if pos_ahead in poses:
             car_num = poses.index(pos_ahead)
@@ -329,20 +372,20 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             # because it's extremely slow, and doesn't hinder the program too much currently.
 
             # if car_num < c:
-            #     if poses[car_num] == cars_to_use[car_num][:2]:
+            #     if poses[car_num][0] == cars_to_use[car_num][0] and poses[car_num][1] == cars_to_use[car_num][1]:
             #         if len(cars_generated[car_num]) > 1:
             #             cars_generated[car_num].pop(-1)
             #             usable_tracks[car_num].pop(-1)
+            #         elif cars_generated[car_num][5] == 1:
+            #             cars_generated[car_num] = [[car[0], car[1], car[2], car[3], -1, 1]]
+            #             usable_tracks[car_num] = [board_to_use[car[1], car[0]]]
             #         else:
-            #             if cars_generated[car_num][5] == 1:
-            #                 cars_generated[car_num] = [[*car[:4], -1, 1]]
-            #                 usable_tracks[car_num] = [board_to_use[car[1], car[0]]]
-            #             else:
-            #                 return False
+            #             return False
             if tracks_to_check[0] == 0:
                 tracks_to_check = (tracks_to_check[0],)
             elif car[5] == 1 and (c <= car_num or cars_generated[car_num][0][5] == 1):
-                cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
+                cars_generated[c] = [[car[0], car[1], car[2], car[3], -1, 1]]
+                usable_tracks[c] = [board_to_use[car[1], car[0]]]
                 continue
             else:
                 return False
@@ -350,12 +393,12 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
         # head-on crashing
         # check if any of the cars are crashing head-on by comparing if the car
         # is ramming into cars that haven't yet generated, going opposite direction (head-on)
-        prev_cars = [prev_car[:4] for prev_car in cars_to_use[c + 1:]]
-        if [*pos_ahead, car[2] * -1, car[3] * -1] in prev_cars:
+        if [*pos_ahead, car[2] * -1, car[3] * -1] in shortened_cars:
             if tracks_to_check[0] == 0:
                 tracks_to_check = (tracks_to_check[0],)
             elif car[5] == 1:
-                cars_generated[c], usable_tracks[c] = [[*car[:4], -1, 1]], [board_to_use[car[1], car[0]]]
+                cars_generated[c] = [[car[0], car[1], car[2], car[3], -1, 1]]
+                usable_tracks[c] = [board_to_use[car[1], car[0]]]
                 continue
             else:
                 return False
@@ -381,7 +424,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             if possibleTrack == 0:
                 if car[:2] in poses:
                     continue
-                cars_generated[c].append([*car[:4], -1, 1])
+                cars_generated[c].append([car[0], car[1], car[2], car[3], -1, 1])
                 usable_tracks[c].append(0)
                 continue
             elif 17 <= possibleTrack <= 20:
@@ -474,7 +517,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
     if len(ncars) > 0:
         solved_ncars = solved[1][-1] == ncars[-1][4]
     if solved[0][-1] == cars[-1][4] and solved_ncars:
-        if (len(cars_to_use) == 1 and cars_to_use[0][5] == 0) or mvmts_since_solved == 2:
+        if (len(cars_to_use) == 1 and cars_to_use[0][5] != 1) or mvmts_since_solved == 2:
             bestBoard = board_to_use
             bestInts = ints_to_use
             lowestTracksRemaining = available_tracks
@@ -569,6 +612,8 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
             continue
         if amt_placed_decoy == -1:
             return
+        if (time.time() - startTime) // (round(1/img_fps*1000)/1000) > len(frame_arrays) and capture_img:
+            frame_arrays.append(board_to_pass)
         yield (
                 list(car_combos[combo_num]), board_to_pass, ints_to_pass,
                 available_tracks - amt_placed_decoy, np.array(heatmaps), [list(solved[0]), list(solved[1])],
@@ -580,7 +625,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
 # use 11-8b for visualizer
 # 10-7 problem needs to be fixed where semaphores only check for last generated car
-for lvl in [lc.levels["10-7"]]:
+for lvl in [lc.levels["1-11B"]]:
 # for key in lc.world7:
 #     lvl = lc.world7[key]
 #     print(key)
@@ -623,6 +668,7 @@ for lvl in [lc.levels["10-7"]]:
         car.append(num)
         car.append(2)
     bestBoard = None
+    bestInts = None
 
     if interactions is None:
         interactions = np.zeros(board.shape)
@@ -639,6 +685,8 @@ for lvl in [lc.levels["10-7"]]:
     tunnel_exit_velos = np.asarray(((-1, 0), (0, -1), (1, 0), (0, 1)))
     swap_positions = [np.argwhere(interactions == switch_num + 15) for switch_num in range(1, 5)]
 
+    frame_arrays = []
+
     print('Generating...')
     boardSolveTime = time.time()
     startTime = time.time()
@@ -649,7 +697,8 @@ for lvl in [lc.levels["10-7"]]:
                     [False] * len(cars + ncars), np.full((len(decoys), 2), -1), 0, semaphores,
                     np.zeros((len(cars + decoys + ncars), 4, *boardDims)))
 
-    print(f'\nFinished in: {round((time.time() - startTime) * 10e3) / 10e3}s')
+    finalTime = round((time.time() - startTime) * 10e3) / 10e3
+    print(f'\nFinished in: {finalTime}s')
     print(f'Iterations Processed: {"{:,}".format(iterations)}')
     print(f'Tracks Remaining: {lowestTracksRemaining}')
     if lowestTracksRemaining > 0:
@@ -664,4 +713,13 @@ for lvl in [lc.levels["10-7"]]:
     print('--------------------------------------------------')
     if bestBoard is None:
         break
+    if capture_img:
+        frame_arrays.append(bestBoard)
+        if len(frame_arrays) > 1:
+            final_imgs = []
+            for frame in frame_arrays:
+                final_imgs.append(board_to_img(frame))
+            final_imgs[0].save("out.gif", save_all=True, append_images=final_imgs[1:], duration=finalTime/len(frame_arrays)-2)
+        elif len(frame_arrays) == 1:
+            Image.fromarray(frame_arrays[0], mode="RGBA").save("out.png")
 print(f'\nFully Complete in: {round((time.time() - program_start_time) * 10e3) / 10e3}s')

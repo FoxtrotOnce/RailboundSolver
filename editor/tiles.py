@@ -68,20 +68,28 @@ def create_tiles() -> list[Tile]:
 
     tiles = []
 
-    # Define tile types and their rotations/flips
+    # Define tile types, their image filenames, and their rotations/flips
     tile_types = {
-        "Empty": [],
-        "Curve": [1, 2, 3],
-        "Straight": [1],
-        "T_turn": [1, 2, 3, ("flip", 0), ("flip", 1), ("flip", 2), ("flip", 3)],
-        "Rock": [],
+        "Empty": {"filename": "#0 Empty Tile.png", "variations": []},
+        "Curve": {"filename": "#5 Bottom-Right Turn.png", "variations": [1, 2, 3]},
+        "Straight": {"filename": "#2 Vertical Track.png", "variations": [1]},
+        "T_turn": {
+            "filename": "#12 Bottom-Left & Top 3-Way.png",
+            "variations": [1, 2, 3, ("flip", 0), ("flip", 1), ("flip", 2), ("flip", 3)],
+        },
+        "Fence": {"filename": "#4 Fence.png", "variations": []},
     }
 
-    for tile_name, variations in tile_types.items():
-        base_tile = Tile(tile_name, Image.open(image_dir / f"{tile_name}.png"))
+    for tile_name, tile_info in tile_types.items():
+        image_path = image_dir / tile_info["filename"]
+        if not image_path.exists():
+            print(f"Warning: Image file {image_path} not found. Skipping this tile.")
+            continue
+
+        base_tile = Tile(tile_name, Image.open(image_path))
         tiles.append(base_tile)
 
-        for variation in variations:
+        for variation in tile_info["variations"]:
             if isinstance(variation, int):
                 tiles.append(base_tile.rotate(variation))
             elif isinstance(variation, tuple) and variation[0] == "flip":
@@ -90,6 +98,11 @@ def create_tiles() -> list[Tile]:
                     tiles.append(flipped.rotate(variation[1]))
                 else:
                     tiles.append(flipped)
+
+    # reset index from 0 to len(tiles)
+    # to avoid unexpected behavior when using index as a key in a dictionary
+    for i, tile in enumerate(tiles):
+        tile.index = i
 
     return tiles
 
