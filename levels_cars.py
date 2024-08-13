@@ -2453,7 +2453,7 @@ world10 = {
     "10-6A": [board10_6A, cars10_6A, 9, interactions10_6A, decoys10_6A, 1],
     "10-7": [board10_7, cars10_7, 15, interactions10_7, decoys10_7, 2],
     "10-8": [board10_8, cars10_8, 10, interactions10_8, decoys10_8, 1]
-}  # 10-1A, 10-5A
+}  # 10-1A, (10-5A?)
 
 
 
