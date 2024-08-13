@@ -13,25 +13,25 @@ program_start_time = time.time()
 
 img_arrays = np.zeros((17, 90, 90, 4), dtype=np.int8)
 img_fps = 60
-capture_img = True
+capture_img = False
 if capture_img:
-    img_arrays[0] = np.asarray(Image.open("Images/#0 Empty Tile.png"))
-    img_arrays[1] = np.asarray(Image.open("Images/#1 Horizontal Track.png"))
-    img_arrays[2] = np.asarray(Image.open("Images/#2 Vertical Track.png"))
-    img_arrays[3] = np.asarray(Image.open("Images/#3 Ending Track.png"))
-    img_arrays[4] = np.asarray(Image.open("Images/#4 Fence.png"))
-    img_arrays[5] = np.asarray(Image.open("Images/#5 Bottom-Right Turn.png"))
-    img_arrays[6] = np.asarray(Image.open("Images/#6 Bottom-Left Turn.png"))
-    img_arrays[7] = np.asarray(Image.open("Images/#7 Top-Right Turn.png"))
-    img_arrays[8] = np.asarray(Image.open("Images/#8 Top-Left Turn.png"))
-    img_arrays[9] = np.asarray(Image.open("Images/#9 Bottom-Right & Left 3-Way.png"))
-    img_arrays[10] = np.asarray(Image.open("Images/#10 Bottom-Right & Top 3-Way.png"))
-    img_arrays[11] = np.asarray(Image.open("Images/#11 Bottom-Left & Right 3-Way.png"))
-    img_arrays[12] = np.asarray(Image.open("Images/#12 Bottom-Left & Top 3-Way.png"))
-    img_arrays[13] = np.asarray(Image.open("Images/#13 Top-Right & Left 3-Way.png"))
-    img_arrays[14] = np.asarray(Image.open("Images/#14 Top-Right & Bottom 3-Way.png"))
-    img_arrays[15] = np.asarray(Image.open("Images/#15 Top-Left & Right 3-Way.png"))
-    img_arrays[16] = np.asarray(Image.open("Images/#16 Top-Left & Bottom 3-Way.png"))
+    img_arrays[0] = np.asarray(Image.open("../Images/#0 Empty Tile.png"))
+    img_arrays[1] = np.asarray(Image.open("../Images/#1 Horizontal Track.png"))
+    img_arrays[2] = np.asarray(Image.open("../Images/#2 Vertical Track.png"))
+    img_arrays[3] = np.asarray(Image.open("../Images/#3 Ending Track.png"))
+    img_arrays[4] = np.asarray(Image.open("../Images/#4 Fence.png"))
+    img_arrays[5] = np.asarray(Image.open("../Images/#5 Bottom-Right Turn.png"))
+    img_arrays[6] = np.asarray(Image.open("../Images/#6 Bottom-Left Turn.png"))
+    img_arrays[7] = np.asarray(Image.open("../Images/#7 Top-Right Turn.png"))
+    img_arrays[8] = np.asarray(Image.open("../Images/#8 Top-Left Turn.png"))
+    img_arrays[9] = np.asarray(Image.open("../Images/#9 Bottom-Right & Left 3-Way.png"))
+    img_arrays[10] = np.asarray(Image.open("../Images/#10 Bottom-Right & Top 3-Way.png"))
+    img_arrays[11] = np.asarray(Image.open("../Images/#11 Bottom-Left & Right 3-Way.png"))
+    img_arrays[12] = np.asarray(Image.open("../Images/#12 Bottom-Left & Top 3-Way.png"))
+    img_arrays[13] = np.asarray(Image.open("../Images/#13 Top-Right & Left 3-Way.png"))
+    img_arrays[14] = np.asarray(Image.open("../Images/#14 Top-Right & Bottom 3-Way.png"))
+    img_arrays[15] = np.asarray(Image.open("../Images/#15 Top-Left & Right 3-Way.png"))
+    img_arrays[16] = np.asarray(Image.open("../Images/#16 Top-Left & Bottom 3-Way.png"))
 
 # xyToIndex contains the index for movement in direction, but you access it here with (x, y).
 # this greatly simplifies the index grabbing as you no longer need 3x3x4 values of movement for direction and only 2x4s.
@@ -151,7 +151,7 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
     every new game movement.
     """
     global iterations, bestBoard, bestInts, lowestTracksRemaining, boardSolveTime, semaphoresRemaining,\
-        frame_arrays, stored_frame
+        frame_arrays
 
     # remove decoys if they crashed last frame and do all the proper removal things
     crashed = [i for i in range(len(cars_to_use) - 1, -1, -1) if cars_to_use[i][4] == -1]
@@ -625,10 +625,10 @@ def generate_tracks(cars_to_use, board_to_use, ints_to_use, available_tracks, he
 
 # use 11-8b for visualizer
 # 10-7 problem needs to be fixed where semaphores only check for last generated car
-for lvl in [lc.levels["1-11B"]]:
-# for key in lc.world7:
-#     lvl = lc.world7[key]
-#     print(key)
+# for lvl in [lc.levels["1-13A"]]:
+for key in lc.world1:
+    lvl = lc.world1[key]
+    print(key)
     lowestTracksRemaining = -1
     semaphoresRemaining = -1
     # check how many parameters are in the level before doing it to load it properly
@@ -685,7 +685,7 @@ for lvl in [lc.levels["1-11B"]]:
     tunnel_exit_velos = np.asarray(((-1, 0), (0, -1), (1, 0), (0, 1)))
     swap_positions = [np.argwhere(interactions == switch_num + 15) for switch_num in range(1, 5)]
 
-    frame_arrays = []
+    frame_arrays = [board]
 
     print('Generating...')
     boardSolveTime = time.time()
@@ -714,12 +714,10 @@ for lvl in [lc.levels["1-11B"]]:
     if bestBoard is None:
         break
     if capture_img:
+        print(f'Captured frames: {len(frame_arrays)}')
         frame_arrays.append(bestBoard)
-        if len(frame_arrays) > 1:
-            final_imgs = []
-            for frame in frame_arrays:
-                final_imgs.append(board_to_img(frame))
-            final_imgs[0].save("out.gif", save_all=True, append_images=final_imgs[1:], duration=finalTime/len(frame_arrays)-2)
-        elif len(frame_arrays) == 1:
-            Image.fromarray(frame_arrays[0], mode="RGBA").save("out.png")
+        final_imgs = []
+        for frame in frame_arrays:
+            final_imgs.append(board_to_img(frame))
+        final_imgs[0].save(f'{key}.gif', save_all=True, append_images=final_imgs[1:], duration=1)
 print(f'\nFully Complete in: {round((time.time() - program_start_time) * 10e3) / 10e3}s')

@@ -28,7 +28,7 @@ interactionIndices = (
     # 22 = Station 3
     # 23 = Station 4
 
-    # 24 = Switch-gate
+    # 24 = Switch-rail
     # 25 = Semaphore
     # 26 = Deactivated Semaphore/Station/Post Office
 
