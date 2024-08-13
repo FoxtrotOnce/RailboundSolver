@@ -139,43 +139,16 @@ class TileGridUI:
         offset_x = (canvas_width - grid_width) // 2
         offset_y = (canvas_height - grid_height) // 2
 
-        for row in range(self.grid.height):
-            for col in range(self.grid.width):
-                x1 = offset_x + col * cell_width
-                y1 = offset_y + row * cell_height
-                x2 = x1 + cell_width
-                y2 = y1 + cell_height
+        # Render the grid
+        self.grid.render(
+            self.canvas, offset_x, offset_y, cell_width, cell_height, self.tiles
+        )
 
-                tile_index = self.grid.get_tile(row, col)
-                tile_image = self.get_tile_image(tile_index, (cell_width, cell_height))
-                self.canvas.create_image(x1, y1, anchor="nw", image=tile_image)
-                self.canvas.create_rectangle(x1, y1, x2, y2, outline="gray")
-
-        # Draw carts
+        # Render the carts
         for cart in self.carts:
             x1 = offset_x + cart.x * cell_width
             y1 = offset_y + cart.y * cell_height
-
-            # Calculate cart size (25% of cell size)
-            cart_size = min(cell_width, cell_height) * 0.25
-            cart_x1 = x1 + (cell_width - cart_size) / 2
-            cart_y1 = y1 + (cell_height - cart_size) / 2
-            cart_x2 = cart_x1 + cart_size
-            cart_y2 = cart_y1 + cart_size
-
-            # Draw cart body
-            self.canvas.create_oval(
-                cart_x1, cart_y1, cart_x2, cart_y2, fill="red", outline="black", width=2
-            )
-
-            # Draw velocity vector
-            center_x, center_y = (cart_x1 + cart_x2) / 2, (cart_y1 + cart_y2) / 2
-            vector_length = cart_size * 0.8  # 80% of cart size
-            end_x = center_x + cart.xvelo * vector_length
-            end_y = center_y + cart.yvelo * vector_length
-            self.canvas.create_line(
-                center_x, center_y, end_x, end_y, fill="black", width=2, arrow=tk.LAST
-            )
+            cart.render(self.canvas, x1, y1, cell_width, cell_height)
 
     def get_tile_image(self, tile_index, size):
         if (tile_index, size) not in self.tile_images:
