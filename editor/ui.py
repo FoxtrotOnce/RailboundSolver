@@ -25,6 +25,8 @@ class TileGridUI:
         # Set default levels folder
         self.levels_folder = Path(__file__).parent.parent / "levels"
         self.load_file_tree()
+        self.update_canvas_size()
+        self.draw_grid()
 
     def setup_ui(self):
         # Create a main container frame
@@ -122,13 +124,28 @@ class TileGridUI:
         self.canvas.delete("all")
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-        cell_width = canvas_width // self.grid.width
-        cell_height = canvas_height // self.grid.height
+
+        # Calculate the size of each cell while maintaining aspect ratio
+        cell_width = min(
+            canvas_width // self.grid.width, canvas_height // self.grid.height
+        )
+        cell_height = cell_width
+
+        # Calculate the total grid size
+        grid_width = cell_width * self.grid.width
+        grid_height = cell_height * self.grid.height
+
+        # Calculate offset to center the grid in the canvas
+        offset_x = (canvas_width - grid_width) // 2
+        offset_y = (canvas_height - grid_height) // 2
 
         for row in range(self.grid.height):
             for col in range(self.grid.width):
-                x1, y1 = col * cell_width, row * cell_height
-                x2, y2 = x1 + cell_width, y1 + cell_height
+                x1 = offset_x + col * cell_width
+                y1 = offset_y + row * cell_height
+                x2 = x1 + cell_width
+                y2 = y1 + cell_height
+
                 tile_index = self.grid.get_tile(row, col)
                 tile_image = self.get_tile_image(tile_index, (cell_width, cell_height))
                 self.canvas.create_image(x1, y1, anchor="nw", image=tile_image)
@@ -136,8 +153,8 @@ class TileGridUI:
 
         # Draw carts
         for cart in self.carts:
-            x1, y1 = cart.x * cell_width, cart.y * cell_height
-            x2, y2 = x1 + cell_width, y1 + cell_height
+            x1 = offset_x + cart.x * cell_width
+            y1 = offset_y + cart.y * cell_height
 
             # Calculate cart size (25% of cell size)
             cart_size = min(cell_width, cell_height) * 0.25
@@ -179,21 +196,37 @@ class TileGridUI:
     def on_canvas_click(self, event):
         canvas_width = self.canvas.winfo_width()
         canvas_height = self.canvas.winfo_height()
-        cell_width = canvas_width // self.grid.width
-        cell_height = canvas_height // self.grid.height
-        col = event.x // cell_width
-        row = event.y // cell_height
+        cell_width = min(
+            canvas_width // self.grid.width, canvas_height // self.grid.height
+        )
+        cell_height = cell_width
 
-        if self.cart_place_mode:
-            self.place_or_update_cart(col, row)
-        elif hasattr(self, "selected_tile_index"):
-            self.grid.set_tile(row, col, self.selected_tile_index)
+        grid_width = cell_width * self.grid.width
+        grid_height = cell_height * self.grid.height
+        offset_x = (canvas_width - grid_width) // 2
+        offset_y = (canvas_height - grid_height) // 2
+
+        # Adjust for offset
+        adjusted_x = event.x - offset_x
+        adjusted_y = event.y - offset_y
+
+        # Check if click is within the grid
+        if 0 <= adjusted_x < grid_width and 0 <= adjusted_y < grid_height:
+            col = adjusted_x // cell_width
+            row = adjusted_y // cell_height
+
+            if self.cart_place_mode:
+                self.place_or_update_cart(col, row)
+            elif hasattr(self, "selected_tile_index"):
+                self.grid.set_tile(row, col, self.selected_tile_index)
+            else:
+                print(
+                    "No tile selected. Please select a tile type before clicking on the grid."
+                )
+
+            self.draw_grid()
         else:
-            print(
-                "No tile selected. Please select a tile type before clicking on the grid."
-            )
-
-        self.draw_grid()
+            print("Click outside the grid area")
 
     def place_or_update_cart(self, col, row):
         existing_cart = next(
