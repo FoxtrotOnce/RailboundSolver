@@ -22,39 +22,6 @@ class Tile:
         self.img = img
         self.index = next(Tile.index_counter)
 
-    def rotate(self, n) -> "Tile":
-        """
-        Create a new Tile instance with the rotated image.
-
-        Args:
-            n (int): The number of 90-degree clockwise rotations.
-
-        Returns:
-            Tile: A new Tile instance with the rotated image.
-        """
-        rotated_img = self.img.rotate(n * -90)
-        return Tile(f"{self.name}_rotated_{n}", rotated_img)
-
-    def flip(self, axis="vertical") -> "Tile":
-        """
-        Create a new Tile instance with the flipped image.
-
-        Args:
-            axis (str): The axis to flip the image. 'vertical' or 'horizontal'.
-
-        Returns:
-            Tile: A new Tile instance with the flipped image.
-        """
-        if axis not in ["vertical", "horizontal"]:
-            raise ValueError("Invalid axis. Use 'vertical' or 'horizontal'")
-
-        if axis == "vertical":
-            flipped_img = self.img.transpose(Image.FLIP_TOP_BOTTOM)
-        else:
-            flipped_img = self.img.transpose(Image.FLIP_LEFT_RIGHT)
-
-        return Tile(f"{self.name}_flipped_{axis}", flipped_img)
-
 
 def create_tiles() -> list[Tile]:
     """
@@ -68,41 +35,35 @@ def create_tiles() -> list[Tile]:
 
     tiles = []
 
-    # Define tile types, their image filenames, and their rotations/flips
+    # Define tile types and their image filenames in the correct order
     tile_types = {
-        "Empty": {"filename": "#0 Empty Tile.png", "variations": []},
-        "Curve": {"filename": "#5 Bottom-Right Turn.png", "variations": [1, 2, 3]},
-        "Straight": {"filename": "#2 Vertical Track.png", "variations": [1]},
-        "T_turn": {
-            "filename": "#12 Bottom-Left & Top 3-Way.png",
-            "variations": [1, 2, 3, ("flip", 0), ("flip", 1), ("flip", 2), ("flip", 3)],
-        },
-        "Fence": {"filename": "#4 Fence.png", "variations": []},
+        "Empty": "#0 Empty Tile.png",
+        "Horizontal": "#1 Horizontal Track.png",
+        "Vertical": "#2 Vertical Track.png",
+        "Ending": "#3 Ending Track.png",
+        "Fence": "#4 Fence.png",
+        "Bottom_Right_Turn": "#5 Bottom-Right Turn.png",
+        "Bottom_Left_Turn": "#6 Bottom-Left Turn.png",
+        "Top_Right_Turn": "#7 Top-Right Turn.png",
+        "Top_Left_Turn": "#8 Top-Left Turn.png",
+        "Bottom_Right_Left_3Way": "#9 Bottom-Right & Left 3-Way.png",
+        "Bottom_Right_Top_3Way": "#10 Bottom-Right & Top 3-Way.png",
+        "Bottom_Left_Right_3Way": "#11 Bottom-Left & Right 3-Way.png",
+        "Bottom_Left_Top_3Way": "#12 Bottom-Left & Top 3-Way.png",
+        "Top_Right_Left_3Way": "#13 Top-Right & Left 3-Way.png",
+        "Top_Right_Bottom_3Way": "#14 Top-Right & Bottom 3-Way.png",
+        "Top_Left_Right_3Way": "#15 Top-Left & Right 3-Way.png",
+        "Top_Left_Bottom_3Way": "#16 Top-Left & Bottom 3-Way.png",
     }
 
-    for tile_name, tile_info in tile_types.items():
-        image_path = image_dir / tile_info["filename"]
+    for tile_name, filename in tile_types.items():
+        image_path = image_dir / filename
         if not image_path.exists():
             print(f"Warning: Image file {image_path} not found. Skipping this tile.")
             continue
 
-        base_tile = Tile(tile_name, Image.open(image_path))
-        tiles.append(base_tile)
-
-        for variation in tile_info["variations"]:
-            if isinstance(variation, int):
-                tiles.append(base_tile.rotate(variation))
-            elif isinstance(variation, tuple) and variation[0] == "flip":
-                flipped = base_tile.flip()
-                if variation[1] > 0:
-                    tiles.append(flipped.rotate(variation[1]))
-                else:
-                    tiles.append(flipped)
-
-    # reset index from 0 to len(tiles)
-    # to avoid unexpected behavior when using index as a key in a dictionary
-    for i, tile in enumerate(tiles):
-        tile.index = i
+        tile = Tile(tile_name, Image.open(image_path))
+        tiles.append(tile)
 
     return tiles
 

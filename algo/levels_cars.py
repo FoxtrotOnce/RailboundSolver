@@ -3169,3 +3169,8 @@ levels.update(world11)
 levels.update(world12)
 levels.update(worldt)
 levels.update(world0)
+
+
+
+if __name__=='__main__':
+    print(world1['1-1'])
