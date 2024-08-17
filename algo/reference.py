@@ -1,4 +1,4 @@
-interactionIndices = (
+modifierIndices = (
     # 0 = Empty
     # 1 = Switch 1
     # 2 = Switch 2
@@ -61,9 +61,9 @@ boardIndices = (
     # 16 Top-Left & Bottom 3-Way
 
     # 17 Left-Facing Tunnel
-    # 18 Up-Facing Tunnel
-    # 19 Right-Facing Tunnel
-    # 20 Down-Facing Tunnel
+    # 18 Right-Facing Tunnel
+    # 19 Down-Facing Tunnel
+    # 20 Up-Facing Tunnel
 
     # 21 Numeral Car Ending Track (Right Side)
     # 22 Numeral Car Ending Track (Left Side)
