@@ -730,15 +730,26 @@ for lvl in [lc.levels["2-3B"]]:
 
     frame_arrays = [[cars, board]]
 
+    print(board)
     print('Generating...')
     boardSolveTime = time.time()
     startTime = time.time()
 
-    generate_tracks(list(cars + decoys + ncars), np.array(board), np.array(modifiers), maxTracks,
+    params = [list(cars + decoys + ncars), np.array(board), np.array(modifiers), maxTracks,
                     np.zeros((len(cars + decoys + ncars), 4, *boardDims)), [[-1] * len(cars), [-1] * len(ncars)],
                     [False] * len(cars + decoys + ncars), np.full((len(cars + decoys + ncars), 2), -1),
                     [False] * len(cars + ncars), np.full((len(decoys), 2), -1), 0, semaphores,
-                    np.zeros((len(cars + decoys + ncars), 4, *boardDims)))
+                    np.zeros((len(cars + decoys + ncars), 4, *boardDims))]
+    sparams = [[rb.Car(*c[:5], rb.CarType(c[5])) for c in list(cars + decoys + ncars)], rb.Board(board, modifiers), maxTracks,\
+        np.zeros((len(cars + decoys + ncars), 4, *boardDims)), [[-1] * len(cars), [-1] * len(ncars)],\
+        np.full((len(cars + decoys + ncars), 2), -1),\
+        [False] * len(cars + ncars), np.full((len(decoys), 2), -1), 0, semaphores,
+        np.zeros((len(cars + decoys + ncars), 4, *boardDims))]
+
+    print(rb.State(*sparams))
+    quit(0)
+
+    generate_tracks(*params)
 
     finalTime = round((time.time() - startTime) * 10e3) / 10e3
     print(f'\nFinished in: {finalTime}s')

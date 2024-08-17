@@ -1,6 +1,7 @@
 import numpy as np  # used for the board class
 from enum import Enum  # used for the Tile class so track/mod identifying is easier
 import levels_cars as lc  # used for testing board
+from frozendict import frozendict  # used so the board is hashable
 
 
 class TrackName(Enum):
@@ -68,12 +69,16 @@ class Tile:
     def __init__(self, track: TrackName, mod: ModName):
         self.track = track
         self.mod = mod
+        self._hash = (track.value << 5) + mod.value
 
     def newtrack(self, track):
         return Tile(track, self.mod)
 
     def newmod(self, mod):
         return Tile(self.track, mod)
+
+    def __hash__(self):
+        return self._hash
 
     def __repr__(self):
         return f'Track:{self.track.value} ({self.track.name}), Mod:{self.mod.value} ({self.mod.name})'
@@ -86,6 +91,7 @@ class Board:
         for pos, track in np.ndenumerate(tracks):
             mod = mods[pos]
             self.tiles[pos[::-1]] = Tile(TrackName(track), ModName(mod))
+        self.tiles = frozendict(self.tiles)
 
     def __repr__(self):
         return str(self.tiles)
@@ -114,14 +120,13 @@ class Car:
 
 
 class State:
-    def __init__(self, cars, board, available_tracks, heatmaps, solved, stalled,
+    def __init__(self, cars: Car, board: Board, available_tracks, heatmaps, stalled,
                  switch_queue, station_stalled, crashed_decoys, mvmts_since_solved,
                  available_semaphores, heatmap_limits):
         self.cars = cars
         self.board = board
         self.available_tracks = available_tracks
         self.heatmaps = heatmaps
-        self.solved = solved
         self.stalled = stalled
         self.switch_queue = switch_queue
         self.station_stalled = station_stalled
@@ -131,15 +136,12 @@ class State:
         self.heatmap_limits = heatmap_limits
 
     def return_copy(self):
-        return State(self.cars, self.board, self.available_tracks, self.heatmaps, self.solved,
+        return State(self.cars, self.board, self.available_tracks, self.heatmaps,
                      self.stalled, self.switch_queue, self.station_stalled, self.crashed_decoys,
                      self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits)
 
+    def __hash__(self):
+        return hash
+
     def __repr__(self):
         return f'{self.cars}, {self.board}'
-
-
-# boardi, cars, tracks, mods = lc.levels["4-3"]
-# x = Board(boardi, mods).tiles
-# print(x)
-# print(hash(tuple(z.track.value for z in x.values())))
