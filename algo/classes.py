@@ -2,6 +2,7 @@ import numpy as np  # used for the board class
 from enum import Enum  # used for the Tile class so track/mod identifying is easier
 import levels_cars as lc  # used for testing board
 from frozendict import frozendict  # used so the board is hashable
+from timeit import timeit  # used for testing lines
 
 
 class TrackName(Enum):
@@ -28,6 +29,30 @@ class TrackName(Enum):
     UP_FACING_TUNNEL = 20
     NCAR_ENDING_TRACK_RIGHT = 21
     NCAR_ENDING_TRACK_LEFT = 22
+
+    @classmethod
+    def is_straight(cls, track):
+        return 1 <= track.value <= 2
+
+    @classmethod
+    def is_end(cls, track):
+        return track.value == 3
+
+    @classmethod
+    def is_turn(cls, track):
+        return 5 <= track.value <= 8
+
+    @classmethod
+    def is_3way(cls, track):
+        return 9 <= track.value <= 16
+
+    @classmethod
+    def is_tunnel(cls, track):
+        return 17 <= track.value <= 20
+
+    @classmethod
+    def is_ncar_end(cls, track):
+        return 21 <= track.value <= 22
 
 
 class ModName(Enum):
@@ -64,18 +89,32 @@ class ModName(Enum):
     POST_OFFICE_3 = 30
     POST_OFFICE_4 = 31
 
+    @classmethod
+    def is_swapping(cls, mod):
+        return 16 <= mod.value <= 19
+
+    @classmethod
+    def is_switch(cls, mod):
+        return mod.value == 24
+
 
 class Tile:
     def __init__(self, track: TrackName, mod: ModName):
+        if not (isinstance(track, TrackName) and isinstance(mod, ModName)):
+            print('ERROR: Given track/mod is not type TrackName/ModName')
+            raise TypeError
         self.track = track
         self.mod = mod
         self._hash = (track.value << 5) + mod.value
 
-    def newtrack(self, track):
+    def changetrack(self, track: TrackName):
         return Tile(track, self.mod)
 
-    def newmod(self, mod):
+    def changemod(self, mod: ModName):
         return Tile(self.track, mod)
+
+    def __eq__(self, other):
+        return hash(self._hash) == hash(other)
 
     def __hash__(self):
         return self._hash
@@ -85,22 +124,90 @@ class Tile:
 
 
 class Board:
-    def __init__(self, tracks, mods):
-        self.tiles = dict()
+    def __init__(self, shape, tiles):
+        self.shape = shape
+        self._tiles = tiles
+        self._queue = {}
 
-        for pos, track in np.ndenumerate(tracks):
-            mod = mods[pos]
-            self.tiles[pos[::-1]] = Tile(TrackName(track), ModName(mod))
-        self.tiles = frozendict(self.tiles)
+    @classmethod
+    def from_numpy(cls, tracks, mods):
+        shape = np.shape(tracks)
+        tiles = frozendict({pos[::-1]: Tile(TrackName(track), ModName(mods[pos]))
+                            for pos, track in np.ndenumerate(tracks)})
+        return cls(shape, tiles)
+
+    def changetile(self, x, y, track=None, mod=None):
+        changed_tiles = None
+        if track is None:
+            changed_tiles = self._tiles | {(x, y): self._tiles[(x, y)].changemod(mod)}
+        elif mod is None:
+            changed_tiles = self._tiles | {(x, y): self._tiles[(x, y)].changetrack(track)}
+
+        return Board(self.shape, changed_tiles)
+
+    def closegate(self, pos):
+        gate = self._tiles[pos]
+        if ModName.OPEN_GATE_1.value <= gate.mod.value <= ModName.OPEN_GATE_4.value and\
+                gate.mod.value % 2 == 1:
+            return self.changetile(pos[0], pos[1], mod=ModName(gate.mod.value - 1))
+        else:
+            print('ERROR: Given tile is not an open gate.')
+            print(pos, gate.mod)
+            raise IndexError
+
+    def opengate(self, pos):
+        gate = self._tiles[pos]
+        if ModName.CLOSED_GATE_1.value <= gate.mod.value <= ModName.CLOSED_GATE_4.value and\
+                gate.mod.value % 2 == 0:
+            return self.changetile(pos[0], pos[1], mod=ModName(gate.mod.value + 1))
+        else:
+            print('ERROR: Given tile is not a closed gate.')
+            print(pos, gate.mod)
+            raise IndexError
+
+    def swap_track(self, pos):
+        track = self._tiles[pos].track.value
+        return self.changetile(pos[0], pos[1], track=TrackName([11, 14, 9, 16, 15, 10, 13, 12][track - 9]))
+
+    def getitems(self):
+        return (self._tiles.item(i) for i in range(len(self._tiles)))
+
+    def queue_changes(self, pos, track):
+        self._queue[pos] = self._tiles[pos].changetrack(track)
+
+    def do_changes(self):
+        changed = self._tiles | self._queue
+        self._queue = {}
+        return Board(self.shape, changed)
+
+    def __copy__(self):
+        return Board(self.shape, self._tiles)
+
+    def __getitem__(self, item):
+        return self._tiles[item]
+
+    def __len__(self):
+        return len(self._tiles)
+
+    def __hash__(self):
+        return hash(self._tiles)
 
     def __repr__(self):
-        return str(self.tiles)
+        to_return = np.zeros(self.shape, dtype=int)
+        for key in self._tiles:
+            to_return[key[::-1]] = self._tiles[key].track.value
+        return str(to_return)
 
 
+# TODO: change numeral to 1 and decoy to 2
 class CarType(Enum):
+    CRASHED = -1
     NORMAL = 0
-    NUMERAL = 1
-    DECOY = 2
+    DECOY = 1
+    NUMERAL = 2
+
+    def __hash__(self):
+        return self.value
 
 
 class Car:
@@ -115,14 +222,25 @@ class Car:
     def move(self, x, y, xvelo, yvelo):
         return Car(x, y, xvelo, yvelo, self.num, self.type)
 
+    def getdir(self, xvelo=None, yvelo=None):
+        if xvelo is None:
+            xvelo, yvelo = self.xvelo, self.yvelo
+        return ((4, 2, 3), (1, 4, 4), (0, 4, 4))[xvelo][yvelo]
+
+    def __getitem__(self, item):
+        return (self.x, self.y, self.xvelo, self.yvelo, self.num, self.type)[item]
+
+    def __hash__(self):
+        return hash((self.x, self.y, self.xvelo, self.yvelo, self.num, self.type))
+
     def __repr__(self):
-        return f'pos:{self.x, self.y}, velo:{self.xvelo, self.yvelo}, n:{self.num}, typ:{self.type.value} ({self.type.name})'
+        return f'{self.x, self.y, self.xvelo, self.yvelo, self.num, self.type.value} ({self.type.name} {self.num})'
 
 
 class State:
-    def __init__(self, cars: Car, board: Board, available_tracks, heatmaps, stalled,
-                 switch_queue, station_stalled, crashed_decoys, mvmts_since_solved,
-                 available_semaphores, heatmap_limits):
+    def __init__(self, cars, board: Board, available_tracks=None, heatmaps=None, stalled=None,
+                 switch_queue=None, station_stalled=None, crashed_decoys=None, mvmts_since_solved=None,
+                 available_semaphores=None, heatmap_limits=None):
         self.cars = cars
         self.board = board
         self.available_tracks = available_tracks
@@ -135,13 +253,13 @@ class State:
         self.available_semaphores = available_semaphores
         self.heatmap_limits = heatmap_limits
 
-    def return_copy(self):
-        return State(self.cars, self.board, self.available_tracks, self.heatmaps,
-                     self.stalled, self.switch_queue, self.station_stalled, self.crashed_decoys,
-                     self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits)
+    # def return_copy(self):
+    #     return State(self.cars, self.board, self.available_tracks, self.heatmaps,
+    #                  self.stalled, self.switch_queue, self.station_stalled, self.crashed_decoys,
+    #                  self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits)
 
     def __hash__(self):
-        return hash
+        return hash((self.cars, self.board))
 
     def __repr__(self):
         return f'{self.cars}, {self.board}'

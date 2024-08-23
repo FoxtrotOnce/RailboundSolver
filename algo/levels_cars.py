@@ -1,5 +1,6 @@
 import numpy as np
 
+
 board1 = np.asarray([[1, 0, 0, 2, 5,21],
                      [0, 0, 0,13,12, 0],
                      [1, 0, 0, 0, 7, 3],
