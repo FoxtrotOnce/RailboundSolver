@@ -238,7 +238,7 @@ class Car:
 
 
 class State:
-    def __init__(self, cars, board: Board, available_tracks=None, heatmaps=None, stalled=None,
+    def __init__(self, cars, board, available_tracks=None, heatmaps=None, stalled=None,
                  switch_queue=None, station_stalled=None, crashed_decoys=None, mvmts_since_solved=None,
                  available_semaphores=None, heatmap_limits=None):
         self.cars = cars
@@ -257,9 +257,12 @@ class State:
     #     return State(self.cars, self.board, self.available_tracks, self.heatmaps,
     #                  self.stalled, self.switch_queue, self.station_stalled, self.crashed_decoys,
     #                  self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits)
+    def params(self):
+        return self.cars, self.board, self.available_tracks, self.heatmaps, self.stalled, self.switch_queue,\
+            self.station_stalled, self.crashed_decoys, self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits
 
     def __hash__(self):
         return hash((self.cars, self.board))
 
     def __repr__(self):
-        return f'{self.cars}, {self.board}'
+        return f'{self.board}, {self.cars}'
