@@ -1,6 +1,8 @@
 import numpy as np
 import classes as rb
 from levels_cars import levels
+import pprint
+from load_and_save_functions import save_levels_to_json, load_levels_from_json
 
 
 def convert_level(old_level):
@@ -37,55 +39,61 @@ def convert_level(old_level):
     return [board, tuple(cars), move_limit, semaphores]
 
 
-# Convert all levels
-new_levels = {}
-for key, level in levels.items():
-    try:
-        new_levels[key] = convert_level(level)
-    except Exception as e:
-        print(f"Error converting level {key}: {e}")
+if __name__ == "__main__":
+    # Convert all levels
+    new_levels = {}
+    for key, level in levels.items():
+        try:
+            new_levels[key] = convert_level(level)
+        except Exception as e:
+            print(f"Error converting level {key}: {e}")
 
+    # Save levels to JSON
+    save_levels_to_json(new_levels, "levels.json")
 
-import pprint
+    print("Conversion complete. Levels saved to 'levels.json'")
 
-print("TO CHECK:")
-pprint.pprint(new_levels["12-10"])
+    print("TO CHECK:")
+    pprint.pprint(new_levels["12-10"])
 
+    # THE TRUE DATA FROM DISCORD CHAT
+    board12_10 = np.asarray(
+        [
+            [2, 0, 1, 0, 0, 0, 2, 0],
+            [0, 0, 1, 1, 0, 0, 10, 17],
+            [2, 0, 0, 0, 0, 0, 2, 0],
+            [2, 0, 0, 0, 1, 17, 10, 21],
+            [7, 0, 0, 4, 4, 4, 2, 0],
+            [5, 0, 0, 0, 6, 18, 16, 0],
+            [2, 0, 0, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 6, 0, 7, 3],
+            [2, 0, 20, 0, 2, 0, 0, 0],
+        ]
+    )
+    interactions12_10 = np.asarray(
+        [
+            [0, 0, 3, 0, 0, 0, 0, 0],
+            [0, 0, 2, 0, 0, 0, 0, 5],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [21, 0, 0, 0, 8, 6, 18, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 6, 24, 0],
+            [28, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 10, 0],
+            [0, 0, 5, 0, 0, 0, 0, 0],
+        ]
+    )
+    board12_10 = rb.Board.from_numpy(board12_10, interactions12_10)
+    cars12_10 = (
+        rb.Car(0, 8, 0, -1, 0, rb.CarType.NORMAL),
+        rb.Car(4, 8, 0, -1, 1, rb.CarType.NORMAL),
+        rb.Car(6, 0, 0, 1, 0, rb.CarType.DECOY),
+        rb.Car(0, 0, 0, 1, 0, rb.CarType.NUMERAL),
+    )
 
-# THE TRUE DATA FROM DISCORD CHAT
-board12_10 = np.asarray(
-    [
-        [2, 0, 1, 0, 0, 0, 2, 0],
-        [0, 0, 1, 1, 0, 0, 10, 17],
-        [2, 0, 0, 0, 0, 0, 2, 0],
-        [2, 0, 0, 0, 1, 17, 10, 21],
-        [7, 0, 0, 4, 4, 4, 2, 0],
-        [5, 0, 0, 0, 6, 18, 16, 0],
-        [2, 0, 0, 0, 0, 0, 2, 0],
-        [0, 0, 0, 0, 6, 0, 7, 3],
-        [2, 0, 20, 0, 2, 0, 0, 0],
-    ]
-)
-interactions12_10 = np.asarray(
-    [
-        [0, 0, 3, 0, 0, 0, 0, 0],
-        [0, 0, 2, 0, 0, 0, 0, 5],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [21, 0, 0, 0, 8, 6, 18, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 6, 24, 0],
-        [28, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 10, 0],
-        [0, 0, 5, 0, 0, 0, 0, 0],
-    ]
-)
-board12_10 = rb.Board.from_numpy(board12_10, interactions12_10)
-cars12_10 = (
-    rb.Car(0, 8, 0, -1, 0, rb.CarType.NORMAL),
-    rb.Car(4, 8, 0, -1, 1, rb.CarType.NORMAL),
-    rb.Car(6, 0, 0, 1, 0, rb.CarType.DECOY),
-    rb.Car(0, 0, 0, 1, 0, rb.CarType.NUMERAL),
-)
+    print("EXPECTED:")
+    pprint.pprint([board12_10, cars12_10, 26, 1])
 
-print("EXPECTED:")
-pprint.pprint([board12_10, cars12_10, 26, 1])
+    print("FROM LOADED JSON:")
+    loaded_levels = load_levels_from_json("levels.json")
+    pprint.pprint(loaded_levels["12-10"])
