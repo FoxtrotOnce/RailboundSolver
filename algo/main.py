@@ -7,7 +7,6 @@ import time  # used for time reports on minimum solutions and final completion
 import levels_cars as lc  # separate file with every single level setup variable
 from timeit import timeit  # used for line testing
 import itertools  # used for generating different board combinations
-from PIL import Image  # used for generation visualization (optional)
 import classes as rb
 
 T = rb.TrackName
@@ -16,49 +15,6 @@ M = rb.ModName
 ti = rb.Tile(T.FENCE_OR_STATION, M.DEACTIVATED_MOD)
 
 program_start_time = time.time()
-
-img_arrays = np.zeros((40, 90, 90, 4), dtype=np.int8)
-img_fps = 120
-capture_img = False
-if capture_img:
-    img_arrays[0] = np.asarray(Image.open("../images/#0 Empty Tile.png"))
-    img_arrays[1] = np.asarray(Image.open("../images/#1 Horizontal Track.png"))
-    img_arrays[2] = np.asarray(Image.open("../images/#2 Vertical Track.png"))
-    img_arrays[3] = np.asarray(Image.open("../images/#3 Ending Track.png"))
-    img_arrays[4] = np.asarray(Image.open("../images/#4 Fence.png"))
-    img_arrays[5] = np.asarray(Image.open("../images/#5 Bottom-Right Turn.png"))
-    img_arrays[6] = np.asarray(Image.open("../images/#6 Bottom-Left Turn.png"))
-    img_arrays[7] = np.asarray(Image.open("../images/#7 Top-Right Turn.png"))
-    img_arrays[8] = np.asarray(Image.open("../images/#8 Top-Left Turn.png"))
-    img_arrays[9] = np.asarray(Image.open("../images/#9 Bottom-Right & Left 3-Way.png"))
-    img_arrays[10] = np.asarray(Image.open("../images/#10 Bottom-Right & Top 3-Way.png"))
-    img_arrays[11] = np.asarray(Image.open("../images/#11 Bottom-Left & Right 3-Way.png"))
-    img_arrays[12] = np.asarray(Image.open("../images/#12 Bottom-Left & Top 3-Way.png"))
-    img_arrays[13] = np.asarray(Image.open("../images/#13 Top-Right & Left 3-Way.png"))
-    img_arrays[14] = np.asarray(Image.open("../images/#14 Top-Right & Bottom 3-Way.png"))
-    img_arrays[15] = np.asarray(Image.open("../images/#15 Top-Left & Right 3-Way.png"))
-    img_arrays[16] = np.asarray(Image.open("../images/#16 Top-Left & Bottom 3-Way.png"))
-    img_arrays[17] = np.asarray(Image.open("../images/#17 Left-Facing Tunnel.png"))
-    img_arrays[18] = np.asarray(Image.open("../images/#18 Right-Facing Tunnel.png"))
-    img_arrays[19] = np.asarray(Image.open("../images/#19 Down-Facing Tunnel.png"))
-    img_arrays[20] = np.asarray(Image.open("../images/#20 Up-Facing Tunnel.png"))
-    img_arrays[21] = np.asarray(Image.open("../images/Car 1.png"))
-    img_arrays[22] = np.asarray(Image.open("../images/Car 2.png"))
-    img_arrays[23] = np.asarray(Image.open("../images/Car 3.png"))
-    img_arrays[24] = np.asarray(Image.open("../images/Perm #1.png"))
-    img_arrays[25] = np.asarray(Image.open("../images/Perm #2.png"))
-    img_arrays[28] = np.asarray(Image.open("../images/Perm #5.png"))
-    img_arrays[29] = np.asarray(Image.open("../images/Perm #6.png"))
-    img_arrays[30] = np.asarray(Image.open("../images/Perm #7.png"))
-    img_arrays[31] = np.asarray(Image.open("../images/Perm #8.png"))
-    img_arrays[32] = np.asarray(Image.open("../images/Perm #9.png"))
-    img_arrays[33] = np.asarray(Image.open("../images/Perm #10.png"))
-    img_arrays[34] = np.asarray(Image.open("../images/Perm #11.png"))
-    img_arrays[35] = np.asarray(Image.open("../images/Perm #12.png"))
-    img_arrays[36] = np.asarray(Image.open("../images/Perm #13.png"))
-    img_arrays[37] = np.asarray(Image.open("../images/Perm #14.png"))
-    img_arrays[38] = np.asarray(Image.open("../images/Perm #15.png"))
-    img_arrays[39] = np.asarray(Image.open("../images/Perm #16.png"))
 
 # generatableTracks contains each track type the car can generate while going (left, right, down, up)
 generatableTracks = (
@@ -120,28 +76,6 @@ directions = (
     ((2, 2), (0, 0), (2, 2,), (2, 2), (0, 0)),  # 21 Numeral Car Ending Track (Right Side)
     ((0, 0), (2, 2), (2, 2,), (2, 2), (0, 0))  # 22 Numeral Car Ending Track (Left Side)
 )
-
-
-def board_to_img(cars_to_use, board_to_use):
-    full_img = np.zeros((board.shape[0] * 90, board.shape[1] * 90, 4), dtype=np.int8)
-    for i, track in np.ndenumerate(board_to_use):
-        if board[i[0], i[1]] == board_to_use[i[0], i[1]] and (0 < track <= 2 or 4 < track <= 16):
-            track += 23
-        full_img[i[0] * 90:(i[0] + 1) * 90, i[1] * 90:(i[1] + 1) * 90] = img_arrays[track]
-    for car in cars_to_use:
-        x, y = car.y, car.x
-        img_to_use = Image.fromarray(img_arrays[21 + car.num], "RGBA")
-        match car.getdir():
-            case 0:
-                img_to_use = img_to_use.rotate(180)
-            case 2:
-                img_to_use = img_to_use.rotate(270)
-            case 3:
-                img_to_use = img_to_use.rotate(90)
-        img_below_car = Image.fromarray(full_img[x * 90:(x + 1) * 90, y * 90:(y + 1) * 90], "RGBA")
-        full_img[x * 90:(x + 1) * 90, y * 90:(y + 1) * 90] = np.asarray(
-            Image.alpha_composite(img_below_car, img_to_use), dtype=np.int8)
-    return Image.fromarray(full_img[:, :, :3], "RGB")
 
 
 def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
@@ -671,8 +605,6 @@ def generate_tracks(state_to_use):
         available_semaphores -= placed_semaphores
         board_to_pass = board_to_pass.do_changes()
         cars_to_pass = list(car_combos[combo_num])
-        if (time.time() - startTime) // (round(1 / img_fps * 1000) / 1000) > len(frame_arrays) and capture_img:
-            frame_arrays.append([cars_to_pass, board_to_pass])
         # print(board_to_pass, '\n', cars_to_pass)
         # recursive call helps with debugging
         # generate_tracks(
@@ -824,17 +756,9 @@ for lvl in [lc.levels["4-9"]]:
     print(bestBoard)
     if semaphores > 0:
         print(f'Semaphores Remaining: {semaphoresRemaining}')
-    # for semaphore_pos in np.argwhere((bestMods == 25) | (bestMods == 26)):
-    #     if modifiers[semaphore_pos[0], semaphore_pos[1]] == 0:
-    #         print(
-    #             f'~~ Semaphore at: {semaphore_pos[::-1]} (On a [{bestBoard[semaphore_pos[0], semaphore_pos[1]]}] tile)')
+    for semaphore_pos in np.argwhere((bestMods == 25) | (bestMods == 26)):
+        if modifiers[semaphore_pos[0], semaphore_pos[1]] == 0:
+            print(
+                f'~~ Semaphore at: {semaphore_pos[::-1]} (On a [{bestBoard[semaphore_pos[0], semaphore_pos[1]]}] tile)')
     print('--------------------------------------------------')
-    if capture_img:
-        print(f'Captured frames: {len(frame_arrays)}')
-        frame_arrays.append([[], bestBoard])
-        final_imgs = []
-        for frame in frame_arrays:
-            final_imgs.append(board_to_img(frame[0], frame[1]))
-        # final_imgs[0].save(f'{key}.gif', save_all=True, append_images=final_imgs[1:], duration=1)
-        final_imgs[0].save(f'out.gif', save_all=True, append_images=final_imgs[1:], duration=1)
 print(f'\nFully Complete in: {round((time.time() - program_start_time) * 10e3) / 10e3}s')
