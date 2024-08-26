@@ -1,22 +1,50 @@
-# Editor Module
+# React + TypeScript + Vite
 
-The editor module is a graphical user interface (GUI) for creating and editing tile-based grids and managing carts within those grids. This module is built using the tkinter library and provides various functionalities to interact with the grid and carts.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Files
+Currently, two official plugins are available:
 
-- **main.py**: Entry point for the editor application.
-- **cart.py**: Defines the Cart class, which represents a cart in the grid.
-- **grid.py**: Defines the Grid class, which represents the tile grid.
-- **tiles.py**: Contains definitions for different types of tiles.
-- **ui.py**: Contains the TileGridUI class, which handles the GUI and user interactions.
-- **utils.py**: Utility functions used across the editor module.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Usage
+## Expanding the ESLint configuration
 
-To run the editor, execute the main.py file:
+If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
 
-```sh
-python editor/main.py
+- Configure the top-level `parserOptions` property like this:
+
+```js
+export default tseslint.config({
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
 ```
 
-This will launch the GUI, allowing you to create and edit grids, place and update carts, and save/load grid configurations.
+- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
+- Optionally add `...tseslint.configs.stylisticTypeChecked`
+- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+
+```js
+// eslint.config.js
+import react from 'eslint-plugin-react'
+
+export default tseslint.config({
+  // Set the react version
+  settings: { react: { version: '18.3' } },
+  plugins: {
+    // Add the react plugin
+    react,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended rules
+    ...react.configs.recommended.rules,
+    ...react.configs['jsx-runtime'].rules,
+  },
+})
+```
