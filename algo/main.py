@@ -157,42 +157,15 @@ def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
     @functools.wraps(func)
     def facilitator(first_state):
         init_tracks = first_state.available_tracks
-        # option 1 (empty keys are removed)
-        states = {
-            init_tracks: deque([first_state])
-        }
-        while keys := states.keys():
-            while queue := states[key := max(keys)]:
+        states = {k: deque() for k in range(init_tracks, -1, -1)}
+        states[init_tracks].append(first_state)
+
+        for queue in states.values():
+            while queue:
                 for new_state in func(queue.popleft()):
-                    if (k := new_state.available_tracks) not in states:
-                        states[k] = deque()
-                    states[k].append(new_state)
-                if not queue:
-                    states.pop(key)
-                    break
-        # option 2 (all keys are present, empty values are empty deques)
-        # states = {k: deque() for k in range(init_tracks, -1, -1)}
-        # states[init_tracks].append(first_state)
-        #
-        # highest_track = init_tracks
-        # while queue := states[highest_track]:
-        #     for new_state in func(queue.popleft()):
-        #         if (k := new_state.available_tracks) not in states:
-        #             states[k] = deque()
-        #         states[k].append(new_state)
-        #     while not states[highest_track] and highest_track:
-        #         states.pop(highest_track)
-        #         highest_track -= 1
-        # option 3 (empty track counts on the top are not trimmed, instead skipped once empty)
-        # states = {k: deque() for k in range(init_tracks, -1, -1)}
-        # states[init_tracks].append(first_state)
-        #
-        # for queue in states.values():
-        #     while queue:
-        #         for new_state in func(queue.popleft()):
-        #             if (k := new_state.available_tracks) not in states:
-        #                 states[k] = deque()
-        #             states[k].append(new_state)
+                    if new_state.solved:
+                        return
+                    states[new_state.available_tracks].append(new_state)
 
     return facilitator
 
@@ -218,7 +191,7 @@ def generate_tracks(state_to_use):
 
     cars_to_use, board_to_use, available_tracks, heatmaps,\
     stalled, switch_queue, station_stalled, crashed_decoys,\
-    mvmts_since_solved, available_semaphores, heatmap_limits = state_to_use.params()
+    mvmts_since_solved, available_semaphores, heatmap_limits, solved = state_to_use.params()
 
     hashed_state = hash(rb.State(tuple(cars_to_use), board_to_use))
 
@@ -603,7 +576,8 @@ def generate_tracks(state_to_use):
             semaphoresRemaining = available_semaphores
             print(f'Found a new minimum solution! ({round((time.time() - boardSolveTime) * 10e3) / 10e3}s)')
             boardSolveTime = time.time()
-            return
+            yield rb.State(cars_to_use, board_to_use, available_tracks, heatmaps, stalled, switch_queue, station_stalled,
+                           crashed_decoys, mvmts_since_solved, available_semaphores, heatmap_limits, True)
         else:
             mvmts_since_solved += 1
     # if a car solved this frame, remove it from generation
@@ -717,9 +691,9 @@ def generate_tracks(state_to_use):
 # use 11-8b for visualizer
 # 10-7 problem needs to be fixed where semaphores only check for last generated car
 # TODO: fix 4-9
-for lvl in [lc.levels["4-9B"]]:
-# for key in lc.world1:
-#     lvl = lc.world1[key]
+for lvl in [lc.levels["4-9"]]:
+# for key in lc.world4:
+#     lvl = lc.world4[key]
 #     print(key)
     lowestTracksRemaining = -1
     semaphoresRemaining = -1
@@ -850,10 +824,10 @@ for lvl in [lc.levels["4-9B"]]:
     print(bestBoard)
     if semaphores > 0:
         print(f'Semaphores Remaining: {semaphoresRemaining}')
-    for semaphore_pos in np.argwhere((bestMods == 25) | (bestMods == 26)):
-        if modifiers[semaphore_pos[0], semaphore_pos[1]] == 0:
-            print(
-                f'~~ Semaphore at: {semaphore_pos[::-1]} (On a [{bestBoard[semaphore_pos[0], semaphore_pos[1]]}] tile)')
+    # for semaphore_pos in np.argwhere((bestMods == 25) | (bestMods == 26)):
+    #     if modifiers[semaphore_pos[0], semaphore_pos[1]] == 0:
+    #         print(
+    #             f'~~ Semaphore at: {semaphore_pos[::-1]} (On a [{bestBoard[semaphore_pos[0], semaphore_pos[1]]}] tile)')
     print('--------------------------------------------------')
     if capture_img:
         print(f'Captured frames: {len(frame_arrays)}')

@@ -240,7 +240,7 @@ class Car:
 class State:
     def __init__(self, cars, board, available_tracks=None, heatmaps=None, stalled=None,
                  switch_queue=None, station_stalled=None, crashed_decoys=None, mvmts_since_solved=None,
-                 available_semaphores=None, heatmap_limits=None):
+                 available_semaphores=None, heatmap_limits=None, solved=False):
         self.cars = cars
         self.board = board
         self.available_tracks = available_tracks
@@ -252,6 +252,7 @@ class State:
         self.mvmts_since_solved = mvmts_since_solved
         self.available_semaphores = available_semaphores
         self.heatmap_limits = heatmap_limits
+        self.solved = solved
 
     # def return_copy(self):
     #     return State(self.cars, self.board, self.available_tracks, self.heatmaps,
@@ -259,7 +260,8 @@ class State:
     #                  self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits)
     def params(self):
         return self.cars, self.board, self.available_tracks, self.heatmaps, self.stalled, self.switch_queue,\
-            self.station_stalled, self.crashed_decoys, self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits
+            self.station_stalled, self.crashed_decoys, self.mvmts_since_solved, self.available_semaphores, self.heatmap_limits,\
+            self.solved
 
     def __hash__(self):
         return hash((self.cars, self.board))
