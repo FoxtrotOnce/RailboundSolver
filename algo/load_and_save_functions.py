@@ -3,18 +3,22 @@ from classes import TrackName, ModName, Tile, Board, Car, CarType
 from frozendict import frozendict
 
 
-def dict_to_tile(tile_dict):
-    return Tile(TrackName(tile_dict["track"]), ModName(tile_dict["mod"]))
+def dict_to_tile(track_id, mod_id):
+    return Tile(TrackName(track_id), ModName(mod_id))
 
 
 def dict_to_board(board_dict):
+    shape = tuple(board_dict["shape"])
+    track_ids = board_dict["track_ids"]
+    mod_ids = board_dict["mod_ids"]
     tiles = frozendict(
         {
-            tuple(map(int, k.strip("()").split(","))): dict_to_tile(v)
-            for k, v in board_dict["tiles"].items()
+            (x, y): dict_to_tile(track_ids[y][x], mod_ids[y][x])
+            for y in range(shape[0])
+            for x in range(shape[1])
         }
     )
-    return Board(tuple(board_dict["shape"]), tiles)
+    return Board(shape, tiles)
 
 
 def dict_to_car(car_dict):
@@ -48,13 +52,23 @@ def load_levels_from_json(filename):
 
 
 def tile_to_dict(tile):
-    return {"track": tile.track.value, "mod": tile.mod.value}
+    return (tile.track.value, tile.mod.value)
 
 
 def board_to_dict(board):
+    shape = board.shape
+    track_ids = [
+        [board._tiles[(x, y)].track.value for x in range(shape[1])]
+        for y in range(shape[0])
+    ]
+    mod_ids = [
+        [board._tiles[(x, y)].mod.value for x in range(shape[1])]
+        for y in range(shape[0])
+    ]
     return {
-        "shape": board.shape,
-        "tiles": {str(k): tile_to_dict(v) for k, v in board._tiles.items()},
+        "shape": shape,
+        "track_ids": track_ids,
+        "mod_ids": mod_ids,
     }
 
 
@@ -85,4 +99,4 @@ def save_levels_to_json(levels, filename):
         serializable_levels[key] = level_to_dict(level)
 
     with open(filename, "w") as f:
-        json.dump(serializable_levels, f)
+        json.dump(serializable_levels, f, indent=4)
