@@ -1,59 +1,49 @@
-# A solver for every level in Railbound.
+# RailboundSolver
 
-I made this project over 7 months during my sophomore year of high school.  
-Want to see data on it? Check out this [Google Doc.](https://docs.google.com/document/d/1gb9UQcFA16MThvKxfTPQSfTJFo51ytKI-Dpijypth2A/edit?usp=sharing)
+RailboundSolver is a logic-based solving algorithm designed to find the "best" solution for any level configuration from the game _Railbound_.
 
-To solve a level or world, scroll down in the main project file until you reach the bottom for loop.  
-To solve a single level, only run the top line and change the key to the level you'd like to run.
+The program was made primarily by [myself](https://github.com/FoxtrotOnce) over the course of a year during high school, with contributions from [Thinh](https://github.com/Th1nhNg0) on the website UI and [Al](https://github.com/alistair-broomhead) on coding advice. Their input has greatly improved the program.
 
+# Installation
+
+Run the following in a terminal or command prompt to copy the repository. It will install to the directory specified in the terminal/command prompt.
 ```
-for lvl in [lc.levels["9-1"]]:
-# for key in lc.world9:
-#     lvl = lc.world9[key]
-#     print(key)
+git clone https://github.com/FoxtrotOnce/RailboundSolver.git
 ```
 
-To solve a world, run the 3 lines below it, and simply change the world number. Sandbox (world #) is world0.
+# Usage
 
+Currently, RailboundSolver can only be used by running `algo/main.py`.
+
+To solve a level, uncomment line 558 of `algo/main.py` (shown below) and change the level name to the level you want to solve.
 ```
-# for lvl in [lc.levels["9-1"]]:
-for key in lc.world9:
-    lvl = lc.world9[key]
-    print(key)
+# lvls = {'test-1': lvls['test-1']}
 ```
-
-Depending on which level is being run, it may take anywhere from less than a second to multiple minutes or hours.
-
-# Creating custom levels
-
-If you want to create a custom level, navigate to levels_cars and there is a template level at the top.
-
+To solve a world (or a group) of levels, change line 559 to be `worlds['world_name']` instead of `lvls`.
 ```
-board1 = np.asarray([[1, 0, 0, 2, 5,21],
-                     [0, 0, 0,13,12, 0],
-                     [1, 0, 0, 0, 7, 3],
-                     [0, 0, 0, 0, 1, 0]])
-cars1 = [[0, 2, 1, 0]]
-decoys1 = [[4, 3, -1, 0]]
-ncars1 = [[0, 0, 1, 0]]
-interactions1 = np.asarray([[0, 0, 0, 1, 0, 0],
-                            [0, 0, 0,24,16, 0],
-                            [0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0]])
-
-worldt = {
-    "1": [board1, cars1, 7, interactions1, decoys1, 0, ncars1]
-}
+for lvl_name, data in worlds['2'].items():
 ```
+To solve a custom level, create a new level in `levels.json` and run it as shown above.  
+A sample level, `test-1`, is at the top of the file for reference on how to create a level.  
+- `board` uses ints corresponding to tracks that can be found in the Track class in `algo/classes.py`.
+- `mods` uses ints corresponding to mods that can be found in the Mod class in `algo/classes.py`.
+- `mod_nums` is the "group" the mod is in.
+  - Tunnels with the same mod num connect.
+  - Switches will trigger gates and swapping tracks that have the same mod num as the switch.
+  - The mod num on stations and post offices indicates what car number corresponds to it.
 
-You can add more custom levels by adding new keys, adding in boards, cars, tracks, and interactions, and then simply running the keyed level in the main program.  
-If you don't use a parameter in your level, replace it with `None` or `0`.  
-The parameters are: `[board, cars, tracks, interactions, decoys, semaphores, ncars]`.
+# To-do
 
-- Interactions is a board with mechanic details like tunnels, gates, switches, stations, and so on.
-- Decoys are the cars from world 7, and ncars are the Numeral Cars from worlds 11 & 12.
+- Convert the solving algorithm to JavaScript/TypeScript
+- Integrate RailboundSolver into a website for easier use
 
-To create a board, simply make a numpy array with numbers for the board. You can find the track numbers in the reference.py file.  
-Cars are formatted as `[x, y, xvelo, yvelo]`. For example, on the sample board up top, the car is at 0x, 2y, and is facing right (xvelo of 1).  
-Make sure cars are added in numerical order. For example, `cars1 = [[car 1 data], [car 2 data], [car 3 data]]`.  
-Interactions is also a numpy array with numbers. You can find interaction indices in the reference.py file.
+# Documentation
+
+### [Afterburn Discord Thread](https://discord.com/channels/441217491612598272/1142318326136180796)
+
+### Program Flowchart
+![Flowchart](https://i.ibb.co/mCwvp0PV/Railbound-Solver-drawio.png)
+
+# License
+
+RailboundSolver is an open-sourced software licensed under the [MIT license](https://opensource.org/license/MIT "MIT license").
