@@ -207,9 +207,68 @@ function getDirectionVector(dir: Direction): [number, number] {
   }
 }
 
+// Convert direction to rotation angle in radians
+function directionToAngle(dir: Direction): number {
+  switch (dir) {
+    case Direction.LEFT:
+      return Math.PI; // 180 degrees
+    case Direction.RIGHT:
+      return 0; // 0 degrees
+    case Direction.DOWN:
+      return Math.PI / 2; // 90 degrees
+    case Direction.UP:
+      return -Math.PI / 2; // -90 degrees (or 270 degrees)
+    default:
+      return 0;
+  }
+}
+
+// Calculate intermediate angle (45 degrees between current and next direction)
+function calculateIntermediateAngle(
+  currentDir: Direction,
+  nextDir: Direction
+): number {
+  if (currentDir === nextDir) {
+    return directionToAngle(currentDir);
+  }
+
+  const currentAngle = directionToAngle(currentDir);
+  const nextAngle = directionToAngle(nextDir);
+
+  // Handle angle wrapping (e.g., from 180° to 0°)
+  let angleDiff = nextAngle - currentAngle;
+  if (angleDiff > Math.PI) {
+    angleDiff -= 2 * Math.PI;
+  } else if (angleDiff < -Math.PI) {
+    angleDiff += 2 * Math.PI;
+  }
+
+  // Return angle that's exactly 45 degrees (π/4 radians) towards the next direction
+  const turnDirection = angleDiff > 0 ? 1 : -1;
+  const intermediateAngle = currentAngle + (turnDirection * Math.PI) / 4; // Exactly 45 degrees
+  return intermediateAngle;
+}
+
+// Check if car will change direction on current track
+function willChangeDirection(
+  currentTrack: number,
+  currentDir: Direction
+): boolean {
+  const trackDirections = TRACK_DIRECTIONS[currentTrack];
+  if (!trackDirections) return false;
+
+  const nextDir = trackDirections[currentDir];
+  return (
+    nextDir !== currentDir &&
+    nextDir !== Direction.CRASH &&
+    nextDir !== Direction.UNKNOWN
+  );
+}
+
 export interface SimulationCar {
   pos: [number, number];
   direction: Direction;
+  previousDirection: Direction;
   num: number;
   type: string;
   crashed: boolean;
@@ -250,6 +309,7 @@ export class CarSimulation {
     this.cars = cars.map((car) => ({
       pos: [car.pos[0], car.pos[1]] as [number, number],
       direction: stringToDirection(car.direction),
+      previousDirection: stringToDirection(car.direction), // Initialize with same direction
       num: car.num,
       type: car.type,
       crashed: false,
@@ -267,9 +327,53 @@ export class CarSimulation {
         this.gridOffsetX + car.pos[1] * this.tileSize + this.tileSize / 2;
       const y =
         this.gridOffsetY + car.pos[0] * this.tileSize + this.tileSize / 2;
-      car.sprite.setPosition(x, y);
+      car.sprite.setPositionImmediate(x, y);
       car.sprite.updateDirection(directionToString(car.direction));
     });
+  }
+
+  private async updateCarSpritePositionsSmooth(): Promise<void> {
+    const animations: Promise<void>[] = [];
+
+    this.cars.forEach((car) => {
+      const x =
+        this.gridOffsetX + car.pos[1] * this.tileSize + this.tileSize / 2;
+      const y =
+        this.gridOffsetY + car.pos[0] * this.tileSize + this.tileSize / 2;
+
+      // Add position animation
+      animations.push(
+        car.sprite.animateToPosition(x, y, this.animationSpeed * 0.8)
+      );
+
+      // Check if car is currently on a turning track (will change direction)
+      const currentTrack = this.board[car.pos[0]][car.pos[1]];
+      if (willChangeDirection(currentTrack, car.direction)) {
+        // Car is on a turning track - use intermediate angle (45 degrees towards new direction)
+        const nextDirection = TRACK_DIRECTIONS[currentTrack][car.direction];
+        const intermediateAngle = calculateIntermediateAngle(
+          car.direction,
+          nextDirection
+        );
+        animations.push(
+          car.sprite.animateToRotation(
+            intermediateAngle,
+            this.animationSpeed * 0.6
+          )
+        );
+      } else {
+        // Car is going straight - use normal direction rotation
+        animations.push(
+          car.sprite.updateDirectionSmooth(
+            directionToString(car.direction),
+            this.animationSpeed * 0.6
+          )
+        );
+      }
+    });
+
+    // Wait for all animations to complete
+    await Promise.all(animations);
   }
 
   private isPositionValid(pos: [number, number]): boolean {
@@ -335,6 +439,7 @@ export class CarSimulation {
     }
 
     // Update car position and direction
+    car.previousDirection = car.direction; // Store previous direction before changing
     car.pos = nextPos;
     car.direction = nextDirection;
 
@@ -370,52 +475,51 @@ export class CarSimulation {
   }
 
   private async animateStep(): Promise<void> {
-    return new Promise((resolve) => {
-      this.stepCount++;
-      this.log(`--- Step ${this.stepCount} ---`);
+    this.stepCount++;
+    this.log(`--- Step ${this.stepCount} ---`);
 
-      // Move all cars
-      let anyCarMoved = false;
-      this.cars.forEach((car) => {
-        if (this.moveCar(car)) {
-          anyCarMoved = true;
-        }
-      });
-
-      // Check for collisions
-      this.checkCollisions();
-
-      // Update sprite positions and directions
-      this.updateCarSpritePositions();
-
-      // Update sprite appearance for crashed/finished cars
-      this.cars.forEach((car) => {
-        if (car.crashed) {
-          car.sprite.getContainer().alpha = 0.5; // Make crashed cars semi-transparent
-          car.sprite.getContainer().tint = 0xff0000; // Make crashed cars red
-        } else if (car.finished) {
-          car.sprite.getContainer().tint = 0x00ff00; // Make finished cars green
-        }
-      });
-
-      // Check if simulation should continue
-      const activeCars = this.cars.filter(
-        (car) => !car.crashed && !car.finished
-      );
-      if (activeCars.length === 0 || !anyCarMoved) {
-        this.isRunning = false;
-        const finishedCount = this.cars.filter((car) => car.finished).length;
-        const crashedCount = this.cars.filter((car) => car.crashed).length;
-        this.log(
-          `Simulation completed after ${this.stepCount} steps! Finished: ${finishedCount}, Crashed: ${crashedCount}`
-        );
-        // Notify UI that simulation has stopped
-        if (this.onStateChangeCallback) {
-          this.onStateChangeCallback("stopped");
-        }
+    // Move all cars
+    let anyCarMoved = false;
+    this.cars.forEach((car) => {
+      if (this.moveCar(car)) {
+        anyCarMoved = true;
       }
+    });
 
-      setTimeout(() => resolve(), this.animationSpeed);
+    // Check for collisions
+    this.checkCollisions();
+
+    // Update sprite positions and directions with smooth animation
+    await this.updateCarSpritePositionsSmooth();
+
+    // Update sprite appearance for crashed/finished cars
+    this.cars.forEach((car) => {
+      if (car.crashed) {
+        car.sprite.getContainer().alpha = 0.5; // Make crashed cars semi-transparent
+        car.sprite.getContainer().tint = 0xff0000; // Make crashed cars red
+      } else if (car.finished) {
+        car.sprite.getContainer().tint = 0x00ff00; // Make finished cars green
+      }
+    });
+
+    // Check if simulation should continue
+    const activeCars = this.cars.filter((car) => !car.crashed && !car.finished);
+    if (activeCars.length === 0 || !anyCarMoved) {
+      this.isRunning = false;
+      const finishedCount = this.cars.filter((car) => car.finished).length;
+      const crashedCount = this.cars.filter((car) => car.crashed).length;
+      this.log(
+        `Simulation completed after ${this.stepCount} steps! Finished: ${finishedCount}, Crashed: ${crashedCount}`
+      );
+      // Notify UI that simulation has stopped
+      if (this.onStateChangeCallback) {
+        this.onStateChangeCallback("stopped");
+      }
+    }
+
+    // Add a small delay after animations complete for better visual flow
+    return new Promise<void>((resolve) => {
+      setTimeout(() => resolve(), Math.max(50, this.animationSpeed * 0.2));
     });
   }
 
@@ -478,6 +582,7 @@ export class CarSimulation {
     this.cars = this.initialCars.map((car) => ({
       pos: [car.pos[0], car.pos[1]] as [number, number],
       direction: stringToDirection(car.direction),
+      previousDirection: stringToDirection(car.direction), // Initialize with same direction
       num: car.num,
       type: car.type,
       crashed: false,

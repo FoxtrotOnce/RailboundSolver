@@ -44,6 +44,9 @@ export class CarSprite {
   private container: Container;
   private carSprite: Sprite;
   private numberText: Text;
+  private targetX: number = 0;
+  private targetY: number = 0;
+  private isAnimating: boolean = false;
 
   constructor(car: Car, tileSize: number) {
     this.container = new Container();
@@ -115,6 +118,123 @@ export class CarSprite {
   public setPosition(x: number, y: number): void {
     this.container.x = x;
     this.container.y = y;
+    this.targetX = x;
+    this.targetY = y;
+  }
+
+  public setPositionImmediate(x: number, y: number): void {
+    this.container.x = x;
+    this.container.y = y;
+    this.targetX = x;
+    this.targetY = y;
+  }
+
+  public animateToPosition(
+    x: number,
+    y: number,
+    duration: number = 300
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      this.targetX = x;
+      this.targetY = y;
+      this.isAnimating = true;
+
+      const startX = this.container.x;
+      const startY = this.container.y;
+      const startTime = performance.now();
+
+      const easeInOutQuad = (t: number): number => {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      };
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeInOutQuad(progress);
+
+        this.container.x = startX + (this.targetX - startX) * easedProgress;
+        this.container.y = startY + (this.targetY - startY) * easedProgress;
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          this.isAnimating = false;
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(animate);
+    });
+  }
+
+  public animateToRotation(
+    targetRotation: number,
+    duration: number = 200
+  ): Promise<void> {
+    return new Promise((resolve) => {
+      const startRotation = this.carSprite.rotation;
+      const startTextRotation = this.numberText.rotation;
+
+      // Check if we're rotating from a cardinal direction (0°, 90°, 180°, 270°) to a 45-degree angle
+      const isFromCardinal = this.isCardinalDirection(startRotation);
+      const isTo45Degree = this.is45DegreeAngle(targetRotation);
+      const shouldDelay = isFromCardinal && isTo45Degree;
+
+      // Add delay if rotating from cardinal to 45-degree angle
+      const delayTime = shouldDelay ? 150 : 0; // 150ms delay
+
+      const startAnimation = () => {
+        const startTime = performance.now();
+
+        // Handle rotation wrapping to take the shortest path
+        let rotationDiff = targetRotation - startRotation;
+        if (rotationDiff > Math.PI) {
+          rotationDiff -= 2 * Math.PI;
+        } else if (rotationDiff < -Math.PI) {
+          rotationDiff += 2 * Math.PI;
+        }
+
+        // Calculate target text rotation to keep text readable
+        const targetTextRotation =
+          this.calculateTextRotationForCarAngle(targetRotation);
+        let textRotationDiff = targetTextRotation - startTextRotation;
+        if (textRotationDiff > Math.PI) {
+          textRotationDiff -= 2 * Math.PI;
+        } else if (textRotationDiff < -Math.PI) {
+          textRotationDiff += 2 * Math.PI;
+        }
+
+        const easeInOutQuad = (t: number): number => {
+          return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        };
+
+        const animate = (currentTime: number) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const easedProgress = easeInOutQuad(progress);
+
+          this.carSprite.rotation =
+            startRotation + rotationDiff * easedProgress;
+          this.numberText.rotation =
+            startTextRotation + textRotationDiff * easedProgress;
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            resolve();
+          }
+        };
+
+        requestAnimationFrame(animate);
+      };
+
+      // Start animation immediately or after delay
+      if (shouldDelay) {
+        setTimeout(startAnimation, delayTime);
+      } else {
+        startAnimation();
+      }
+    });
   }
 
   public updateNumber(newNumber: number): void {
@@ -125,8 +245,137 @@ export class CarSprite {
     this.setCarRotation(direction);
   }
 
+  public async updateDirectionSmooth(
+    direction: string,
+    duration: number = 200
+  ): Promise<void> {
+    const targetRotation = this.getRotationForDirection(direction);
+    await this.animateToRotation(targetRotation, duration);
+    this.updateTextRotation(direction);
+  }
+
+  private getRotationForDirection(direction: string): number {
+    switch (direction) {
+      case "UP":
+        return -Math.PI / 2; // -90 degrees
+      case "DOWN":
+        return Math.PI / 2; // 90 degrees
+      case "LEFT":
+        return Math.PI; // 180 degrees
+      case "RIGHT":
+        return 0; // 0 degrees
+      default:
+        return 0;
+    }
+  }
+
+  private updateTextRotation(direction: string): void {
+    switch (direction) {
+      case "UP":
+        this.numberText.rotation = 0; // No rotation for up-facing text
+        break;
+      case "DOWN":
+        this.numberText.rotation = Math.PI; // 180 degrees for down-facing text
+        break;
+      case "LEFT":
+        this.numberText.rotation = -Math.PI / 2; // -90 degrees for left-facing text
+        break;
+      case "RIGHT":
+        this.numberText.rotation = Math.PI / 2;
+        break;
+    }
+  }
+
+  private calculateTextRotationForCarAngle(carRotation: number): number {
+    // Normalize car rotation to 0-2π range
+    let normalizedRotation = carRotation;
+    while (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
+    while (normalizedRotation >= 2 * Math.PI) normalizedRotation -= 2 * Math.PI;
+
+    // Convert to degrees for easier comparison
+    const degrees = normalizedRotation * (180 / Math.PI);
+
+    // Determine text rotation based on car rotation to keep text readable
+    // The goal is to keep text as close to upright as possible
+    if (degrees >= 315 || degrees < 45) {
+      // Car facing right (0°) - text rotated 90° clockwise to be readable
+      return Math.PI / 2;
+    } else if (degrees >= 45 && degrees < 135) {
+      // Car facing down (90°) - text rotated 180° to be readable
+      return Math.PI;
+    } else if (degrees >= 135 && degrees < 225) {
+      // Car facing left (180°) - text rotated -90° (270°) to be readable
+      return -Math.PI / 2;
+    } else {
+      // Car facing up (270°) - text upright (0°)
+      return 0;
+    }
+  }
+
+  public isCurrentlyAnimating(): boolean {
+    return this.isAnimating;
+  }
+
   public getContainer(): Container {
     return this.container;
+  }
+
+  public getCurrentDirection(): string {
+    // Convert current car rotation back to direction string
+    const rotation = this.carSprite.rotation;
+    let normalizedRotation = rotation;
+    while (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
+    while (normalizedRotation >= 2 * Math.PI) normalizedRotation -= 2 * Math.PI;
+
+    const degrees = normalizedRotation * (180 / Math.PI);
+
+    if (degrees >= 315 || degrees < 45) {
+      return "RIGHT";
+    } else if (degrees >= 45 && degrees < 135) {
+      return "DOWN";
+    } else if (degrees >= 135 && degrees < 225) {
+      return "LEFT";
+    } else {
+      return "UP";
+    }
+  }
+
+  public getPosition(): { x: number; y: number } {
+    return { x: this.container.x, y: this.container.y };
+  }
+
+  private isCardinalDirection(rotation: number): boolean {
+    // Normalize rotation to 0-2π range
+    let normalizedRotation = rotation;
+    while (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
+    while (normalizedRotation >= 2 * Math.PI) normalizedRotation -= 2 * Math.PI;
+
+    const tolerance = 0.1; // Small tolerance for floating point comparison
+
+    // Check if rotation is close to 0°, 90°, 180°, or 270°
+    return (
+      Math.abs(normalizedRotation) < tolerance || // 0°
+      Math.abs(normalizedRotation - Math.PI / 2) < tolerance || // 90°
+      Math.abs(normalizedRotation - Math.PI) < tolerance || // 180°
+      Math.abs(normalizedRotation - (3 * Math.PI) / 2) < tolerance // 270°
+    );
+  }
+
+  private is45DegreeAngle(rotation: number): boolean {
+    // Normalize rotation to 0-2π range
+    let normalizedRotation = rotation;
+    while (normalizedRotation < 0) normalizedRotation += 2 * Math.PI;
+    while (normalizedRotation >= 2 * Math.PI) normalizedRotation -= 2 * Math.PI;
+
+    const tolerance = 0.1; // Small tolerance for floating point comparison
+
+    // Check if rotation is close to 45°, 135°, 225°, or 315°
+    return (
+      Math.abs(normalizedRotation - Math.PI / 4) < tolerance || // 45°
+      Math.abs(normalizedRotation - (3 * Math.PI) / 4) < tolerance || // 135°
+      Math.abs(normalizedRotation - (5 * Math.PI) / 4) < tolerance || // 225°
+      Math.abs(normalizedRotation - (7 * Math.PI) / 4) < tolerance // 315°
+    );
   }
 }
 
