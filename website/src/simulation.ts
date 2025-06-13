@@ -228,6 +228,8 @@ export class CarSimulation {
   private gridOffsetX: number;
   private gridOffsetY: number;
   private stepCount: number = 0;
+  private onStateChangeCallback?: (state: "running" | "stopped") => void;
+  private onLogCallback?: (message: string) => void;
 
   constructor(
     cars: Car[],
@@ -290,7 +292,7 @@ export class CarSimulation {
     // Check if position is valid
     if (!this.isPositionValid([row, col])) {
       car.crashed = true;
-      console.log(`Car ${car.num} crashed: out of bounds`);
+      this.log(`Car ${car.num} crashed: out of bounds`);
       return false;
     }
 
@@ -300,7 +302,7 @@ export class CarSimulation {
     const trackDirections = TRACK_DIRECTIONS[currentTrack];
     if (!trackDirections) {
       car.crashed = true;
-      console.log(`Car ${car.num} crashed: unknown track type ${currentTrack}`);
+      this.log(`Car ${car.num} crashed: unknown track type ${currentTrack}`);
       return false;
     }
 
@@ -308,7 +310,7 @@ export class CarSimulation {
 
     if (nextDirection === Direction.CRASH) {
       car.crashed = true;
-      console.log(
+      this.log(
         `Car ${car.num} crashed: incompatible track/direction combination`
       );
       return false;
@@ -317,7 +319,7 @@ export class CarSimulation {
     if (nextDirection === Direction.UNKNOWN) {
       // Car reached ending track
       car.finished = true;
-      console.log(`Car ${car.num} finished!`);
+      this.log(`Car ${car.num} finished!`);
       return false;
     }
 
@@ -328,13 +330,18 @@ export class CarSimulation {
     // Check if next position is valid
     if (!this.isPositionValid(nextPos)) {
       car.crashed = true;
-      console.log(`Car ${car.num} crashed: would move out of bounds`);
+      this.log(`Car ${car.num} crashed: would move out of bounds`);
       return false;
     }
 
     // Update car position and direction
     car.pos = nextPos;
     car.direction = nextDirection;
+
+    // Log car movement
+    this.log(
+      `Car ${car.num} moved to (${nextPos[0]}, ${nextPos[1]}) facing ${directionToString(nextDirection)}`
+    );
 
     return true;
   }
@@ -355,7 +362,7 @@ export class CarSimulation {
           if (car1.pos[0] === car2.pos[0] && car1.pos[1] === car2.pos[1]) {
             car1.crashed = true;
             car2.crashed = true;
-            console.log(`Cars ${car1.num} and ${car2.num} collided!`);
+            this.log(`Cars ${car1.num} and ${car2.num} collided!`);
           }
         }
       }
@@ -365,6 +372,7 @@ export class CarSimulation {
   private async animateStep(): Promise<void> {
     return new Promise((resolve) => {
       this.stepCount++;
+      this.log(`--- Step ${this.stepCount} ---`);
 
       // Move all cars
       let anyCarMoved = false;
@@ -398,9 +406,13 @@ export class CarSimulation {
         this.isRunning = false;
         const finishedCount = this.cars.filter((car) => car.finished).length;
         const crashedCount = this.cars.filter((car) => car.crashed).length;
-        console.log(
+        this.log(
           `Simulation completed after ${this.stepCount} steps! Finished: ${finishedCount}, Crashed: ${crashedCount}`
         );
+        // Notify UI that simulation has stopped
+        if (this.onStateChangeCallback) {
+          this.onStateChangeCallback("stopped");
+        }
       }
 
       setTimeout(() => resolve(), this.animationSpeed);
@@ -409,11 +421,11 @@ export class CarSimulation {
 
   public async start(): Promise<void> {
     if (this.isRunning) {
-      console.log("Simulation is already running");
+      this.log("Simulation is already running");
       return;
     }
 
-    console.log("Starting car simulation...");
+    this.log("Starting car simulation...");
     this.isRunning = true;
 
     // Add car sprites to the stage if not already added
@@ -432,13 +444,16 @@ export class CarSimulation {
     }
 
     if (steps >= maxSteps) {
-      console.log("Simulation stopped: maximum steps reached");
+      this.log("Simulation stopped: maximum steps reached");
+      if (this.onStateChangeCallback) {
+        this.onStateChangeCallback("stopped");
+      }
     }
   }
 
   public stop(): void {
     this.isRunning = false;
-    console.log("Simulation stopped");
+    this.log("Simulation stopped");
   }
 
   public reset(): void {
@@ -469,7 +484,7 @@ export class CarSimulation {
     });
 
     this.updateCarSpritePositions();
-    console.log("Simulation reset");
+    this.log("Simulation reset");
   }
 
   public setSpeed(speed: number): void {
@@ -486,5 +501,22 @@ export class CarSimulation {
     const active = this.cars.length - crashed - finished;
 
     return `Step: ${this.stepCount} | Active: ${active}, Finished: ${finished}, Crashed: ${crashed}`;
+  }
+
+  public setStateChangeCallback(
+    callback: (state: "running" | "stopped") => void
+  ): void {
+    this.onStateChangeCallback = callback;
+  }
+
+  public setLogCallback(callback: (message: string) => void): void {
+    this.onLogCallback = callback;
+  }
+
+  private log(message: string): void {
+    console.log(message);
+    if (this.onLogCallback) {
+      this.onLogCallback(message);
+    }
   }
 }

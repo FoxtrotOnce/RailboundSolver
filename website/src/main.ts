@@ -4,20 +4,41 @@ import levels from "../../solutions.json";
 import { CarSprite, Car, loadTileSprite } from "./sprites";
 import { CarSimulation } from "./simulation";
 
-const LEVEL = levels["1-3"];
+// Available levels
+const AVAILABLE_LEVELS = [
+  "1-1",
+  "1-2",
+  "1-3",
+  "1-4",
+  "1-5",
+  "1-6",
+  "1-7",
+  "1-8",
+  "1-9",
+  "1-10",
+  "1-11",
+  "1-12",
+  "1-13",
+  "1-14",
+  "1-15",
+];
+
+let currentLevelKey = "1-3";
+let LEVEL = levels[currentLevelKey as keyof typeof levels];
 console.log(LEVEL);
-// LEVEL.board is a 2D array of numbers. Get the width and height of the board
-const BOARD_WIDTH = LEVEL.board[0].length;
-const BOARD_HEIGHT = LEVEL.board.length;
+
+// Dynamic board dimensions
+let BOARD_WIDTH = LEVEL.board[0].length;
+let BOARD_HEIGHT = LEVEL.board.length;
 
 console.log("Board Size:", BOARD_WIDTH, "x", BOARD_HEIGHT);
 
 // Configuration for the grid display
 const TILE_SIZE = 64; // Size of each tile in pixels
 
-// Calculate grid dimensions
-const GRID_WIDTH = BOARD_WIDTH * TILE_SIZE;
-const GRID_HEIGHT = BOARD_HEIGHT * TILE_SIZE;
+// Calculate grid dimensions - these will be updated when level changes
+let GRID_WIDTH = BOARD_WIDTH * TILE_SIZE;
+let GRID_HEIGHT = BOARD_HEIGHT * TILE_SIZE;
 
 // Center the grid on screen - these will be calculated after app initialization
 let GRID_OFFSET_X = 0;
@@ -25,8 +46,6 @@ let GRID_OFFSET_Y = 0;
 
 // Global simulation instance
 let carSimulation: CarSimulation | null = null;
-// Store initial car sprites so we can remove them when simulation starts
-const initialCarSprites: CarSprite[] = [];
 
 /**
  * Render the entire board grid with appropriate sprites
@@ -97,6 +116,119 @@ async function renderCars(app: Application, cars: Car[]): Promise<void> {
 }
 
 /**
+ * Load a new level and update the display
+ * @param app - The PIXI Application instance
+ * @param levelKey - The key of the level to load
+ */
+async function loadLevel(app: Application, levelKey: string): Promise<void> {
+  // Stop and reset any running simulation
+  if (carSimulation) {
+    carSimulation.stop();
+    carSimulation.reset();
+  }
+
+  // Clear the stage
+  app.stage.removeChildren();
+  initialCarSprites.length = 0; // Clear the initial car sprites array
+
+  // Update current level
+  currentLevelKey = levelKey;
+  LEVEL = levels[currentLevelKey as keyof typeof levels];
+
+  // Update board dimensions
+  BOARD_WIDTH = LEVEL.board[0].length;
+  BOARD_HEIGHT = LEVEL.board.length;
+
+  // Recalculate grid dimensions and positioning
+  GRID_WIDTH = BOARD_WIDTH * TILE_SIZE;
+  GRID_HEIGHT = BOARD_HEIGHT * TILE_SIZE;
+  GRID_OFFSET_X = (app.screen.width - GRID_WIDTH) / 2;
+  GRID_OFFSET_Y = (app.screen.height - GRID_HEIGHT) / 2;
+
+  console.log(`Loading level ${levelKey}: ${BOARD_WIDTH}x${BOARD_HEIGHT}`);
+
+  // Render the new level
+  await renderBoard(app);
+  drawGridlines(app);
+
+  // Render cars if they exist in the level
+  if (LEVEL.cars && LEVEL.cars.length > 0) {
+    await renderCars(app, LEVEL.cars);
+
+    // Initialize new simulation
+    carSimulation = new CarSimulation(
+      LEVEL.cars,
+      LEVEL.solution,
+      app,
+      TILE_SIZE,
+      GRID_OFFSET_X,
+      GRID_OFFSET_Y
+    );
+
+    // Set up callbacks for UI updates and logging
+    setupSimulationCallbacks(carSimulation);
+
+    console.log(
+      "Successfully loaded level with cars and initialized simulation"
+    );
+  } else {
+    carSimulation = null;
+    console.log("Level loaded without cars");
+  }
+
+  // Update UI state to ready after level change
+  const updateControlsState = (
+    globalThis as {
+      updateControlsState?: (state: "ready" | "running" | "stopped") => void;
+    }
+  ).updateControlsState;
+  if (updateControlsState) {
+    updateControlsState("ready");
+  }
+}
+
+/**
+ * Set up callbacks for the car simulation
+ * @param simulation - The CarSimulation instance
+ */
+function setupSimulationCallbacks(simulation: CarSimulation): void {
+  // Set up state change callback to update UI when simulation finishes
+  simulation.setStateChangeCallback((state) => {
+    const updateControlsState = (
+      globalThis as {
+        updateControlsState?: (state: "ready" | "running" | "stopped") => void;
+      }
+    ).updateControlsState;
+    if (updateControlsState) {
+      updateControlsState(state);
+    }
+  });
+
+  // Set up log callback to show messages in the log display
+  simulation.setLogCallback((message) => {
+    const logDisplay = document.getElementById("log-display");
+    if (logDisplay && logDisplay.style.display !== "none") {
+      const logContent = document.getElementById("log-content");
+      if (logContent) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement("div");
+        logEntry.style.cssText = `
+          margin-bottom: 4px;
+          padding: 2px 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        `;
+        logEntry.innerHTML = `<span style="color: #888; font-size: 10px;">[${timestamp}]</span> ${message}`;
+        logContent.appendChild(logEntry);
+        logContent.scrollTop = logContent.scrollHeight;
+      }
+    }
+  });
+}
+
+// Store initial car sprites so we can remove them when simulation starts
+const initialCarSprites: CarSprite[] = [];
+
+/**
  * Remove initial car sprites from the stage
  * @param app - The PIXI Application instance
  */
@@ -153,6 +285,88 @@ function createSimulationControls(app: Application): void {
   `;
   controlsDiv.appendChild(title);
 
+  // Level selection section
+  const levelContainer = document.createElement("div");
+  levelContainer.style.cssText = `
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  `;
+
+  const levelLabel = document.createElement("label");
+  levelLabel.textContent = `Current Level: ${currentLevelKey}`;
+  levelLabel.style.cssText = `
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #ccc;
+    text-align: center;
+  `;
+  levelContainer.appendChild(levelLabel);
+
+  const levelSelect = document.createElement("select");
+  levelSelect.id = "level-select";
+  levelSelect.style.cssText = `
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+    margin-bottom: 8px;
+  `;
+
+  // Populate level options
+  AVAILABLE_LEVELS.forEach((levelKey) => {
+    const option = document.createElement("option");
+    option.value = levelKey;
+    option.textContent = `Level ${levelKey}`;
+    option.selected = levelKey === currentLevelKey;
+    option.style.cssText = `
+      background: #333;
+      color: white;
+    `;
+    levelSelect.appendChild(option);
+  });
+
+  levelSelect.onchange = async (e) => {
+    const target = e.target as HTMLSelectElement;
+    const newLevelKey = target.value;
+    if (newLevelKey !== currentLevelKey) {
+      // Check if simulation is running and inform user
+      const wasRunning = carSimulation && carSimulation.getIsRunning();
+      if (wasRunning) {
+        levelLabel.textContent = `Stopping simulation and loading ${newLevelKey}...`;
+      } else {
+        levelLabel.textContent = `Loading Level: ${newLevelKey}...`;
+      }
+
+      try {
+        await loadLevel(app, newLevelKey);
+        levelLabel.textContent = `Current Level: ${newLevelKey}`;
+        if (wasRunning) {
+          console.log(
+            `Simulation stopped and switched to level ${newLevelKey}`
+          );
+        } else {
+          console.log(`Successfully switched to level ${newLevelKey}`);
+        }
+      } catch (error) {
+        console.error(`Error loading level ${newLevelKey}:`, error);
+        levelLabel.textContent = `Error loading ${newLevelKey}`;
+        // Revert selection
+        levelSelect.value = currentLevelKey;
+        setTimeout(() => {
+          levelLabel.textContent = `Current Level: ${currentLevelKey}`;
+        }, 2000);
+      }
+    }
+  };
+
+  levelContainer.appendChild(levelSelect);
+  controlsDiv.appendChild(levelContainer);
+
   const buttonContainer = document.createElement("div");
   buttonContainer.style.cssText = `
     display: flex;
@@ -160,29 +374,24 @@ function createSimulationControls(app: Application): void {
     gap: 8px;
   `;
 
-  const startButton = document.createElement("button");
-  startButton.textContent = "Start Simulation";
-  startButton.className = "simulation-button start-button";
-  startButton.onclick = () => {
+  const startStopButton = document.createElement("button");
+  startStopButton.textContent = "Start Simulation";
+  startStopButton.className = "simulation-button start-stop-button";
+  startStopButton.onclick = () => {
     if (carSimulation) {
-      // Remove initial car sprites before starting simulation
-      removeInitialCarSprites(app);
-      carSimulation.start();
-      updateControlsState("running");
+      if (carSimulation.getIsRunning()) {
+        // Stop simulation
+        carSimulation.stop();
+        updateControlsState("stopped");
+      } else {
+        // Start simulation
+        removeInitialCarSprites(app);
+        carSimulation.start();
+        updateControlsState("running");
+      }
     }
   };
-  buttonContainer.appendChild(startButton);
-
-  const stopButton = document.createElement("button");
-  stopButton.textContent = "Stop";
-  stopButton.className = "simulation-button stop-button";
-  stopButton.onclick = () => {
-    if (carSimulation) {
-      carSimulation.stop();
-      updateControlsState("stopped");
-    }
-  };
-  buttonContainer.appendChild(stopButton);
+  buttonContainer.appendChild(startStopButton);
 
   const resetButton = document.createElement("button");
   resetButton.textContent = "Reset";
@@ -195,6 +404,14 @@ function createSimulationControls(app: Application): void {
     }
   };
   buttonContainer.appendChild(resetButton);
+
+  const showLogButton = document.createElement("button");
+  showLogButton.textContent = "Show Log";
+  showLogButton.className = "simulation-button log-button";
+  showLogButton.onclick = () => {
+    toggleLogDisplay();
+  };
+  buttonContainer.appendChild(showLogButton);
 
   controlsDiv.appendChild(buttonContainer);
 
@@ -289,27 +506,39 @@ function createSimulationControls(app: Application): void {
   function updateControlsState(state: "ready" | "running" | "stopped"): void {
     const indicator = document.getElementById("status-indicator")!;
     const text = document.getElementById("status-text")!;
+    const startStopButton = document.querySelector(
+      ".start-stop-button"
+    ) as HTMLButtonElement;
+    const resetButton = document.querySelector(
+      ".reset-button"
+    ) as HTMLButtonElement;
 
     indicator.className = `status-indicator status-${state}`;
 
     switch (state) {
       case "ready":
         text.textContent = "Ready to simulate";
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        resetButton.disabled = false;
+        if (startStopButton) {
+          startStopButton.textContent = "Start Simulation";
+          startStopButton.disabled = false;
+        }
+        if (resetButton) resetButton.disabled = false;
         break;
       case "running":
         text.textContent = "Simulation running";
-        startButton.disabled = true;
-        stopButton.disabled = false;
-        resetButton.disabled = true;
+        if (startStopButton) {
+          startStopButton.textContent = "Stop Simulation";
+          startStopButton.disabled = false;
+        }
+        if (resetButton) resetButton.disabled = true;
         break;
       case "stopped":
         text.textContent = "Simulation stopped";
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        resetButton.disabled = false;
+        if (startStopButton) {
+          startStopButton.textContent = "Start Simulation";
+          startStopButton.disabled = false;
+        }
+        if (resetButton) resetButton.disabled = false;
         break;
     }
   }
@@ -335,6 +564,7 @@ function createSimulationControls(app: Application): void {
       case " ": // Spacebar
       case "Enter":
         event.preventDefault();
+        // Toggle simulation like the combined button
         if (!carSimulation.getIsRunning()) {
           removeInitialCarSprites(app);
           carSimulation.start();
@@ -353,8 +583,10 @@ function createSimulationControls(app: Application): void {
         break;
       case "Escape":
         event.preventDefault();
-        carSimulation.stop();
-        updateControlsState("stopped");
+        if (carSimulation.getIsRunning()) {
+          carSimulation.stop();
+          updateControlsState("stopped");
+        }
         break;
     }
   });
@@ -384,6 +616,96 @@ function drawGridlines(app: Application): void {
 
   app.stage.addChild(graphics);
   console.log("Gridlines drawn with subtle gray borders");
+}
+
+/**
+ * Toggle the log display visibility
+ */
+function toggleLogDisplay(): void {
+  let logDisplay = document.getElementById("log-display");
+
+  if (!logDisplay) {
+    // Create log display if it doesn't exist
+    logDisplay = document.createElement("div");
+    logDisplay.id = "log-display";
+    logDisplay.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.95);
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-width: 600px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 1000;
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      backdrop-filter: blur(10px);
+      line-height: 1.4;
+    `;
+
+    const logHeader = document.createElement("div");
+    logHeader.style.cssText = `
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #00ffff;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+      padding-bottom: 5px;
+    `;
+    logHeader.textContent = "Simulation Log";
+
+    const logContent = document.createElement("div");
+    logContent.id = "log-content";
+    logContent.style.cssText = `
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    `;
+
+    logDisplay.appendChild(logHeader);
+    logDisplay.appendChild(logContent);
+    document.body.appendChild(logDisplay);
+
+    // Capture console.log messages
+    const originalLog = console.log;
+    console.log = function (...args) {
+      originalLog.apply(console, args);
+      const logContent = document.getElementById("log-content");
+      if (logContent) {
+        const timestamp = new Date().toLocaleTimeString();
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+          )
+          .join(" ");
+        logContent.textContent += `[${timestamp}] ${message}\n`;
+        logContent.scrollTop = logContent.scrollHeight;
+      }
+    };
+
+    // Update button text
+    const logButton = document.querySelector(
+      ".log-button"
+    ) as HTMLButtonElement;
+    if (logButton) logButton.textContent = "Hide Log";
+  } else {
+    // Toggle visibility
+    if (logDisplay.style.display === "none") {
+      logDisplay.style.display = "block";
+      const logButton = document.querySelector(
+        ".log-button"
+      ) as HTMLButtonElement;
+      if (logButton) logButton.textContent = "Hide Log";
+    } else {
+      logDisplay.style.display = "none";
+      const logButton = document.querySelector(
+        ".log-button"
+      ) as HTMLButtonElement;
+      if (logButton) logButton.textContent = "Show Log";
+    }
+  }
 }
 
 (async () => {
@@ -425,6 +747,9 @@ function drawGridlines(app: Application): void {
         GRID_OFFSET_X,
         GRID_OFFSET_Y
       );
+
+      // Set up callbacks for UI updates and logging
+      setupSimulationCallbacks(carSimulation);
 
       console.log("Successfully rendered cars and initialized simulation");
     }
