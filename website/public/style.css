@@ -3,6 +3,7 @@ body {
     padding: 0;
     color: rgba(255, 255, 255, 0.87);
     background-color: #000000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 #app {
@@ -12,4 +13,93 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+#pixi-container {
+    width: 100%;
+    height: 100vh;
+}
+
+/* Simulation Controls Styling */
+.simulation-button {
+    margin: 5px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.simulation-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.start-button {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.stop-button {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    color: white;
+}
+
+.reset-button {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+}
+
+.speed-slider {
+    width: 100%;
+    margin: 10px 0;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+}
+
+.speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.speed-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #4CAF50;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-running {
+    background: #4CAF50;
+    box-shadow: 0 0 10px #4CAF50;
+}
+
+.status-stopped {
+    background: #f44336;
+}
+
+.status-ready {
+    background: #FFC107;
 }

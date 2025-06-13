@@ -6,6 +6,7 @@ from typing import Iterable, Union
 
 class Track(Enum):
     """List names for each track index for better readability."""
+
     EMPTY = 0
     HORIZONTAL_TRACK = 1
     VERTICAL_TRACK = 2
@@ -48,6 +49,11 @@ class Track(Enum):
         """Print the values of each track object in a numpy array."""
         print(np.vectorize(lambda item: item.value)(board))
 
+    @classmethod
+    def convert_to_list(cls, board: np.ndarray) -> list:
+        """Convert a list of track values to a list of track objects."""
+        return np.vectorize(lambda item: item.value)(board).tolist()
+
     def is_empty(self) -> bool:
         """Return if the track is an EMPTY track."""
         return self is self.EMPTY
@@ -62,18 +68,34 @@ class Track(Enum):
 
     def is_turn(self) -> bool:
         """Return if the track is a single-turn track."""
-        return self in {self.BOTTOM_RIGHT_TURN, self.BOTTOM_LEFT_TURN, self.TOP_RIGHT_TURN, self.TOP_LEFT_TURN}
+        return self in {
+            self.BOTTOM_RIGHT_TURN,
+            self.BOTTOM_LEFT_TURN,
+            self.TOP_RIGHT_TURN,
+            self.TOP_LEFT_TURN,
+        }
 
     def is_3way(self) -> bool:
         """Return if the track is a 3-way track."""
-        return self in {self.BOTTOM_RIGHT_LEFT_3WAY, self.BOTTOM_RIGHT_TOP_3WAY, self.BOTTOM_LEFT_RIGHT_3WAY,
-                        self.BOTTOM_LEFT_TOP_3WAY, self.TOP_RIGHT_LEFT_3WAY, self.TOP_RIGHT_BOTTOM_3WAY,
-                        self.TOP_LEFT_RIGHT_3WAY, self.TOP_LEFT_BOTTOM_3WAY}
+        return self in {
+            self.BOTTOM_RIGHT_LEFT_3WAY,
+            self.BOTTOM_RIGHT_TOP_3WAY,
+            self.BOTTOM_LEFT_RIGHT_3WAY,
+            self.BOTTOM_LEFT_TOP_3WAY,
+            self.TOP_RIGHT_LEFT_3WAY,
+            self.TOP_RIGHT_BOTTOM_3WAY,
+            self.TOP_LEFT_RIGHT_3WAY,
+            self.TOP_LEFT_BOTTOM_3WAY,
+        }
 
     def is_tunnel(self) -> bool:
         """Return if the track is a tunnel."""
-        return self in {self.LEFT_FACING_TUNNEL, self.RIGHT_FACING_TUNNEL,self.DOWN_FACING_TUNNEL,
-                        self.UP_FACING_TUNNEL}
+        return self in {
+            self.LEFT_FACING_TUNNEL,
+            self.RIGHT_FACING_TUNNEL,
+            self.DOWN_FACING_TUNNEL,
+            self.UP_FACING_TUNNEL,
+        }
 
     def swap_track(self) -> "Track":
         """Return the swapped version of a swapping/switch track."""
@@ -85,18 +107,26 @@ class Track(Enum):
             self.TOP_RIGHT_LEFT_3WAY: self.TOP_LEFT_RIGHT_3WAY,
             self.TOP_RIGHT_BOTTOM_3WAY: self.BOTTOM_RIGHT_TOP_3WAY,
             self.TOP_LEFT_RIGHT_3WAY: self.TOP_RIGHT_LEFT_3WAY,
-            self.TOP_LEFT_BOTTOM_3WAY: self.BOTTOM_LEFT_TOP_3WAY
+            self.TOP_LEFT_BOTTOM_3WAY: self.BOTTOM_LEFT_TOP_3WAY,
         }
         return swapped_tracks[self]
 
     def is_ncar_ending_track(self) -> bool:
         """Return if the track is an ending track for numeral cars."""
-        return self is self.NCAR_ENDING_TRACK_RIGHT or self is self.NCAR_ENDING_TRACK_LEFT
+        return (
+            self is self.NCAR_ENDING_TRACK_RIGHT or self is self.NCAR_ENDING_TRACK_LEFT
+        )
 
     def is_placeholder_semaphore(self) -> bool:
         """Return if there is a placeholder semaphore on the tile."""
-        return self in {self.SEM_HORIZONTAL_TRACK, self.SEM_VERTICAL_TRACK, self.SEM_BOTTOM_RIGHT_TURN,
-                        self.SEM_BOTTOM_LEFT_TURN, self.SEM_TOP_RIGHT_TURN, self.SEM_TOP_LEFT_TURN}
+        return self in {
+            self.SEM_HORIZONTAL_TRACK,
+            self.SEM_VERTICAL_TRACK,
+            self.SEM_BOTTOM_RIGHT_TURN,
+            self.SEM_BOTTOM_LEFT_TURN,
+            self.SEM_TOP_RIGHT_TURN,
+            self.SEM_TOP_LEFT_TURN,
+        }
 
     def add_placeholder_semaphore(self) -> "Track":
         """Return the placeholder semaphore version of a tile."""
@@ -106,7 +136,7 @@ class Track(Enum):
             self.BOTTOM_RIGHT_TURN: self.SEM_BOTTOM_RIGHT_TURN,
             self.BOTTOM_LEFT_TURN: self.SEM_BOTTOM_LEFT_TURN,
             self.TOP_RIGHT_TURN: self.SEM_TOP_RIGHT_TURN,
-            self.TOP_LEFT_TURN: self.SEM_TOP_LEFT_TURN
+            self.TOP_LEFT_TURN: self.SEM_TOP_LEFT_TURN,
         }
         return semaphore_tracks[self]
 
@@ -118,7 +148,7 @@ class Track(Enum):
             self.SEM_BOTTOM_RIGHT_TURN: self.BOTTOM_RIGHT_TURN,
             self.SEM_BOTTOM_LEFT_TURN: self.BOTTOM_LEFT_TURN,
             self.SEM_TOP_RIGHT_TURN: self.TOP_RIGHT_TURN,
-            self.SEM_TOP_LEFT_TURN: self.TOP_LEFT_TURN
+            self.SEM_TOP_LEFT_TURN: self.TOP_LEFT_TURN,
         }
         return normal_tracks[self]
 
@@ -128,6 +158,7 @@ class Track(Enum):
 
 class Mod(Enum):
     """List names for each mod index for better readability."""
+
     EMPTY = 0
     SWITCH = 1
     TUNNEL = 2
@@ -250,6 +281,7 @@ class Direction(Enum):
     CRASH indicates that a crash will occur.
     UNKNOWN indicates that the direction is not determined, but it won't crash.
     """
+
     CRASH = -2
     UNKNOWN = -1
     LEFT = 0
@@ -324,7 +356,9 @@ class Car:
         type (CarType): The car's type.
     """
 
-    def __init__(self, pos: tuple[int, int], direction: "Direction", num: int, type: "CarType"):
+    def __init__(
+        self, pos: tuple[int, int], direction: "Direction", num: int, type: "CarType"
+    ):
         self.pos = pos
         dir_vector = direction.to_vector()
         self.pos_ahead = (pos[0] + dir_vector[0], pos[1] + dir_vector[1])
@@ -335,13 +369,20 @@ class Car:
     @classmethod
     def from_json(cls, car: dict[str, list[int] | str | int]) -> "Car":
         """Reformat the json representation of a car to an object."""
-        return Car(tuple(car['pos']), Direction[car['direction']], car['num'], CarType[car['type']])
+        return Car(
+            tuple(car["pos"]),
+            Direction[car["direction"]],
+            car["num"],
+            CarType[car["type"]],
+        )
 
     def border_crash(self, bounds: tuple[int, int]) -> bool:
         """Return if the car is about to crash with the border."""
         # if self.type is not CarType.DECOY:
         #     raise TypeError
-        return not (0 <= self.pos_ahead[0] < bounds[0] and 0 <= self.pos_ahead[1] < bounds[1])
+        return not (
+            0 <= self.pos_ahead[0] < bounds[0] and 0 <= self.pos_ahead[1] < bounds[1]
+        )
 
     def crash(self) -> "Car":
         """Return a crashed version of the car."""
@@ -375,13 +416,17 @@ class Car:
         elif self.type is CarType.NUMERAL:
             return Mod.POST_OFFICE
         else:
-            raise TypeError(f"A car must be NORMAL or NUMERAL to get the station of it. CarType: {self.type}")
+            raise TypeError(
+                f"A car must be NORMAL or NUMERAL to get the station of it. CarType: {self.type}"
+            )
 
     def on_correct_station(self, mod: "Mod", mod_num: int) -> bool:
         """Return if the car is on its corresponding station/post office."""
         return mod_num == self.num and mod is self.get_station()
 
-    def car_index(self, cars: list["Car"], decoys: list["Car"], ncars: list["Car"]) -> int:
+    def car_index(
+        self, cars: list["Car"], decoys: list["Car"], ncars: list["Car"]
+    ) -> int:
         """Return the index of the car in cars + decoys + ncars."""
         if self.type is CarType.NORMAL:
             return self.num
@@ -400,11 +445,23 @@ class Car:
 
 class State:
     """Use to convert a state to a hash for finding duplicate boards."""
-    def __init__(self, cars_to_use: list["Car"], board_to_use: dict[tuple[int, int], "Track"],
-                 mods_to_use: dict[tuple[int, int], "Mod"], available_tracks: int, heatmaps: np.ndarray,
-                 solved: list[list[int], list[int]], stalled: list[bool], switch_queue: list[tuple[int, int]],
-                 station_stalled: list[bool], crashed_decoys: list["Car"], mvmts_since_solved: int,
-                 available_semaphores: int, heatmap_limits: np.ndarray):
+
+    def __init__(
+        self,
+        cars_to_use: list["Car"],
+        board_to_use: dict[tuple[int, int], "Track"],
+        mods_to_use: dict[tuple[int, int], "Mod"],
+        available_tracks: int,
+        heatmaps: np.ndarray,
+        solved: list[list[int], list[int]],
+        stalled: list[bool],
+        switch_queue: list[tuple[int, int]],
+        station_stalled: list[bool],
+        crashed_decoys: list["Car"],
+        mvmts_since_solved: int,
+        available_semaphores: int,
+        heatmap_limits: np.ndarray,
+    ):
         self.cars = tuple(cars_to_use)
         self.board = frozenset(board_to_use.items())
         self.mods = frozenset(mods_to_use.items())
@@ -420,4 +477,6 @@ class State:
         # self.heatmap_limits = str(heatmap_limits)  #
 
     def __hash__(self):
-        return hash(tuple(map(hash, [getattr(self, v) for v in dir(self) if v[0] != '_'])))
+        return hash(
+            tuple(map(hash, [getattr(self, v) for v in dir(self) if v[0] != "_"]))
+        )

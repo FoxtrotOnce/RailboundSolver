@@ -121,6 +121,10 @@ export class CarSprite {
     this.numberText.text = newNumber.toString();
   }
 
+  public updateDirection(direction: string): void {
+    this.setCarRotation(direction);
+  }
+
   public getContainer(): Container {
     return this.container;
   }
