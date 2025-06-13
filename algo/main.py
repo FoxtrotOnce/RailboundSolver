@@ -140,7 +140,7 @@ def tail_call_gen(func: typing.Callable[[...], typing.Generator]):
 
 
 @tail_call_gen
-def generate_tracks(cars_to_use: list[C], board_to_use: dict[tuple[int, int], T], mods_to_use: dict[tuple[int, int], M],
+def generate_tracks(cars_to_use: list[C], board_to_use: np.ndarray, mods_to_use: np.ndarray,
                     available_tracks: int, heatmaps: np.ndarray, solved: list[list[int], list[int]], stalled: list[bool],
                     switch_queue: list[tuple[int, int]], station_stalled: list[bool], crashed_decoys: list[C],
                     mvmts_since_solved: int, available_semaphores: int, heatmap_limits: np.ndarray):
@@ -272,8 +272,8 @@ def generate_tracks(cars_to_use: list[C], board_to_use: dict[tuple[int, int], T]
     for c, car in enumerate(cars_to_use):
         iterations += 1
         # print()
-        # T.print_board(board_to_use)
-        # M.print_board(mods_to_use)
+        # T.print_values(board_to_use)
+        # M.print_values(mods_to_use)
         # print(car)
         # print(cars_generated)
         # print(iterations)
@@ -473,13 +473,12 @@ def generate_tracks(cars_to_use: list[C], board_to_use: dict[tuple[int, int], T]
         return
     # if board is complete, register as solution
     if len(solved[0]) == len(cars) and len(solved[1]) == len(ncars):
-        if cars_to_use[0].type is not CT.DECOY or mvmts_since_solved == 2:
+        if all(car.type != CT.DECOY for car in cars_to_use) or mvmts_since_solved == 2:
             best_board = board_to_use
             best_mods = mods_to_use
             lowest_tracks_remaining = available_tracks
             semaphores_remaining = available_semaphores
             print(f'Found a new minimum solution! ({round((time.time() - board_solve_time) * 10e3) / 10e3}s)')
-            board_solve_time = time.time()
             return
         else:
             mvmts_since_solved += 1
@@ -528,7 +527,7 @@ def generate_tracks(cars_to_use: list[C], board_to_use: dict[tuple[int, int], T]
             elif not track_placing.is_empty():
                 board_to_pass[car.pos] = track_placing
 
-            # if the car is on a swapping track, add 1 to all heatmap limits.
+            # if the car is on a swapping track, add 1 to all heatmap limits above 0.
             if car.type is not CT.CRASHED and (mods_to_pass[car.pos] is M.SWAPPING_TRACK or mods_to_pass[car.pos] is M.SWITCH_RAIL):
                 car_index = car.car_index(cars, decoys, ncars)
                 if heatmap_limits_pass[car_index, car.direction.value, car.pos[0], car.pos[1]] < heatmap_limit_limit:
@@ -556,7 +555,9 @@ for lvl_name, data in lvls.items():
 
 # access worlds as worlds['7'], worlds['#'], etc. Levels names are such that "world_name-level_name".
 # lvls = {'7-1': lvls['7-1']}
-for lvl_name, data in worlds['2'].items():
+for lvl_name, data in worlds['7'].items():
+    # if lvl_name != "1-11A":
+    #     continue
     print(lvl_name)
     board, mods, mod_nums, all_cars, max_tracks, max_semaphores = data.values()
     cars, decoys, ncars = [], [], []
@@ -568,6 +569,7 @@ for lvl_name, data in worlds['2'].items():
             decoys.append(car)
         elif car.type is CT.NUMERAL:
             ncars.append(car)
+    all_cars = cars + decoys + ncars
 
     lowest_tracks_remaining = -1
     semaphores_remaining = -1
@@ -619,19 +621,19 @@ for lvl_name, data in worlds['2'].items():
         if car.border_crash(board_dims):
             break
     else:
-        cars_to_use = list(cars + decoys + ncars)
+        cars_to_use = list(all_cars)
         board_to_use = board.copy()
         mods_to_use = mods.copy()
         available_tracks = max_tracks
-        heatmaps = np.zeros((len(cars + decoys + ncars), 4, *board_dims))
+        heatmaps = np.zeros((len(all_cars), 4, *board_dims))
         solved = [[], []]
-        stalled = [False] * len(cars + decoys + ncars)
-        switch_queue = [(-1, -1),] * len(cars + decoys + ncars)
-        station_stalled = [False] * len(cars + decoys + ncars)
+        stalled = [False] * len(all_cars)
+        switch_queue = [(-1, -1),] * len(all_cars)
+        station_stalled = [False] * len(all_cars)
         crashed_decoys = []
         mvmts_since_solved = 0
         available_semaphores = max_semaphores
-        heatmap_limits = np.zeros((len(cars + decoys + ncars), 4, *board_dims))
+        heatmap_limits = np.zeros((len(all_cars), 4, *board_dims))
 
         generate_tracks(cars_to_use, board_to_use, mods_to_use, available_tracks, heatmaps, solved, stalled,
                         switch_queue, station_stalled, crashed_decoys, mvmts_since_solved, available_semaphores,

@@ -1,0 +1,13 @@
+{
+    "discord.removeTimestamp": false,
+    "discord.removeDetails": false,
+    "discord.detailsIdling": "Idling",
+    "discord.enabled": true,
+    "discord.idleTimeout": 0,
+    "discord.detailsEditing": "Editing {dir_name}\\{file_name}",
+    "discord.largeImage": "Editing a {LANG} file",
+    "discord.detailsDebugging": "Debugging {dir_name}\\{file_name}",
+    "discord.lowerDetailsEditing": "{workspace}",
+    "discord.lowerDetailsDebugging": "{workspace}",
+    "discord.swapBigAndSmallImage": false
+}

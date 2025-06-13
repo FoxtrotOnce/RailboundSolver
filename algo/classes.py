@@ -327,7 +327,7 @@ class Car:
     def __init__(self, pos: tuple[int, int], direction: "Direction", num: int, type: "CarType"):
         self.pos = pos
         dir_vector = direction.to_vector()
-        self.pos_ahead = (pos[0] + dir_vector[0], pos[1] + dir_vector[1])
+        self.pos_ahead = direction.add_vector(pos)
         self.direction = direction
         self.num = num
         self.type = type
