@@ -1,0 +1,23 @@
+{
+  "name": "railboundsolver",
+  "version": "1.0.0",
+  "description": "RailboundSolver is a logic-based solving algorithm designed to find the \"best\" solution for any level configuration from the game _Railbound_.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FoxtrotOnce/RailboundSolver.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FoxtrotOnce/RailboundSolver/issues"
+  },
+  "homepage": "https://github.com/FoxtrotOnce/RailboundSolver#readme",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
