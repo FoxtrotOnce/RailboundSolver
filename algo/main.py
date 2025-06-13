@@ -778,7 +778,7 @@ for lvl_name, data in lvls.items():
 
 # access worlds as worlds['7'], worlds['#'], etc. Levels names are such that "world_name-level_name".
 # lvls = {'7-1': lvls['7-1']}
-for lvl_name, data in worlds["1"].items():
+for lvl_name, data in worlds["2"].items():
     print(lvl_name)
     board, mods, mod_nums, all_cars, max_tracks, max_semaphores = data.values()
     cars, decoys, ncars = [], [], []

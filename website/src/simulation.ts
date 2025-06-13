@@ -425,6 +425,13 @@ export class CarSimulation {
       return;
     }
 
+    // Check if all cars are finished or crashed - if so, reset first
+    const activeCars = this.cars.filter((car) => !car.crashed && !car.finished);
+    if (activeCars.length === 0) {
+      this.log("All cars are finished/crashed. Resetting simulation...");
+      this.resetCarsToInitialState();
+    }
+
     this.log("Starting car simulation...");
     this.isRunning = true;
 
@@ -485,6 +492,30 @@ export class CarSimulation {
 
     this.updateCarSpritePositions();
     this.log("Simulation reset");
+  }
+
+  private resetCarsToInitialState(): void {
+    this.stepCount = 0;
+
+    // Reset car states and positions
+    this.cars.forEach((car, index) => {
+      const initialCar = this.initialCars[index];
+
+      // Reset position and state
+      car.pos = [initialCar.pos[0], initialCar.pos[1]] as [number, number];
+      car.direction = stringToDirection(initialCar.direction);
+      car.crashed = false;
+      car.finished = false;
+
+      // Reset sprite appearance
+      car.sprite.getContainer().alpha = 1.0;
+      car.sprite.getContainer().tint = 0xffffff;
+    });
+
+    // Update sprite positions
+    this.updateCarSpritePositions();
+
+    this.log("Simulation state reset to initial values");
   }
 
   public setSpeed(speed: number): void {

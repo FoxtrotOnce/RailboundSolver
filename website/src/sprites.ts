@@ -20,9 +20,9 @@ export const TILE_TO_IMAGE: { [key: number]: string } = {
   15: "15 Top-Left & Right 3-Way.svg",
   16: "16 Top-Left & Bottom 3-Way.svg",
   17: "17 Left-Facing Tunnel.svg",
-  18: "18 Up-Facing Tunnel.svg",
-  19: "19 Right-Facing Tunnel.svg",
-  20: "20 Down-Facing Tunnel.svg",
+  18: "19 Right-Facing Tunnel.svg",
+  19: "20 Down-Facing Tunnel.svg",
+  20: "18 Up-Facing Tunnel.svg",
   21: "21 Numeral Car Ending Track (Right Side).svg",
   22: "22 Numeral Car Ending Track (Left Side).svg",
 };
