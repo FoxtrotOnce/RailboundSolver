@@ -9,7 +9,7 @@ class Track(Enum):
     EMPTY = 0
     HORIZONTAL_TRACK = 1
     VERTICAL_TRACK = 2
-    CAR_ENDING_TRACK = 3
+    CAR_ENDING_TRACK_RIGHT = 3
     ROADBLOCK = 4  # This tile applies to: fences, rocks, stations, post offices, or any other roadblock.
     BOTTOM_RIGHT_TURN = 5
     BOTTOM_LEFT_TURN = 6
@@ -37,6 +37,12 @@ class Track(Enum):
     SEM_BOTTOM_LEFT_TURN = 26
     SEM_TOP_RIGHT_TURN = 27
     SEM_TOP_LEFT_TURN = 28
+    # You can use these ones c:
+    CAR_ENDING_TRACK_LEFT = 29
+    CAR_ENDING_TRACK_DOWN = 30
+    CAR_ENDING_TRACK_UP = 31
+    NCAR_ENDING_TRACK_DOWN = 32
+    NCAR_ENDING_TRACK_UP = 33
 
     @classmethod
     def convert_to_numpy(cls, tracks: np.ndarray) -> np.ndarray:
@@ -58,7 +64,8 @@ class Track(Enum):
 
     def is_car_ending_track(self) -> bool:
         """Return if the track is an ending track for normal cars."""
-        return self is self.CAR_ENDING_TRACK
+        return self in {self.CAR_ENDING_TRACK_RIGHT, self.CAR_ENDING_TRACK_LEFT,
+                        self.CAR_ENDING_TRACK_DOWN, self.CAR_ENDING_TRACK_UP}
 
     def is_turn(self) -> bool:
         """Return if the track is a single-turn track."""
@@ -91,7 +98,8 @@ class Track(Enum):
 
     def is_ncar_ending_track(self) -> bool:
         """Return if the track is an ending track for numeral cars."""
-        return self is self.NCAR_ENDING_TRACK_RIGHT or self is self.NCAR_ENDING_TRACK_LEFT
+        return self in {self.NCAR_ENDING_TRACK_RIGHT, self.NCAR_ENDING_TRACK_LEFT,
+                        self.NCAR_ENDING_TRACK_DOWN, self.NCAR_ENDING_TRACK_UP}
 
     def is_placeholder_semaphore(self) -> bool:
         """Return if there is a placeholder semaphore on the tile."""
@@ -140,38 +148,6 @@ class Mod(Enum):
     DEACTIVATED_MOD = 9
     STARTING_CAR_TILE = 10
     POST_OFFICE = 11
-    # EMPTY = 0
-    # SWITCH_1 = 1
-    # SWITCH_2 = 2
-    # SWITCH_3 = 3
-    # SWITCH_4 = 4
-    # TUNNEL_1 = 5
-    # TUNNEL_2 = 6
-    # TUNNEL_3 = 7
-    # CLOSED_GATE_1 = 8
-    # OPEN_GATE_1 = 9
-    # CLOSED_GATE_2 = 10
-    # OPEN_GATE_2 = 11
-    # CLOSED_GATE_3 = 12
-    # OPEN_GATE_3 = 13
-    # CLOSED_GATE_4 = 14
-    # OPEN_GATE_4 = 15
-    # SWAPPING_TRACK_1 = 16
-    # SWAPPING_TRACK_2 = 17
-    # SWAPPING_TRACK_3 = 18
-    # SWAPPING_TRACK_4 = 19
-    # STATION_1 = 20
-    # STATION_2 = 21
-    # STATION_3 = 22
-    # STATION_4 = 23
-    # SWITCH_RAIL = 24
-    # SEMAPHORE = 25
-    # DEACTIVATED_MOD = 26
-    # STARTING_CAR_TILE = 27
-    # POST_OFFICE_1 = 28
-    # POST_OFFICE_2 = 29
-    # POST_OFFICE_3 = 30
-    # POST_OFFICE_4 = 31
 
     @classmethod
     def convert_to_numpy(cls, mods: np.ndarray) -> np.ndarray:

@@ -5,7 +5,7 @@ export class Track {
     static readonly EMPTY = new Track(0)
     static readonly HORIZONTAL_TRACK = new Track(1)
     static readonly VERTICAL_TRACK = new Track(2)
-    static readonly CAR_ENDING_TRACK = new Track(3)
+    static readonly CAR_ENDING_TRACK_RIGHT = new Track(3)
     static readonly ROADBLOCK = new Track(4)  // This tile applies to: fences, rocks, stations, post offices, or any other roadblock.
     static readonly BOTTOM_RIGHT_TURN = new Track(5)
     static readonly BOTTOM_LEFT_TURN = new Track(6)
@@ -33,6 +33,12 @@ export class Track {
     static readonly SEM_BOTTOM_LEFT_TURN = new Track(26)
     static readonly SEM_TOP_RIGHT_TURN = new Track(27)
     static readonly SEM_TOP_LEFT_TURN = new Track(28)
+    // You can use these ones c:
+    static readonly CAR_ENDING_TRACK_LEFT = new Track(29)
+    static readonly CAR_ENDING_TRACK_DOWN = new Track(30)
+    static readonly CAR_ENDING_TRACK_UP = new Track(31)
+    static readonly NCAR_ENDING_TRACK_DOWN = new Track(32)
+    static readonly NCAR_ENDING_TRACK_UP = new Track(33)
 
     private constructor(readonly value: number) {Track.TRACKS.set(value, this)}
 
@@ -70,7 +76,7 @@ export class Track {
     }
     is_car_ending_track(): boolean {
         /** Return if the track is an ending track for normal cars. */
-        return this === Track.CAR_ENDING_TRACK
+        return car_endings.has(this)
     }
     is_turn(): boolean {
         /** Return if the track is a single-turn track. */
@@ -112,7 +118,8 @@ const three_ways = new Set<Track>([
         Track.TOP_LEFT_RIGHT_3WAY, Track.TOP_LEFT_BOTTOM_3WAY
 ])
 const tunnels = new Set<Track>([Track.LEFT_FACING_TUNNEL, Track.RIGHT_FACING_TUNNEL, Track.DOWN_FACING_TUNNEL, Track.UP_FACING_TUNNEL])
-const ncar_endings = new Set<Track>([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT])
+const car_endings = new Set<Track>([Track.CAR_ENDING_TRACK_LEFT, Track.CAR_ENDING_TRACK_RIGHT, Track.CAR_ENDING_TRACK_DOWN, Track.CAR_ENDING_TRACK_UP])
+const ncar_endings = new Set<Track>([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT, Track.NCAR_ENDING_TRACK_DOWN, Track.NCAR_ENDING_TRACK_UP])
 const semaphore_tracks = new Map<Track, Track>([
     [Track.HORIZONTAL_TRACK, Track.SEM_HORIZONTAL_TRACK],
     [Track.VERTICAL_TRACK, Track.SEM_VERTICAL_TRACK],
