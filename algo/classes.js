@@ -45,7 +45,7 @@ class Track {
     }
     is_car_ending_track() {
         /** Return if the track is an ending track for normal cars. */
-        return this === Track.CAR_ENDING_TRACK;
+        return car_endings.has(this);
     }
     is_turn() {
         /** Return if the track is a single-turn track. */
@@ -106,7 +106,7 @@ Object.defineProperty(Track, "VERTICAL_TRACK", {
     writable: true,
     value: new Track(2)
 });
-Object.defineProperty(Track, "CAR_ENDING_TRACK", {
+Object.defineProperty(Track, "CAR_ENDING_TRACK_RIGHT", {
     enumerable: true,
     configurable: true,
     writable: true,
@@ -264,6 +264,37 @@ Object.defineProperty(Track, "SEM_TOP_LEFT_TURN", {
     writable: true,
     value: new Track(28)
 });
+// You can use these ones c:
+Object.defineProperty(Track, "CAR_ENDING_TRACK_LEFT", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new Track(29)
+});
+Object.defineProperty(Track, "CAR_ENDING_TRACK_DOWN", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new Track(30)
+});
+Object.defineProperty(Track, "CAR_ENDING_TRACK_UP", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new Track(31)
+});
+Object.defineProperty(Track, "NCAR_ENDING_TRACK_DOWN", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new Track(32)
+});
+Object.defineProperty(Track, "NCAR_ENDING_TRACK_UP", {
+    enumerable: true,
+    configurable: true,
+    writable: true,
+    value: new Track(33)
+});
 const single_turns = new Set([Track.BOTTOM_RIGHT_TURN, Track.BOTTOM_LEFT_TURN, Track.TOP_RIGHT_TURN, Track.TOP_LEFT_TURN]);
 const three_ways = new Set([
     Track.BOTTOM_RIGHT_LEFT_3WAY, Track.BOTTOM_RIGHT_TOP_3WAY, Track.BOTTOM_LEFT_RIGHT_3WAY,
@@ -271,7 +302,8 @@ const three_ways = new Set([
     Track.TOP_LEFT_RIGHT_3WAY, Track.TOP_LEFT_BOTTOM_3WAY
 ]);
 const tunnels = new Set([Track.LEFT_FACING_TUNNEL, Track.RIGHT_FACING_TUNNEL, Track.DOWN_FACING_TUNNEL, Track.UP_FACING_TUNNEL]);
-const ncar_endings = new Set([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT]);
+const car_endings = new Set([Track.CAR_ENDING_TRACK_LEFT, Track.CAR_ENDING_TRACK_RIGHT, Track.CAR_ENDING_TRACK_DOWN, Track.CAR_ENDING_TRACK_UP]);
+const ncar_endings = new Set([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT, Track.NCAR_ENDING_TRACK_DOWN, Track.NCAR_ENDING_TRACK_UP]);
 const semaphore_tracks = new Map([
     [Track.HORIZONTAL_TRACK, Track.SEM_HORIZONTAL_TRACK],
     [Track.VERTICAL_TRACK, Track.SEM_VERTICAL_TRACK],

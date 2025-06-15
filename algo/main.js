@@ -70,7 +70,6 @@ const directions = new Map([
     [classes_1.Track.EMPTY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
     [classes_1.Track.HORIZONTAL_TRACK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.LEFT], [classes_1.Direction.RIGHT, classes_1.Direction.RIGHT], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
     [classes_1.Track.VERTICAL_TRACK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.DOWN], [classes_1.Direction.UP, classes_1.Direction.UP]])],
-    [classes_1.Track.CAR_ENDING_TRACK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
     [classes_1.Track.ROADBLOCK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
     [classes_1.Track.BOTTOM_RIGHT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.DOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.RIGHT]])],
     [classes_1.Track.BOTTOM_LEFT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.DOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.LEFT]])],
@@ -88,8 +87,14 @@ const directions = new Map([
     [classes_1.Track.RIGHT_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
     [classes_1.Track.DOWN_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])],
     [classes_1.Track.UP_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.CAR_ENDING_TRACK_RIGHT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.CAR_ENDING_TRACK_LEFT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.CAR_ENDING_TRACK_DOWN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.CAR_ENDING_TRACK_UP, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])],
     [classes_1.Track.NCAR_ENDING_TRACK_RIGHT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.NCAR_ENDING_TRACK_LEFT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])]
+    [classes_1.Track.NCAR_ENDING_TRACK_LEFT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.NCAR_ENDING_TRACK_DOWN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
+    [classes_1.Track.NCAR_ENDING_TRACK_UP, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])]
 ]);
 function tail_call_gen(args) {
     if (gen_type === "DFS") {
@@ -846,7 +851,6 @@ function solve_level(data) {
         console.log("------------------------------");
         return undefined;
     }
-    console.log(best_board);
     // Replace permanent tiles that may have been swapped during generation.
     for (const pos_index of permanent_track_poses) {
         const pos = [Math.floor(pos_index / board[0].length), pos_index % board[0].length];
