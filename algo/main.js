@@ -1,101 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.solve_level = solve_level;
 const classes_1 = require("./classes");
-const levels_json_1 = __importDefault(require("../levels.json"));
-const program_start_time = Date.now();
 // HYPERPARAMETERS (INTEGRATE WITH UI)
 const heatmap_limit_limit = 9;
 const decoy_heatmap_limit = 15;
 const gen_type = 'DFS';
-// generable_tracks lists each track the car can access from each direction.
-const generable_tracks = new Map([
-    [classes_1.Direction.LEFT, [classes_1.Track.HORIZONTAL_TRACK, classes_1.Track.BOTTOM_RIGHT_TURN, classes_1.Track.TOP_RIGHT_TURN]],
-    [classes_1.Direction.RIGHT, [classes_1.Track.HORIZONTAL_TRACK, classes_1.Track.BOTTOM_LEFT_TURN, classes_1.Track.TOP_LEFT_TURN]],
-    [classes_1.Direction.DOWN, [classes_1.Track.VERTICAL_TRACK, classes_1.Track.TOP_RIGHT_TURN, classes_1.Track.TOP_LEFT_TURN]],
-    [classes_1.Direction.UP, [classes_1.Track.VERTICAL_TRACK, classes_1.Track.BOTTOM_RIGHT_TURN, classes_1.Track.BOTTOM_LEFT_TURN]]
-]);
-/**
- * generable3_ways lists the possible 3-ways a car can make depending on
- * what track it intersects, and what direction the car is facing.
- */
-const generable3_ways = new Map([
-    [classes_1.Direction.LEFT, new Map([
-            [classes_1.Track.HORIZONTAL_TRACK, [classes_1.Track.BOTTOM_RIGHT_LEFT_3WAY, classes_1.Track.TOP_RIGHT_LEFT_3WAY]],
-            [classes_1.Track.VERTICAL_TRACK, [classes_1.Track.BOTTOM_RIGHT_TOP_3WAY, classes_1.Track.TOP_RIGHT_BOTTOM_3WAY]],
-            [classes_1.Track.BOTTOM_LEFT_TURN, [classes_1.Track.BOTTOM_LEFT_RIGHT_3WAY,]],
-            [classes_1.Track.TOP_LEFT_TURN, [classes_1.Track.TOP_LEFT_RIGHT_3WAY,]]
-        ])],
-    [classes_1.Direction.RIGHT, new Map([
-            [classes_1.Track.HORIZONTAL_TRACK, [classes_1.Track.BOTTOM_LEFT_RIGHT_3WAY, classes_1.Track.TOP_LEFT_RIGHT_3WAY]],
-            [classes_1.Track.VERTICAL_TRACK, [classes_1.Track.BOTTOM_LEFT_TOP_3WAY, classes_1.Track.TOP_LEFT_BOTTOM_3WAY]],
-            [classes_1.Track.BOTTOM_RIGHT_TURN, [classes_1.Track.BOTTOM_RIGHT_LEFT_3WAY,]],
-            [classes_1.Track.TOP_RIGHT_TURN, [classes_1.Track.TOP_RIGHT_LEFT_3WAY,]]
-        ])],
-    [classes_1.Direction.DOWN, new Map([
-            [classes_1.Track.HORIZONTAL_TRACK, [classes_1.Track.TOP_RIGHT_LEFT_3WAY, classes_1.Track.TOP_LEFT_RIGHT_3WAY]],
-            [classes_1.Track.VERTICAL_TRACK, [classes_1.Track.TOP_RIGHT_BOTTOM_3WAY, classes_1.Track.TOP_LEFT_BOTTOM_3WAY]],
-            [classes_1.Track.BOTTOM_RIGHT_TURN, [classes_1.Track.BOTTOM_RIGHT_TOP_3WAY,]],
-            [classes_1.Track.BOTTOM_LEFT_TURN, [classes_1.Track.BOTTOM_LEFT_TOP_3WAY,]]
-        ])],
-    [classes_1.Direction.UP, new Map([
-            [classes_1.Track.HORIZONTAL_TRACK, [classes_1.Track.BOTTOM_RIGHT_LEFT_3WAY, classes_1.Track.BOTTOM_LEFT_RIGHT_3WAY]],
-            [classes_1.Track.VERTICAL_TRACK, [classes_1.Track.BOTTOM_RIGHT_TOP_3WAY, classes_1.Track.BOTTOM_LEFT_TOP_3WAY]],
-            [classes_1.Track.TOP_RIGHT_TURN, [classes_1.Track.TOP_RIGHT_BOTTOM_3WAY,]],
-            [classes_1.Track.TOP_LEFT_TURN, [classes_1.Track.TOP_LEFT_BOTTOM_3WAY,]]
-        ])]
-]);
-/** semaphore_pass lists the relative tiles where a car must be to trigger a semaphore.
- * For example, a car would have to be on the tile to either trigger the LEFT or RIGHT of a
- * HORIZONTAL_TRACK with a semaphore on it to trigger the semaphore.
- */
-const semaphore_pass = new Map([
-    [classes_1.Track.HORIZONTAL_TRACK, [classes_1.Direction.LEFT, classes_1.Direction.RIGHT]],
-    [classes_1.Track.VERTICAL_TRACK, [classes_1.Direction.DOWN, classes_1.Direction.UP]],
-    [classes_1.Track.BOTTOM_RIGHT_TURN, [classes_1.Direction.DOWN, classes_1.Direction.RIGHT]],
-    [classes_1.Track.BOTTOM_LEFT_TURN, [classes_1.Direction.DOWN, classes_1.Direction.LEFT]],
-    [classes_1.Track.TOP_RIGHT_TURN, [classes_1.Direction.UP, classes_1.Direction.RIGHT]],
-    [classes_1.Track.TOP_LEFT_TURN, [classes_1.Direction.UP, classes_1.Direction.LEFT]]
-]);
-/**
- * directions lists instructions on where to move a car depending on what track it's on, and what direction it's facing.
- * For example, a car on a BOTTOM_RIGHT_TURN and facing UP will move to the RIGHT.
- * CRASH indicates that the car will crash, and UNKNOWN indicates
- * the car's movement is not yet determined, but it won't crash.
- */
-const directions = new Map([
-    [classes_1.Track.EMPTY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.HORIZONTAL_TRACK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.LEFT], [classes_1.Direction.RIGHT, classes_1.Direction.RIGHT], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.VERTICAL_TRACK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.DOWN], [classes_1.Direction.UP, classes_1.Direction.UP]])],
-    [classes_1.Track.ROADBLOCK, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.BOTTOM_RIGHT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.DOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.RIGHT]])],
-    [classes_1.Track.BOTTOM_LEFT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.DOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.LEFT]])],
-    [classes_1.Track.TOP_RIGHT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UP], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.RIGHT], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.TOP_LEFT_TURN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UP], [classes_1.Direction.DOWN, classes_1.Direction.LEFT], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.BOTTOM_RIGHT_LEFT_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.DOWN], [classes_1.Direction.RIGHT, classes_1.Direction.RIGHT], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.RIGHT]])],
-    [classes_1.Track.BOTTOM_RIGHT_TOP_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.DOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.DOWN], [classes_1.Direction.UP, classes_1.Direction.RIGHT]])],
-    [classes_1.Track.BOTTOM_LEFT_RIGHT_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.LEFT], [classes_1.Direction.RIGHT, classes_1.Direction.DOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.LEFT]])],
-    [classes_1.Track.BOTTOM_LEFT_TOP_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.DOWN], [classes_1.Direction.DOWN, classes_1.Direction.DOWN], [classes_1.Direction.UP, classes_1.Direction.LEFT]])],
-    [classes_1.Track.TOP_RIGHT_LEFT_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UP], [classes_1.Direction.RIGHT, classes_1.Direction.RIGHT], [classes_1.Direction.DOWN, classes_1.Direction.RIGHT], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.TOP_RIGHT_BOTTOM_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UP], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.RIGHT], [classes_1.Direction.UP, classes_1.Direction.UP]])],
-    [classes_1.Track.TOP_LEFT_RIGHT_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.LEFT], [classes_1.Direction.RIGHT, classes_1.Direction.UP], [classes_1.Direction.DOWN, classes_1.Direction.LEFT], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.TOP_LEFT_BOTTOM_3WAY, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UP], [classes_1.Direction.DOWN, classes_1.Direction.LEFT], [classes_1.Direction.UP, classes_1.Direction.UP]])],
-    [classes_1.Track.LEFT_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.RIGHT_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.DOWN_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])],
-    [classes_1.Track.UP_FACING_TUNNEL, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.CAR_ENDING_TRACK_RIGHT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.CAR_ENDING_TRACK_LEFT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.CAR_ENDING_TRACK_DOWN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.CAR_ENDING_TRACK_UP, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])],
-    [classes_1.Track.NCAR_ENDING_TRACK_RIGHT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.UNKNOWN], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.NCAR_ENDING_TRACK_LEFT, new Map([[classes_1.Direction.LEFT, classes_1.Direction.UNKNOWN], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.NCAR_ENDING_TRACK_DOWN, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.UNKNOWN], [classes_1.Direction.UP, classes_1.Direction.CRASH]])],
-    [classes_1.Track.NCAR_ENDING_TRACK_UP, new Map([[classes_1.Direction.LEFT, classes_1.Direction.CRASH], [classes_1.Direction.RIGHT, classes_1.Direction.CRASH], [classes_1.Direction.DOWN, classes_1.Direction.CRASH], [classes_1.Direction.UP, classes_1.Direction.UNKNOWN]])]
-]);
 function tail_call_gen(args) {
     if (gen_type === "DFS") {
         let argslist = [args];
@@ -122,34 +32,34 @@ function tail_call_gen(args) {
         }
     }
 }
+/**
+ * Generate tracks for the given frame data.
+ *
+ * @param cars_to_use - The cars in the frame.
+ * @param board_to_use - The board (tracks) in the frame.
+ * @param mods_to_use - The track mods in the frame.
+ * @param available_tracks - The remaining tracks.
+ * @param heatmaps - The heat of each possible car configuration.
+ *                 Heat is the amount of times a car has been at the same position
+ *                 with the same direction. It is used to prevent looping.
+ * @param solved - 2 lists of each NORMAL and NUMERAL car num that have reached
+ *               their train.
+ * @param stalled - Whether each car is stalled or not. Stalled means that the car
+ *                cannot move due to being behind a gate or semaphore.
+ * @param switch_queue - The position of a gate if it is trying to close on a car,
+ *                     for each car. The position is (-1, -1) if no gate is queued on top
+ *                     of the car.
+ * @param station_stalled - Whether each car is being stalled by a station or not.
+ *                        It is different from normal stalling such that station stalling
+ *                        always lasts 2 frames.
+ * @param crashed_decoys - The positions of each DECOY that have crashed.
+ * @param mvmts_since_solved - The frames since all cars reached their trains.
+ *                           It is used to consider a level with decoys solved after 2 frames.
+ * @param available_semaphores - The remaining semaphores.
+ * @param heatmap_limits - The upper limit for each value in heatmaps.
+ *                       It is used to prevent looping.
+ */
 function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tracks, heatmaps, solved, stalled, switch_queue, station_stalled, crashed_decoys, mvmts_since_solved, available_semaphores, heatmap_limits }) {
-    /**
-     * Generate tracks for the given frame data.
-     *
-     * @param cars_to_use - The cars in the frame.
-     * @param board_to_use - The board (tracks) in the frame.
-     * @param mods_to_use - The track mods in the frame.
-     * @param available_tracks - The remaining tracks.
-     * @param heatmaps - The heat of each possible car configuration.
-     *                 Heat is the amount of times a car has been at the same position
-     *                 with the same direction. It is used to prevent looping.
-     * @param solved - 2 lists of each NORMAL and NUMERAL car num that have reached
-     *               their train.
-     * @param stalled - Whether each car is stalled or not. Stalled means that the car
-     *                cannot move due to being behind a gate or semaphore.
-     * @param switch_queue - The position of a gate if it is trying to close on a car,
-     *                     for each car. The position is (-1, -1) if no gate is queued on top
-     *                     of the car.
-     * @param station_stalled - Whether each car is being stalled by a station or not.
-     *                        It is different from normal stalling such that station stalling
-     *                        always lasts 2 frames.
-     * @param crashed_decoys - The positions of each DECOY that have crashed.
-     * @param mvmts_since_solved - The frames since all cars reached their trains.
-     *                           It is used to consider a level with decoys solved after 2 frames.
-     * @param available_semaphores - The remaining semaphores.
-     * @param heatmap_limits - The upper limit for each value in heatmaps.
-     *                       It is used to prevent looping.
-     */
     // Remove decoys from generation if they crashed last frame, and add the pos to crashed_decoys.
     const crashed = [];
     for (let i = cars_to_use.length - 1; i > -1; i--) {
@@ -250,7 +160,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
         }
         // Semaphore processing
         if (mods_to_use[car.pos_ahead[0]][car.pos_ahead[1]] === classes_1.Mod.SEMAPHORE) {
-            const semPos = semaphore_pass.get(board_to_use[car.pos_ahead[0]][car.pos_ahead[1]]);
+            const semPos = classes_1.semaphore_pass.get(board_to_use[car.pos_ahead[0]][car.pos_ahead[1]]);
             // Check if any cars are passing the semaphore, and open it if they are
             for (const p_car of cars_to_use) {
                 if (p_car === car) {
@@ -316,7 +226,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
             stalled[c] = false;
         }
         const tile_ahead = board_to_use[car.pos_ahead[0]][car.pos_ahead[1]];
-        const tile_ahead_redirect = directions.get(tile_ahead).get(car.direction);
+        const tile_ahead_redirect = classes_1.directions.get(tile_ahead).get(car.direction);
         // tile picking
         let tracks_to_check = [];
         if (!tile_ahead.is_empty()) {
@@ -338,7 +248,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
             else {
                 if (tile_ahead_redirect === classes_1.Direction.CRASH) {
                     if (tile_ahead.is_turn() || tile_ahead.is_straight()) {
-                        tracks_to_check = generable3_ways.get(car.direction).get(tile_ahead);
+                        tracks_to_check = car.generable_3ways(tile_ahead);
                     }
                     else if (car.type === classes_1.CarType.DECOY) {
                         cars_generated[c] = [car.crash()];
@@ -362,7 +272,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
                         }
                     }
                     if (!cannot_place_3way) {
-                        tracks_to_check = [tile_ahead, ...generable3_ways.get(car.direction).get(tile_ahead)];
+                        tracks_to_check = [tile_ahead, ...car.generable_3ways(tile_ahead)];
                     }
                 }
                 else {
@@ -378,12 +288,12 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
                 }
                 else {
                     decoy_placing[car.num] = true;
-                    tracks_to_check = [classes_1.Track.EMPTY, ...generable_tracks.get(car.direction)];
+                    tracks_to_check = [classes_1.Track.EMPTY, ...car.generable_tracks()];
                 }
             }
             else {
                 available_tracks--;
-                tracks_to_check = generable_tracks.get(car.direction);
+                tracks_to_check = car.generable_tracks();
             }
         }
         // false train checks to make sure cars dont go to the wrong train
@@ -442,7 +352,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
                 possible_redirect = tunnel_exit_velos.get(board[car.pos_ahead[0]][car.pos_ahead[1]]);
             }
             else {
-                possible_redirect = directions.get(possibleTrack).get(car.direction);
+                possible_redirect = classes_1.directions.get(possibleTrack).get(car.direction);
             }
             // if placing a 3-way, check if it affects any cars that have come in that direction
             if (possibleTrack.is_car_ending_track() || possibleTrack.is_ncar_ending_track()) {
@@ -496,7 +406,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
                 continue;
             }
             const end_on_tile = board_to_use[end_on[0]][end_on[1]];
-            const end_on_redirect = directions.get(end_on_tile).get(possible_redirect);
+            const end_on_redirect = classes_1.directions.get(end_on_tile).get(possible_redirect);
             const possible_to_place_3way = (end_on_tile.is_straight() || end_on_tile.is_turn()) &&
                 !permanent_track_poses.has(end_on[0] * board[0].length + end_on[1]);
             // checks if end_on_tile is going to crash the car and if it can't place a 3-way to fix it
@@ -528,7 +438,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
                 }
                 if (!semaphore_triggered && available_semaphores > 0 && (possibleTrack.is_straight() || possibleTrack.is_turn()) &&
                     mods_to_use[car.pos_ahead[0]][car.pos_ahead[1]] == classes_1.Mod.EMPTY) {
-                    const semPos = semaphore_pass.get(possibleTrack);
+                    const semPos = classes_1.semaphore_pass.get(possibleTrack);
                     const sem_pos0 = semPos[0].add_vector(car.pos_ahead);
                     const sem_pos1 = semPos[1].add_vector(car.pos_ahead);
                     let pos0_heat = 0;
@@ -689,16 +599,6 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
         }
     }
 }
-const worlds = new Map();
-for (const key in levels_json_1.default) {
-    const lvl_name = key;
-    const world = lvl_name.slice(0, lvl_name.indexOf('-'));
-    const data = levels_json_1.default[lvl_name];
-    if (!worlds.has(world)) {
-        worlds.set(world, new Map());
-    }
-    worlds.get(world).set(lvl_name, data);
-}
 var board;
 var mods;
 var mod_nums;
@@ -714,7 +614,12 @@ var best_board;
 var best_mods;
 var board_dims;
 var iterations;
-var tunnel_exit_velos;
+var tunnel_exit_velos = new Map([
+    [classes_1.Track.LEFT_FACING_TUNNEL, classes_1.Direction.LEFT],
+    [classes_1.Track.RIGHT_FACING_TUNNEL, classes_1.Direction.RIGHT],
+    [classes_1.Track.DOWN_FACING_TUNNEL, classes_1.Direction.DOWN],
+    [classes_1.Track.UP_FACING_TUNNEL, classes_1.Direction.UP]
+]);
 var permanent_track_poses;
 var tunnel_poses;
 var gate_poses;
@@ -748,12 +653,6 @@ function solve_level(data) {
     semaphores_remaining = -1;
     board_dims = [board.length, board[0].length];
     iterations = 0;
-    var tunnel_exit_velos = new Map([
-        [classes_1.Track.LEFT_FACING_TUNNEL, classes_1.Direction.LEFT],
-        [classes_1.Track.RIGHT_FACING_TUNNEL, classes_1.Direction.RIGHT],
-        [classes_1.Track.DOWN_FACING_TUNNEL, classes_1.Direction.DOWN],
-        [classes_1.Track.UP_FACING_TUNNEL, classes_1.Direction.UP]
-    ]);
     /**
      * For TypeScript, permanent_track_poses are stored as a single number instead of [number, number], since that way
      * permanent_track_poses.has() can be successfully performed (arrays dont share memory even if they look identical)
@@ -865,7 +764,7 @@ function solve_level(data) {
         for (let j = 0; j < best_mods[0].length; j++) {
             const mod = best_mods[i][j];
             if (mod === classes_1.Mod.SEMAPHORE || (mod === classes_1.Mod.DEACTIVATED_MOD && mods[i][j] === classes_1.Mod.EMPTY)) {
-                console.log("hi thinh");
+                console.log(`~~ Semaphore at: (${i}, ${j})`);
             }
         }
     }
@@ -880,8 +779,3 @@ function solve_level(data) {
     best_mods = undefined;
     return return_data;
 }
-// for (const [lvl_name, data] of worlds.get('1')!) {
-//     console.log(lvl_name)
-//     solve_level(data)
-// }
-// console.log(`\nFully Complete in: ${(Date.now() - program_start_time) / 10e2}s`)

@@ -5,103 +5,22 @@ import {
     CarType as CT,
     Car as C,
     copy_arr, zeros, deque,
-    product
+    product, semaphore_pass, directions
 } from './classes'
 import lvls from '../levels.json'
 
-const program_start_time = Date.now()
 // HYPERPARAMETERS (INTEGRATE WITH UI)
 const heatmap_limit_limit = 9
 const decoy_heatmap_limit = 15
 const gen_type: 'DFS' | 'BFS' = 'DFS'
 
-// generable_tracks lists each track the car can access from each direction.
-const generable_tracks = new Map<D, T[]>([
-    [D.LEFT, [T.HORIZONTAL_TRACK, T.BOTTOM_RIGHT_TURN, T.TOP_RIGHT_TURN]],
-    [D.RIGHT, [T.HORIZONTAL_TRACK, T.BOTTOM_LEFT_TURN, T.TOP_LEFT_TURN]],
-    [D.DOWN, [T.VERTICAL_TRACK, T.TOP_RIGHT_TURN, T.TOP_LEFT_TURN]],
-    [D.UP, [T.VERTICAL_TRACK, T.BOTTOM_RIGHT_TURN, T.BOTTOM_LEFT_TURN]]
-])
-/** 
- * generable3_ways lists the possible 3-ways a car can make depending on
- * what track it intersects, and what direction the car is facing.
- */
-const generable3_ways = new Map<D, Map<T, T[]>>([
-    [D.LEFT, new Map([
-        [T.HORIZONTAL_TRACK, [T.BOTTOM_RIGHT_LEFT_3WAY, T.TOP_RIGHT_LEFT_3WAY]],
-        [T.VERTICAL_TRACK, [T.BOTTOM_RIGHT_TOP_3WAY, T.TOP_RIGHT_BOTTOM_3WAY]],
-        [T.BOTTOM_LEFT_TURN, [T.BOTTOM_LEFT_RIGHT_3WAY,]],
-        [T.TOP_LEFT_TURN, [T.TOP_LEFT_RIGHT_3WAY,]]
-    ])],
-    [D.RIGHT, new Map([
-        [T.HORIZONTAL_TRACK, [T.BOTTOM_LEFT_RIGHT_3WAY, T.TOP_LEFT_RIGHT_3WAY]],
-        [T.VERTICAL_TRACK, [T.BOTTOM_LEFT_TOP_3WAY, T.TOP_LEFT_BOTTOM_3WAY]],
-        [T.BOTTOM_RIGHT_TURN, [T.BOTTOM_RIGHT_LEFT_3WAY,]],
-        [T.TOP_RIGHT_TURN, [T.TOP_RIGHT_LEFT_3WAY,]]
-    ])],
-    [D.DOWN, new Map([
-        [T.HORIZONTAL_TRACK, [T.TOP_RIGHT_LEFT_3WAY, T.TOP_LEFT_RIGHT_3WAY]],
-        [T.VERTICAL_TRACK, [T.TOP_RIGHT_BOTTOM_3WAY, T.TOP_LEFT_BOTTOM_3WAY]],
-        [T.BOTTOM_RIGHT_TURN, [T.BOTTOM_RIGHT_TOP_3WAY,]],
-        [T.BOTTOM_LEFT_TURN, [T.BOTTOM_LEFT_TOP_3WAY,]]
-    ])],
-    [D.UP, new Map([
-        [T.HORIZONTAL_TRACK, [T.BOTTOM_RIGHT_LEFT_3WAY, T.BOTTOM_LEFT_RIGHT_3WAY]],
-        [T.VERTICAL_TRACK, [T.BOTTOM_RIGHT_TOP_3WAY, T.BOTTOM_LEFT_TOP_3WAY]],
-        [T.TOP_RIGHT_TURN, [T.TOP_RIGHT_BOTTOM_3WAY,]],
-        [T.TOP_LEFT_TURN, [T.TOP_LEFT_BOTTOM_3WAY,]]
-    ])]
-])
-/** semaphore_pass lists the relative tiles where a car must be to trigger a semaphore.
- * For example, a car would have to be on the tile to either trigger the LEFT or RIGHT of a
- * HORIZONTAL_TRACK with a semaphore on it to trigger the semaphore.
- */
-const semaphore_pass = new Map<T, D[]>([
-    [T.HORIZONTAL_TRACK, [D.LEFT, D.RIGHT]],
-    [T.VERTICAL_TRACK, [D.DOWN, D.UP]],
-    [T.BOTTOM_RIGHT_TURN, [D.DOWN, D.RIGHT]],
-    [T.BOTTOM_LEFT_TURN, [D.DOWN, D.LEFT]],
-    [T.TOP_RIGHT_TURN, [D.UP, D.RIGHT]],
-    [T.TOP_LEFT_TURN, [D.UP, D.LEFT]]
-])
-/** 
- * directions lists instructions on where to move a car depending on what track it's on, and what direction it's facing.
- * For example, a car on a BOTTOM_RIGHT_TURN and facing UP will move to the RIGHT.
- * CRASH indicates that the car will crash, and UNKNOWN indicates
- * the car's movement is not yet determined, but it won't crash.
- */
-const directions = new Map<T, Map<D, D>>([
-    [T.EMPTY, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.HORIZONTAL_TRACK, new Map([[D.LEFT, D.LEFT], [D.RIGHT, D.RIGHT], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.VERTICAL_TRACK, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.DOWN], [D.UP, D.UP]])],
-    [T.ROADBLOCK, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.BOTTOM_RIGHT_TURN, new Map([[D.LEFT, D.DOWN], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.RIGHT]])],
-    [T.BOTTOM_LEFT_TURN, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.DOWN], [D.DOWN, D.CRASH], [D.UP, D.LEFT]])],
-    [T.TOP_RIGHT_TURN, new Map([[D.LEFT, D.UP], [D.RIGHT, D.CRASH], [D.DOWN, D.RIGHT], [D.UP, D.CRASH]])],
-    [T.TOP_LEFT_TURN, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.UP], [D.DOWN, D.LEFT], [D.UP, D.CRASH]])],
-    [T.BOTTOM_RIGHT_LEFT_3WAY, new Map([[D.LEFT, D.DOWN], [D.RIGHT, D.RIGHT], [D.DOWN, D.CRASH], [D.UP, D.RIGHT]])],
-    [T.BOTTOM_RIGHT_TOP_3WAY, new Map([[D.LEFT, D.DOWN], [D.RIGHT, D.CRASH], [D.DOWN, D.DOWN], [D.UP, D.RIGHT]])],
-    [T.BOTTOM_LEFT_RIGHT_3WAY, new Map([[D.LEFT, D.LEFT], [D.RIGHT, D.DOWN], [D.DOWN, D.CRASH], [D.UP, D.LEFT]])],
-    [T.BOTTOM_LEFT_TOP_3WAY, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.DOWN], [D.DOWN, D.DOWN], [D.UP, D.LEFT]])],
-    [T.TOP_RIGHT_LEFT_3WAY, new Map([[D.LEFT, D.UP], [D.RIGHT, D.RIGHT], [D.DOWN, D.RIGHT], [D.UP, D.CRASH]])],
-    [T.TOP_RIGHT_BOTTOM_3WAY, new Map([[D.LEFT, D.UP], [D.RIGHT, D.CRASH], [D.DOWN, D.RIGHT], [D.UP, D.UP]])],
-    [T.TOP_LEFT_RIGHT_3WAY, new Map([[D.LEFT, D.LEFT], [D.RIGHT, D.UP], [D.DOWN, D.LEFT], [D.UP, D.CRASH]])],
-    [T.TOP_LEFT_BOTTOM_3WAY, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.UP], [D.DOWN, D.LEFT], [D.UP, D.UP]])],
-
-    [T.LEFT_FACING_TUNNEL, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.UNKNOWN], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.RIGHT_FACING_TUNNEL, new Map([[D.LEFT, D.UNKNOWN], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.DOWN_FACING_TUNNEL, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.UNKNOWN]])],
-    [T.UP_FACING_TUNNEL, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.UNKNOWN], [D.UP, D.CRASH]])],
-
-    [T.CAR_ENDING_TRACK_RIGHT, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.UNKNOWN], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.CAR_ENDING_TRACK_LEFT, new Map([[D.LEFT, D.UNKNOWN], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.CAR_ENDING_TRACK_DOWN, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.UNKNOWN], [D.UP, D.CRASH]])],
-    [T.CAR_ENDING_TRACK_UP, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.UNKNOWN]])],
-    [T.NCAR_ENDING_TRACK_RIGHT, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.UNKNOWN], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.NCAR_ENDING_TRACK_LEFT, new Map([[D.LEFT, D.UNKNOWN], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.CRASH]])],
-    [T.NCAR_ENDING_TRACK_DOWN, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.UNKNOWN], [D.UP, D.CRASH]])],
-    [T.NCAR_ENDING_TRACK_UP, new Map([[D.LEFT, D.CRASH], [D.RIGHT, D.CRASH], [D.DOWN, D.CRASH], [D.UP, D.UNKNOWN]])]
-])
+type lvl_type = (typeof lvls)[keyof typeof lvls]
+type solved_data = {
+    board: T[][]
+    mods: M[][]
+    tracks_left: number
+    semaphores_left: number
+} | undefined
 
 
 function tail_call_gen(args: args_type): void {
@@ -146,39 +65,38 @@ type args_type = {
     available_semaphores: number;
     heatmap_limits: number[][][][];
 }
+/**
+ * Generate tracks for the given frame data.
+ *
+ * @param cars_to_use - The cars in the frame.
+ * @param board_to_use - The board (tracks) in the frame.
+ * @param mods_to_use - The track mods in the frame.
+ * @param available_tracks - The remaining tracks.
+ * @param heatmaps - The heat of each possible car configuration.
+ *                 Heat is the amount of times a car has been at the same position
+ *                 with the same direction. It is used to prevent looping.
+ * @param solved - 2 lists of each NORMAL and NUMERAL car num that have reached
+ *               their train.
+ * @param stalled - Whether each car is stalled or not. Stalled means that the car
+ *                cannot move due to being behind a gate or semaphore.
+ * @param switch_queue - The position of a gate if it is trying to close on a car,
+ *                     for each car. The position is (-1, -1) if no gate is queued on top
+ *                     of the car.
+ * @param station_stalled - Whether each car is being stalled by a station or not.
+ *                        It is different from normal stalling such that station stalling
+ *                        always lasts 2 frames.
+ * @param crashed_decoys - The positions of each DECOY that have crashed.
+ * @param mvmts_since_solved - The frames since all cars reached their trains.
+ *                           It is used to consider a level with decoys solved after 2 frames.
+ * @param available_semaphores - The remaining semaphores.
+ * @param heatmap_limits - The upper limit for each value in heatmaps.
+ *                       It is used to prevent looping.
+ */
 function* generate_tracks({
     cars_to_use, board_to_use, mods_to_use, available_tracks, heatmaps,
     solved, stalled, switch_queue, station_stalled, crashed_decoys,
     mvmts_since_solved, available_semaphores, heatmap_limits
 }: args_type): Iterable<args_type> {
-    /**
-     * Generate tracks for the given frame data.
-     * 
-     * @param cars_to_use - The cars in the frame.
-     * @param board_to_use - The board (tracks) in the frame.
-     * @param mods_to_use - The track mods in the frame.
-     * @param available_tracks - The remaining tracks.
-     * @param heatmaps - The heat of each possible car configuration.
-     *                 Heat is the amount of times a car has been at the same position
-     *                 with the same direction. It is used to prevent looping.
-     * @param solved - 2 lists of each NORMAL and NUMERAL car num that have reached
-     *               their train.
-     * @param stalled - Whether each car is stalled or not. Stalled means that the car
-     *                cannot move due to being behind a gate or semaphore.
-     * @param switch_queue - The position of a gate if it is trying to close on a car,
-     *                     for each car. The position is (-1, -1) if no gate is queued on top
-     *                     of the car.
-     * @param station_stalled - Whether each car is being stalled by a station or not.
-     *                        It is different from normal stalling such that station stalling
-     *                        always lasts 2 frames.
-     * @param crashed_decoys - The positions of each DECOY that have crashed.
-     * @param mvmts_since_solved - The frames since all cars reached their trains.
-     *                           It is used to consider a level with decoys solved after 2 frames.
-     * @param available_semaphores - The remaining semaphores.
-     * @param heatmap_limits - The upper limit for each value in heatmaps.
-     *                       It is used to prevent looping.
-     */
-
     // Remove decoys from generation if they crashed last frame, and add the pos to crashed_decoys.
     const crashed: number[] = []
     for (let i = cars_to_use.length - 1; i > -1; i--) {
@@ -358,7 +276,7 @@ function* generate_tracks({
             } else {
                 if (tile_ahead_redirect === D.CRASH) {
                     if (tile_ahead.is_turn() || tile_ahead.is_straight()) {
-                        tracks_to_check = generable3_ways.get(car.direction)!.get(tile_ahead)!
+                        tracks_to_check = car.generable_3ways(tile_ahead)
                     } else if (car.type === CT.DECOY) {
                         cars_generated[c] = [car.crash()]
                         usable_tracks[c] = [board_to_use[car.pos[0]][car.pos[1]]]
@@ -379,7 +297,7 @@ function* generate_tracks({
                         }
                     }
                     if (!cannot_place_3way) {
-                        tracks_to_check = [tile_ahead, ...generable3_ways.get(car.direction)!.get(tile_ahead)!]
+                        tracks_to_check = [tile_ahead, ...car.generable_3ways(tile_ahead)]
                     }
                 } else {
                     tracks_to_check = [tile_ahead]
@@ -392,11 +310,11 @@ function* generate_tracks({
                     tracks_to_check = [T.EMPTY]
                 } else {
                     decoy_placing[car.num] = true
-                    tracks_to_check = [T.EMPTY, ...generable_tracks.get(car.direction)!]
+                    tracks_to_check = [T.EMPTY, ...car.generable_tracks()]
                 }
             } else {
                 available_tracks--
-                tracks_to_check = generable_tracks.get(car.direction)!
+                tracks_to_check = car.generable_tracks()
             }
         }
 
@@ -446,7 +364,6 @@ function* generate_tracks({
                 } else {
                     car.pos_ahead = tunnel_pos0
                 }}
-
                 possible_redirect = tunnel_exit_velos.get(board[car.pos_ahead[0]][car.pos_ahead[1]])!
             } else {
                 possible_redirect = directions.get(possibleTrack)!.get(car.direction)!
@@ -687,25 +604,6 @@ function* generate_tracks({
     }
 }
 
-
-type lvl_type = (typeof lvls)[keyof typeof lvls]
-const worlds = new Map<string, Map<string, lvl_type>>()
-for (const key in lvls) {
-    const lvl_name = key as keyof typeof lvls
-    const world: string = lvl_name.slice(0, lvl_name.indexOf('-'))
-    const data: lvl_type = lvls[lvl_name]
-    if (!worlds.has(world)) {
-        worlds.set(world, new Map())
-    }
-    worlds.get(world)!.set(lvl_name, data)
-}
-
-type solved_data = {
-    board: T[][]
-    mods: M[][]
-    tracks_left: number
-    semaphores_left: number
-} | undefined
 var board: T[][]
 var mods: M[][]
 var mod_nums: number[][]
@@ -721,7 +619,12 @@ var best_board: T[][] | undefined
 var best_mods: M[][] | undefined
 var board_dims: readonly [number, number]
 var iterations: number
-var tunnel_exit_velos: Map<T, D>
+var tunnel_exit_velos = new Map<T, D>([
+    [T.LEFT_FACING_TUNNEL, D.LEFT],
+    [T.RIGHT_FACING_TUNNEL, D.RIGHT],
+    [T.DOWN_FACING_TUNNEL, D.DOWN],
+    [T.UP_FACING_TUNNEL, D.UP]
+])
 var permanent_track_poses: Set<number>
 var tunnel_poses: Map<number, (readonly [number, number])[]>
 var gate_poses: Map<number, (readonly [number, number])[]>
@@ -756,13 +659,6 @@ export function solve_level(data: lvl_type): solved_data {
     board_dims = [board.length, board[0].length]
     iterations = 0
 
-    var tunnel_exit_velos = new Map<T, D>([
-        [T.LEFT_FACING_TUNNEL, D.LEFT],
-        [T.RIGHT_FACING_TUNNEL, D.RIGHT],
-        [T.DOWN_FACING_TUNNEL, D.DOWN],
-        [T.UP_FACING_TUNNEL, D.UP]
-    ])
-
     /**
      * For TypeScript, permanent_track_poses are stored as a single number instead of [number, number], since that way
      * permanent_track_poses.has() can be successfully performed (arrays dont share memory even if they look identical)
@@ -771,7 +667,6 @@ export function solve_level(data: lvl_type): solved_data {
     permanent_track_poses = new Set<number>()
     for (let i = 0; i < board.length; i++) {
         for (let j = 0; j < board[0].length; j++) {
-            const pos: readonly [number, number] = [i, j]
             const track: T = board[i][j]
             if (!track.is_empty()) {
                 permanent_track_poses.add(i * board[0].length + j)
@@ -875,7 +770,7 @@ export function solve_level(data: lvl_type): solved_data {
         for (let j = 0; j < best_mods[0].length; j++) {
             const mod = best_mods[i][j]
             if (mod === M.SEMAPHORE || (mod === M.DEACTIVATED_MOD && mods[i][j] === M.EMPTY)) {
-                console.log("hi thinh")
+                console.log(`~~ Semaphore at: (${i}, ${j})`)
             }
         }
     }
@@ -890,9 +785,3 @@ export function solve_level(data: lvl_type): solved_data {
     best_mods = undefined
     return return_data
 }
-
-// for (const [lvl_name, data] of worlds.get('1')!) {
-//     console.log(lvl_name)
-//     solve_level(data)
-// }
-// console.log(`\nFully Complete in: ${(Date.now() - program_start_time) / 10e2}s`)

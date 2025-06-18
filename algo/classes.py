@@ -2,6 +2,15 @@ import numpy as np  # used for the board class
 from enum import Enum  # used for the Tile class so track/mod identifying is easier
 from timeit import timeit  # used for testing lines
 from typing import Iterable, Union
+import warnings
+
+
+warnings.warn(
+    "This module is deprecated and will be removed in a future release." \
+    "Please use classes.ts instead.",
+    DeprecationWarning,
+    2
+)
 
 
 class Track(Enum):

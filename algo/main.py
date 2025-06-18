@@ -1,5 +1,6 @@
 import functools
 import typing
+import warnings
 
 import numpy as np  # used for absolutely everything.
 import time  # used for time reports on minimum solutions and final completion
@@ -12,6 +13,13 @@ from classes import Mod as M
 from classes import Direction as D
 from classes import Car as C
 from classes import CarType as CT
+
+warnings.warn(
+    "This module is deprecated and will be removed in a future release." \
+    "Please use main.ts instead.",
+    DeprecationWarning,
+    2
+)
 
 program_start_time = time.time()
 # HYPERPARAMETERS

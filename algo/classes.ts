@@ -1,5 +1,5 @@
+/** List names for each track index for better readability. */
 export class Track {
-    /** List names for each track index for better readability. */
     private static TRACKS = new Map<number, Track>()
 
     static readonly EMPTY = new Track(0)
@@ -42,20 +42,20 @@ export class Track {
 
     private constructor(readonly value: number) {Track.TRACKS.set(value, this)}
 
+    /** Return the Track corresponding to the value. */
     static get(value: number): Track {
-        /** Return the Track corresponding to the value. */
         return this.TRACKS.get(value)!
     }
 
+    /** Print the values of each Track in the array. */
     static print_values(board: Track[][]): void {
-        /** Print the values of each Track in the array. */
         for (let i = 0; i < board.length; i++) {
             console.log(JSON.stringify(board[i].map(track => track.value)))
         }
     }
 
+    /** Convert an array of numbers to an array of tracks. */
     static convert_to_tracks(board: number[][]): Track[][] {
-        /** Convert an array of numbers to an array of tracks. */
         let converted_board: Track[][] = []
         for (let i = 0; i < board.length; i++) {
             converted_board.push([])
@@ -66,48 +66,48 @@ export class Track {
         return converted_board
     }
 
+    /** Return if the track is an EMPTY track. */
     is_empty(): boolean {
-        /** Return if the track is an EMPTY track. */
         return this === Track.EMPTY
     }
+    /** Return if the track is straight. */
     is_straight(): boolean {
-        /** Return if the track is straight. */
         return this === Track.HORIZONTAL_TRACK || this === Track.VERTICAL_TRACK
     }
+    /** Return if the track is an ending track for normal cars. */
     is_car_ending_track(): boolean {
-        /** Return if the track is an ending track for normal cars. */
         return car_endings.has(this)
     }
+    /** Return if the track is a single-turn track. */
     is_turn(): boolean {
-        /** Return if the track is a single-turn track. */
         return single_turns.has(this)
     }
+    /** Return if the track is a 3-way track. */
     is_3way(): boolean {
-        /** Return if the track is a 3-way track. */
         return three_ways.has(this)
     }
+    /** Return if the track is a tunnel. */
     is_tunnel(): boolean {
-        /** Return if the track is a tunnel. */
         return tunnels.has(this)
     }
+    /** Return the swapped version of a swapping/switch track. */
     swap_track(): Track {
-        /** Return the swapped version of a swapping/switch track. */
         return swapped_tracks.get(this)!
     }
+    /** Return if the track is an ending track for numeral cars. */
     is_ncar_ending_track(): boolean {
-        /** Return if the track is an ending track for numeral cars. */
         return ncar_endings.has(this)
     }
+    /** Return if there is a placeholder semaphore on the tile. */
     is_placeholder_semaphore(): boolean {
-        /** Return if there is a placeholder semaphore on the tile. */
         return normal_tracks.has(this)
     }
+    /** Return the placeholder semaphore version of a tile. */
     add_placeholder_semaphore(): Track {
-        /** Return the placeholder semaphore version of a tile. */
         return semaphore_tracks.get(this)!
     }
+    /** Return the normal version of a semaphore'd tile. */
     remove_placeholder_semaphore(): Track {
-        /** Return the normal version of a semaphore'd tile. */
         return normal_tracks.get(this)!
     }
 }
@@ -147,8 +147,8 @@ const swapped_tracks = new Map<Track, Track>([
     [Track.TOP_LEFT_BOTTOM_3WAY, Track.BOTTOM_LEFT_TOP_3WAY]
 ])
 
+/** List names for each mod index for better readability. */
 export class Mod {
-    /** List names for each mod index for better readability. */
     private static MODS = new Map<number, Mod>()
     
     static readonly EMPTY = new Mod(0)
@@ -166,20 +166,20 @@ export class Mod {
 
     private constructor(readonly value: number) {Mod.MODS.set(value, this)}
 
+    /** Return the Mod corresponding to the value. */
     static get(value: number): Mod {
-        /** Return the Mod corresponding to the value. */
         return this.MODS.get(value)!
     }
 
+    /** Print the values of each Mod in the array. */
     static print_values(mods: Mod[][]): void {
-        /** Print the values of each Mod in the array. */
         for (let i = 0; i < mods.length; i++) {
             console.log(JSON.stringify(mods[i].map(mod => mod.value)))
         }
     }
 
+    /** Convert an array of numbers to an array of mods. */
     static convert_to_mods(mods: number[][]): Mod[][] {
-        /** Convert an array of numbers to an array of mods. */
         let converted_mods: Mod[][] = []
         for (let i = 0; i < mods.length; i++) {
             converted_mods.push([])
@@ -190,23 +190,23 @@ export class Mod {
         return converted_mods
     }
 
+    /** 
+     * Return if the mod is a CLOSED_GATE or SEMAPHORE.
+     * 
+     * The purpose is to check if the mod is capable of stalling a car.
+     */
     is_gate_or_sem(): boolean {
-        /** 
-         * Return if the mod is a CLOSED_GATE or SEMAPHORE.
-         * 
-         * The purpose is to check if the mod is capable of stalling a car.
-         */
         return this === Mod.CLOSED_GATE || this === Mod.SEMAPHORE
     }
 }
 
+/** 
+ * List names for each direction for better readability.
+ * 
+ * CRASH indicates that a crash will occur.
+ * UNKNOWN indicates that the direction is not determined, but it won't crash.
+ */
 export class Direction {
-    /** 
-     * List names for each direction for better readability.
-     * 
-     * CRASH indicates that a crash will occur.
-     * UNKNOWN indicates that the direction is not determined, but it won't crash.
-     */
     static readonly CRASH = new Direction(-2)
     static readonly UNKNOWN = new Direction(-1)
     static readonly LEFT = new Direction(0)
@@ -280,47 +280,59 @@ export class CarType {
     private constructor(readonly name: string) {}
 }
 
+/** 
+ * Represent a Railbound car.
+ * 
+ * @param pos - The indexed position of the car.
+ * @param direction - The direction of the car.
+ * @param num - The car's number.
+ * @param type - The car's type.
+ */
 export class Car {
-    /** 
-     * Represent a Railbound car.
-     * 
-     * @param pos - The indexed position of the car.
-     * @param direction - The direction of the car.
-     * @param num - The car's number.
-     * @param type - The car's type.
-     */
     /** The car's pos + the direction vector. */
     pos_ahead: readonly [number, number]
 
     constructor(public pos: readonly [number, number], public direction: Direction, public num: number, public type: CarType) {
-        const dir_vector = direction.to_vector()
         this.pos_ahead = direction.add_vector(pos)
     }
-
+    /** Reformat the json representation of a car to an object. */
     static from_json(car: {pos: number[], direction: string, num: number, type: string}): Car {
-        /** Reformat the json representation of a car to an object. */
         const pos = car.pos as [number, number]
         const direction = car.direction as "LEFT" | "RIGHT" |"DOWN" | "UP"
         const type = car.type as keyof typeof CarType
         return new Car(pos, Direction[direction], car.num, CarType[type])
     }
+    /** Return each track the car can access/generate from its direction. */
+    generable_tracks(): Track[] {
+        if (this.direction === Direction.CRASH || this.direction == Direction.UNKNOWN) {
+            throw TypeError(`The direction must be cardinal. Car: ${this}`)
+        }
+        return generable_tracks.get(this.direction)!
+    }
+    /** Return each 3-way the car can access/generate from its direction, and intersecting track. */
+    generable_3ways(track: Track): Track[] {
+        if (this.direction === Direction.CRASH || this.direction == Direction.UNKNOWN) {
+            throw TypeError(`The direction must be cardinal. Car: ${this}`)
+        }
+        return generable3_ways.get(this.direction)!.get(track)!
+    }
+    /** Return if the car is about to crash with the border. */
     border_crash(bounds: readonly [number, number]): boolean {
-        /** Return if the car is about to crash with the border. */
         const [y, x] = this.pos_ahead
         return !(0 <= y && y < bounds[0] && 0 <= x && x < bounds[1])
     }
+    /** Return a crashed version of the car. */
     crash(): Car {
-        /** Return a crashed version of the car. */
         if (this.type !== CarType.DECOY) {
             throw TypeError(`The crashed car is not a decoy. Car: ${this}`)
         }
         return new Car(this.pos, this.direction, this.num, CarType.CRASHED)
     }
+    /** Return the car that this car crashes with.
+     * 
+     * Return void if no crashes occur.
+     */
     same_tile_crashes(other_cars: Car[]): Car | void {
-        /** Return the car that this car crashes with.
-         * 
-         * Return void if no crashes occur.
-         */
         for (const car of other_cars) {
             if (this.pos_ahead[0] === car.pos[0] && this.pos_ahead[1] === car.pos[1]) {
                 return car
@@ -328,8 +340,8 @@ export class Car {
         }
         return
     }
+    /** Return if the car will get into a head-on crash with any of other_cars. */
     head_on_crashes(other_cars: Car[]): boolean {
-        /** Return if the car will get into a head-on crash with any of other_cars. */
         // head_on_crash is the (y, x, direction) that will cause the crash.
         const head_on_crash: readonly [number, number, Direction] = [this.pos_ahead[0], this.pos_ahead[1], this.direction.reverse()]
         for (const car of other_cars) {
@@ -343,22 +355,22 @@ export class Car {
         }
         return false
     }
+    /** Return the station/post office corresponding to this car. */
     get_station(): Mod {
-        /** Return the station/post office corresponding to this car. */
         if (this.type === CarType.NORMAL) {
             return Mod.STATION
         }
         if (this.type === CarType.NUMERAL) {
             return Mod.POST_OFFICE
         }
-        throw TypeError(`A car must be NORMAL or NUMERAL to get the station of it. CarType: ${this.type}`)
+        throw TypeError(`A car must be NORMAL or NUMERAL to get the station of it. Car: ${this}`)
     }
+    /** Return if the car is on its corresponding station/post office. */
     on_correct_station(mod: Mod, mod_num: number): boolean {
-        /** Return if the car is on its corresponding station/post office. */
         return mod_num === this.num && mod === this.get_station()
     }
+    /** Return the index of the car in cars + decoys + ncars. */
     car_index(cars: Car[], decoys: Car[], ncars: Car[]): number {
-        /** Return the index of the car in cars + decoys + ncars. */
         if (this.type === CarType.NORMAL) {
             return this.num
         }
@@ -372,8 +384,91 @@ export class Car {
     }
 }
 
+const generable_tracks = new Map<Direction, Track[]>([
+    [Direction.LEFT, [Track.HORIZONTAL_TRACK, Track.BOTTOM_RIGHT_TURN, Track.TOP_RIGHT_TURN]],
+    [Direction.RIGHT, [Track.HORIZONTAL_TRACK, Track.BOTTOM_LEFT_TURN, Track.TOP_LEFT_TURN]],
+    [Direction.DOWN, [Track.VERTICAL_TRACK, Track.TOP_RIGHT_TURN, Track.TOP_LEFT_TURN]],
+    [Direction.UP, [Track.VERTICAL_TRACK, Track.BOTTOM_RIGHT_TURN, Track.BOTTOM_LEFT_TURN]]
+])
+const generable3_ways = new Map<Direction, Map<Track, Track[]>>([
+    [Direction.LEFT, new Map([
+        [Track.HORIZONTAL_TRACK, [Track.BOTTOM_RIGHT_LEFT_3WAY, Track.TOP_RIGHT_LEFT_3WAY]],
+        [Track.VERTICAL_TRACK, [Track.BOTTOM_RIGHT_TOP_3WAY, Track.TOP_RIGHT_BOTTOM_3WAY]],
+        [Track.BOTTOM_LEFT_TURN, [Track.BOTTOM_LEFT_RIGHT_3WAY,]],
+        [Track.TOP_LEFT_TURN, [Track.TOP_LEFT_RIGHT_3WAY,]]
+    ])],
+    [Direction.RIGHT, new Map([
+        [Track.HORIZONTAL_TRACK, [Track.BOTTOM_LEFT_RIGHT_3WAY, Track.TOP_LEFT_RIGHT_3WAY]],
+        [Track.VERTICAL_TRACK, [Track.BOTTOM_LEFT_TOP_3WAY, Track.TOP_LEFT_BOTTOM_3WAY]],
+        [Track.BOTTOM_RIGHT_TURN, [Track.BOTTOM_RIGHT_LEFT_3WAY,]],
+        [Track.TOP_RIGHT_TURN, [Track.TOP_RIGHT_LEFT_3WAY,]]
+    ])],
+    [Direction.DOWN, new Map([
+        [Track.HORIZONTAL_TRACK, [Track.TOP_RIGHT_LEFT_3WAY, Track.TOP_LEFT_RIGHT_3WAY]],
+        [Track.VERTICAL_TRACK, [Track.TOP_RIGHT_BOTTOM_3WAY, Track.TOP_LEFT_BOTTOM_3WAY]],
+        [Track.BOTTOM_RIGHT_TURN, [Track.BOTTOM_RIGHT_TOP_3WAY,]],
+        [Track.BOTTOM_LEFT_TURN, [Track.BOTTOM_LEFT_TOP_3WAY,]]
+    ])],
+    [Direction.UP, new Map([
+        [Track.HORIZONTAL_TRACK, [Track.BOTTOM_RIGHT_LEFT_3WAY, Track.BOTTOM_LEFT_RIGHT_3WAY]],
+        [Track.VERTICAL_TRACK, [Track.BOTTOM_RIGHT_TOP_3WAY, Track.BOTTOM_LEFT_TOP_3WAY]],
+        [Track.TOP_RIGHT_TURN, [Track.TOP_RIGHT_BOTTOM_3WAY,]],
+        [Track.TOP_LEFT_TURN, [Track.TOP_LEFT_BOTTOM_3WAY,]]
+    ])]
+])
+/** semaphore_pass lists the relative tiles where a car must be to trigger a semaphore.
+ * For example, a car would have to be on the tile to either trigger the LEFT or RIGHT of a
+ * HORIZONTAL_TRACK with a semaphore on it to trigger the semaphore.
+ */
+export const semaphore_pass = new Map<Track, Direction[]>([
+    [Track.HORIZONTAL_TRACK, [Direction.LEFT, Direction.RIGHT]],
+    [Track.VERTICAL_TRACK, [Direction.DOWN, Direction.UP]],
+    [Track.BOTTOM_RIGHT_TURN, [Direction.DOWN, Direction.RIGHT]],
+    [Track.BOTTOM_LEFT_TURN, [Direction.DOWN, Direction.LEFT]],
+    [Track.TOP_RIGHT_TURN, [Direction.UP, Direction.RIGHT]],
+    [Track.TOP_LEFT_TURN, [Direction.UP, Direction.LEFT]]
+])
+/** 
+ * directions lists instructions on where to move a car depending on what track it's on, and what direction it's facing.
+ * For example, a car on a BOTTOM_RIGHT_TURN and facing UP will move to the RIGHTrack.
+ * CRASH indicates that the car will crash, and UNKNOWN indicates
+ * the car's movement is not yet determined, but it won't crash.
+ */
+export const directions = new Map<Track, Map<Direction, Direction>>([
+    [Track.EMPTY, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.HORIZONTAL_TRACK, new Map([[Direction.LEFT, Direction.LEFT], [Direction.RIGHT, Direction.RIGHT], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.VERTICAL_TRACK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.DOWN], [Direction.UP, Direction.UP]])],
+    [Track.ROADBLOCK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.BOTTOM_RIGHT_TURN, new Map([[Direction.LEFT, Direction.DOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.RIGHT]])],
+    [Track.BOTTOM_LEFT_TURN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.DOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.LEFT]])],
+    [Track.TOP_RIGHT_TURN, new Map([[Direction.LEFT, Direction.UP], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.RIGHT], [Direction.UP, Direction.CRASH]])],
+    [Track.TOP_LEFT_TURN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UP], [Direction.DOWN, Direction.LEFT], [Direction.UP, Direction.CRASH]])],
+    [Track.BOTTOM_RIGHT_LEFT_3WAY, new Map([[Direction.LEFT, Direction.DOWN], [Direction.RIGHT, Direction.RIGHT], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.RIGHT]])],
+    [Track.BOTTOM_RIGHT_TOP_3WAY, new Map([[Direction.LEFT, Direction.DOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.DOWN], [Direction.UP, Direction.RIGHT]])],
+    [Track.BOTTOM_LEFT_RIGHT_3WAY, new Map([[Direction.LEFT, Direction.LEFT], [Direction.RIGHT, Direction.DOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.LEFT]])],
+    [Track.BOTTOM_LEFT_TOP_3WAY, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.DOWN], [Direction.DOWN, Direction.DOWN], [Direction.UP, Direction.LEFT]])],
+    [Track.TOP_RIGHT_LEFT_3WAY, new Map([[Direction.LEFT, Direction.UP], [Direction.RIGHT, Direction.RIGHT], [Direction.DOWN, Direction.RIGHT], [Direction.UP, Direction.CRASH]])],
+    [Track.TOP_RIGHT_BOTTOM_3WAY, new Map([[Direction.LEFT, Direction.UP], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.RIGHT], [Direction.UP, Direction.UP]])],
+    [Track.TOP_LEFT_RIGHT_3WAY, new Map([[Direction.LEFT, Direction.LEFT], [Direction.RIGHT, Direction.UP], [Direction.DOWN, Direction.LEFT], [Direction.UP, Direction.CRASH]])],
+    [Track.TOP_LEFT_BOTTOM_3WAY, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UP], [Direction.DOWN, Direction.LEFT], [Direction.UP, Direction.UP]])],
+
+    [Track.LEFT_FACING_TUNNEL, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UNKNOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.RIGHT_FACING_TUNNEL, new Map([[Direction.LEFT, Direction.UNKNOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.DOWN_FACING_TUNNEL, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])],
+    [Track.UP_FACING_TUNNEL, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.UNKNOWN], [Direction.UP, Direction.CRASH]])],
+
+    [Track.CAR_ENDING_TRACK_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UNKNOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.CAR_ENDING_TRACK_LEFT, new Map([[Direction.LEFT, Direction.UNKNOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.CAR_ENDING_TRACK_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.UNKNOWN], [Direction.UP, Direction.CRASH]])],
+    [Track.CAR_ENDING_TRACK_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])],
+    [Track.NCAR_ENDING_TRACK_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UNKNOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.NCAR_ENDING_TRACK_LEFT, new Map([[Direction.LEFT, Direction.UNKNOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.NCAR_ENDING_TRACK_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.UNKNOWN], [Direction.UP, Direction.CRASH]])],
+    [Track.NCAR_ENDING_TRACK_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])]
+])
+
+/**  Return every combination of the iterables. */
 export function product<T>(...iterables: T[][]): T[][] {
-    /**  Return every combination of the iterables. */
     let result: T[][] = [[]]
     for (const iterable of iterables) {
         const pending: T[][] = []
@@ -386,8 +481,8 @@ export function product<T>(...iterables: T[][]): T[][] {
     }
     return result
 }
+/** Copy an array. */
 export function copy_arr(array: any): any {
-    /** Copy an array. */
     const copied_arr: any = []
     if (!Array.isArray(array[0])) {
         copied_arr.push(...array)
@@ -398,8 +493,8 @@ export function copy_arr(array: any): any {
     }
     return copied_arr
 }
+/** Create a 4D array of zeros with the shape. */
 export function zeros(shape: [number, number, number, number]): number[][][][] {
-    /** Create a 4D array of zeros with the shape. */
     const array: number[][][][] = []
     for (let i = 0; i < shape[0]; i++) {
         array.push([])
