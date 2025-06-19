@@ -191,12 +191,22 @@ function* generate_tracks({
         // Semaphore processing
         if (mods_to_use[car.pos_ahead[0]][car.pos_ahead[1]] === M.SEMAPHORE) {
             const semPos: D[] = semaphore_pass.get(board_to_use[car.pos_ahead[0]][car.pos_ahead[1]])!
+            const sem_pos0: readonly [number, number] = semPos[0].add_vector(car.pos_ahead)
+            const sem_pos1: readonly [number, number] = semPos[1].add_vector(car.pos_ahead)
+            // Check which pos the car is at, and then kill the branch if there aren't any tracks at
+            // the other pos. (The semaphore will never get triggered)
+            if (available_tracks === lowest_tracks_remaining + 1) {
+                if (car.pos[0] === sem_pos0[0]) {
+                    if (board_to_use[sem_pos1[0]][sem_pos1[1]].is_empty()) {return}
+                } else {
+                    if (board_to_use[sem_pos0[0]][sem_pos0[1]].is_empty()) {return}
+                }
+            }
+            
             // Check if any cars are passing the semaphore, and open it if they are
             for (const p_car of cars_to_use) {
                 if (p_car === car) {continue}
-                const sem_pos0: readonly [number, number] = semPos[0].add_vector(car.pos_ahead)
                 const pos0: boolean = p_car.pos[0] === sem_pos0[0] && p_car.pos[1] === sem_pos0[1] && p_car.direction !== semPos[0].reverse()
-                const sem_pos1: readonly [number, number] = semPos[1].add_vector(car.pos_ahead)
                 const pos1: boolean = p_car.pos[0] === sem_pos1[0] && p_car.pos[1] === sem_pos1[1] && p_car.direction !== semPos[1].reverse()
                 if (pos0 || pos1) {
                     mods_to_use[car.pos_ahead[0]][car.pos_ahead[1]] = M.DEACTIVATED_MOD
@@ -306,11 +316,26 @@ function* generate_tracks({
         } else {
             // out of tracks / not going to beat best tracks?
             if (car.type === CT.DECOY) {
+                // The decoy is allowed to crash if it's NOT on a non-permanent turn track.
+                // This is to prevent decoys from crashing on all 3 generable tracks, which effectively creates 2 duplicate states.
+                const can_crash: boolean = (
+                    permanent_track_poses.has(car.pos[0] * board[0].length + car.pos[1]) ||
+                    !board_to_use[car.pos[0]][car.pos[1]].is_turn()
+                )
                 if (available_tracks - 1 <= lowest_tracks_remaining) {
-                    tracks_to_check = [T.EMPTY]
+                    if (can_crash) {
+                        tracks_to_check = [T.EMPTY]
+                    } else {
+                        return
+                    }
+                    
                 } else {
                     decoy_placing[car.num] = true
-                    tracks_to_check = [T.EMPTY, ...car.generable_tracks()]
+                    if (can_crash) {
+                        tracks_to_check = [T.EMPTY, ...car.generable_tracks()]
+                    } else {
+                        tracks_to_check = car.generable_tracks()
+                    }
                 }
             } else {
                 available_tracks--

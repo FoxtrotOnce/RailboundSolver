@@ -15,13 +15,13 @@ for (const key in lvls) {
     worlds.get(world)!.set(lvl_name, data)
 }
 
-const no = new Set<string>(['12-9', '12-10'])
-for (const [lvl_name, data] of worlds.get('12')!) {
-    if (!no.has(lvl_name)) {continue}
+// const no = new Set<string>(['7-5A'])
+for (const [lvl_name, data] of worlds.get('9')!) {
+    // if (no.has(lvl_name)) {continue}
     console.log(lvl_name)
     solve_level(data)
 }
-// const lvl_name = "test-1"
+// const lvl_name = "12-4"
 // console.log(lvl_name)
 // solve_level(lvls[lvl_name])
 

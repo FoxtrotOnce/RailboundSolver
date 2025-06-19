@@ -632,7 +632,6 @@ class Car {
             writable: true,
             value: void 0
         });
-        const dir_vector = direction.to_vector();
         this.pos_ahead = direction.add_vector(pos);
     }
     /** Reformat the json representation of a car to an object. */
@@ -755,7 +754,7 @@ const generable3_ways = new Map([
         ])]
 ]);
 /** semaphore_pass lists the relative tiles where a car must be to trigger a semaphore.
- * For example, a car would have to be on the tile to either trigger the LEFT or RIGHT of a
+ * For example, a car would have to be on the tile to either the LEFT or RIGHT of a
  * HORIZONTAL_TRACK with a semaphore on it to trigger the semaphore.
  */
 exports.semaphore_pass = new Map([

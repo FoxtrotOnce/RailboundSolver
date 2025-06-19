@@ -417,7 +417,7 @@ const generable3_ways = new Map<Direction, Map<Track, Track[]>>([
     ])]
 ])
 /** semaphore_pass lists the relative tiles where a car must be to trigger a semaphore.
- * For example, a car would have to be on the tile to either trigger the LEFT or RIGHT of a
+ * For example, a car would have to be on the tile to either the LEFT or RIGHT of a
  * HORIZONTAL_TRACK with a semaphore on it to trigger the semaphore.
  */
 export const semaphore_pass = new Map<Track, Direction[]>([
