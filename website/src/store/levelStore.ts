@@ -543,31 +543,7 @@ export const useLevelStore = create<LevelState>()(
       },
     }),
     {
-      name: "level-store", // Name for Redux DevTools
+      name: "level-store", // Name for  DevTools
     }
   )
 );
-
-/**
- * USAGE EXAMPLES:
- *
- * // Basic level operations
- * const { levelData, createNewLevel, loadLevel } = useLevelStore();
- *
- * // Undo/Redo operations
- * const { undo, redo, undoStack, redoStack } = useLevelStore();
- *
- * // Piece manipulation
- * const { placePiece, removePiece, rotatePiece } = useLevelStore();
- *
- * // Selective subscription (only re-render when levelData changes)
- * const levelData = useLevelStore(state => state.levelData);
- *
- * // Actions only (no re-render on state changes)
- * const actions = useLevelStore(state => ({
- *   placePiece: state.placePiece,
- *   removePiece: state.removePiece,
- *   undo: state.undo,
- *   redo: state.redo,
- * }));
- */

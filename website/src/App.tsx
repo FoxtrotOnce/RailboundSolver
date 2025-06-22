@@ -42,13 +42,8 @@ export default function App() {
     // UI State
     selectedTool,
     selectedPiece,
-    gamePieces,
     showGrid,
     gridSize,
-
-    // UI Actions
-    setSelectedTool,
-    setSelectedPiece,
   } = useGuiStore();
 
   /**
@@ -161,68 +156,13 @@ export default function App() {
         RIGHT TOOL PANEL
         Tool selection via Zustand store
       */}
-      <RightToolPanel
-        selectedTool={selectedTool}
-        onToolSelect={setSelectedTool}
-      />
+      <RightToolPanel />
 
       {/* 
         BOTTOM SELECTION PANEL
         Piece selection via Zustand store
       */}
-      <BottomSelectionPanel
-        pieces={gamePieces}
-        selectedPiece={selectedPiece}
-        onPieceSelect={setSelectedPiece}
-      />
+      <BottomSelectionPanel />
     </div>
   );
 }
-
-/**
- * NEXT STEPS FOR IMPLEMENTATION:
- *
- * 1. DUAL STORE ARCHITECTURE
- *    - GUI Store: Tool selection, piece selection, canvas settings, UI panels
- *    - Level Store: Level data, undo/redo, piece placement, level operations
- *    - Clean separation of concerns for better maintainability
- *
- * 2. CANVAS INTERACTION
- *    - Use Level Store actions for piece placement (placePiece, removePiece)
- *    - Use GUI Store for tool selection and display settings
- *    - Implement click handlers with store.saveToUndoStack() before changes
- *    - Add drag and drop with both stores working together
- *
- * 3. ENHANCED LEVEL OPERATIONS
- *    - Level creation/loading with useLevelStore.createNewLevel()
- *    - File save/load integration with level store
- *    - Level validation and export functionality
- *    - Grid-based piece management system
- *
- * 4. PERFORMANCE OPTIMIZATIONS
- *    - Selective subscriptions for each store
- *    - GUI Store: useGuiStore(state => state.selectedTool)
- *    - Level Store: useLevelStore(state => state.levelData)
- *    - Separate devtools for debugging each store independently
- *
- * 5. ADVANCED FEATURES
- *    - Level Store: Smart undo/redo with action descriptions
- *    - GUI Store: Canvas zoom/pan with smooth interactions
- *    - Cross-store coordination for complex operations
- *    - State persistence for user preferences
- *
- * 6. DEVELOPMENT WORKFLOW
- *    - Two separate Redux DevTools instances
- *    - Independent testing of GUI vs Level logic
- *    - Modular store organization for team development
- *    - Clear boundaries between UI and data concerns
- *
- * DUAL STORE BENEFITS ACHIEVED:
- * ✅ Separation of concerns (UI vs Data)
- * ✅ Independent store evolution
- * ✅ Better performance with targeted subscriptions
- * ✅ Cleaner debugging with separate devtools
- * ✅ Reduced coupling between UI and level logic
- * ✅ Easier testing and maintenance
- * ✅ Scalable architecture for complex features
- */

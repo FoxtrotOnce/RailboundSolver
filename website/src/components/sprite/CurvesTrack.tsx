@@ -2,11 +2,13 @@ import * as React from "react";
 
 interface CurvesTrackProps extends React.SVGProps<SVGSVGElement> {
   rotate?: number;
+  isSwitch?: boolean;
 }
 
 const CurvesTrack: React.FC<CurvesTrackProps> = ({
   rotate = 0,
   style,
+  isSwitch = false,
   ...props
 }) => (
   <svg
@@ -94,6 +96,33 @@ const CurvesTrack: React.FC<CurvesTrackProps> = ({
         mask="url(#c)"
       ></path>
     </g>
+    {isSwitch && (
+      <>
+        <mask
+          id="a"
+          width="90"
+          height="90"
+          x="0"
+          y="0"
+          maskUnits="userSpaceOnUse"
+          style={{ maskType: "alpha" }}
+        >
+          <path fill="#D9D9D9" d="M0 0h90v90H0z"></path>
+        </mask>
+        <g mask="url(#a)">
+          <rect
+            width="22.5"
+            height="22.5"
+            x="33.75"
+            y="33.75"
+            fill="#0F0"
+            stroke="#000"
+            strokeWidth="2.5"
+            rx="4.25"
+          ></rect>
+        </g>
+      </>
+    )}
   </svg>
 );
 
