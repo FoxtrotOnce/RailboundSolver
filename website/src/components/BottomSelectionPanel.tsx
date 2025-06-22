@@ -16,6 +16,8 @@ import { useGuiStore } from "../store";
 import StraightTrack from "./sprite/StraightTrack";
 import EndingTrack from "./sprite/EndingTrack";
 import Car from "./sprite/Car";
+import ForkTrack from "./sprite/ForkTrack";
+import Tunnel from "./sprite/Tunnel";
 
 /**
  * Hardcoded game pieces configuration
@@ -43,6 +45,43 @@ const GAME_PIECES: GamePiece[][] = [
       description: "Place Car",
       icon: <Car />,
     },
+    // TODO: train station track
+    // {
+    //   id: "train_station_track",
+    //   name: "Place Train Station Track",
+    //   description: "Place Train Station Track",
+    //   icon: <TrainStationTrack />,
+    // }
+  ],
+  [
+    {
+      id: "switch_track",
+      name: "Place Switch Track",
+      description: "Place Switch Track",
+      icon: <StraightTrack rotate={90} isSwitch />,
+    },
+    // TODO: gate_track
+    // {
+    //   id: "gate_track",
+    //   name: "Place Gate Track",
+    //   description: "Place Gate Track",
+    //   icon: todo
+    // },
+    {
+      id: "switch_fork_track",
+      name: "Place Fork Track",
+      description: "Place Fork Track",
+      icon: <ForkTrack rotate={90} color="green" />,
+    },
+  ],
+  [
+    {
+      id: "tunnel",
+      name: "Place Tunnel",
+      description: "Place Tunnel",
+      icon: <Tunnel rotate={90} />,
+    },
+    // TODO: otherthings
   ],
 ];
 

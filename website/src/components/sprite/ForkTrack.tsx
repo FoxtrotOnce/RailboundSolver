@@ -2,12 +2,14 @@ import * as React from "react";
 
 interface ForkTrackProps extends React.SVGProps<SVGSVGElement> {
   rotate?: number;
+  color?: string;
   isSwitch?: boolean;
 }
 
 const ForkTrack: React.FC<ForkTrackProps> = ({
   rotate = 0,
   style,
+  color = "#CB8263",
   isSwitch = false,
   ...props
 }) => (
@@ -58,7 +60,7 @@ const ForkTrack: React.FC<ForkTrackProps> = ({
         ></path>
       </mask>
       <path
-        fill="#E2F5FF"
+        fill={color}
         fillRule="evenodd"
         d="M90 25H0v10h55.343a65.34 65.34 0 0 0-20.125 20H0v10h29.982C26.772 72.696 25 81.141 25 90c0 35.899 29.102 65 65 65 35.899 0 65-29.101 65-65s-29.101-65-65-65M40.997 65C37.163 72.5 35 80.998 35 90c0 30.376 24.624 55 55 55s55-24.624 55-55-24.624-55-55-55c-17.08 0-32.34 7.785-42.428 20H90c19.33 0 35 15.67 35 35s-15.67 35-35 35-35-15.67-35-35c0-9.793 4.022-18.647 10.505-25zM65 90c0-13.807 11.193-25 25-25s25 11.193 25 25-11.193 25-25 25-25-11.193-25-25"
         clipRule="evenodd"
