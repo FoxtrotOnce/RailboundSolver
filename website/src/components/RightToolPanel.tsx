@@ -1,4 +1,8 @@
 import React from "react";
+import StraightTrack from "./sprite/StraightTrack";
+import CurvesTrack from "./sprite/CurvesTrack";
+import ForkTrack from "./sprite/ForkTrack";
+import ForkTrack2 from "./sprite/ForkTrack2";
 
 export type ToolType = "tool1" | "tool2" | "tool3" | "tool4";
 
@@ -49,55 +53,30 @@ export const RightToolPanel: React.FC<RightToolPanelProps> = ({
   selectedTool,
   onToolSelect,
 }) => {
-  // Example icon components - replace these with your actual tool icons
-  const PencilIcon = ({ className }: { className?: string }) => (
-    <svg
-      className={`w-6 h-6 ${className}`}
-      fill="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-    </svg>
-  );
-
-  const EraserIcon = ({ className }: { className?: string }) => (
-    <svg
-      className={`w-6 h-6 ${className}`}
-      fill="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path d="M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l10.6-10.6c.79-.78 2.05-.78 2.83 0zm-4.95 4.95l-5.66 5.65 2.83 2.83 5.66-5.66-2.83-2.82z" />
-    </svg>
-  );
-
-  const SelectIcon = ({ className }: { className?: string }) => (
-    <svg
-      className={`w-6 h-6 ${className}`}
-      fill="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path d="M2 2v6h2V4h4V2H2zm0 16v-6h2v4h4v2H2zm16 0h-4v2h6v-6h-2v4zm0-16V2h-6v2h4v4h2V2z" />
-    </svg>
-  );
-
   const toolButtons: ToolButton[] = [
     {
       id: "tool1",
-      icon: SelectIcon,
+      icon: (props) => <StraightTrack rotate={90} {...props} />,
       shortcut: "1",
-      tooltip: "Selection Tool (1)",
+      tooltip: "Straight Track (1)",
     },
     {
       id: "tool2",
-      icon: PencilIcon,
+      icon: (props) => <CurvesTrack rotate={0} {...props} />, // Curve
       shortcut: "2",
-      tooltip: "Draw Tool (2)",
+      tooltip: "Curves Track (2)",
     },
     {
       id: "tool3",
-      icon: EraserIcon,
+      icon: (props) => <ForkTrack rotate={0} {...props} />, // Fork
       shortcut: "3",
-      tooltip: "Eraser Tool (3)",
+      tooltip: "Fork Track (3)",
+    },
+    {
+      id: "tool4",
+      icon: (props) => <ForkTrack2 rotate={0} {...props} />, // Fork2
+      shortcut: "4",
+      tooltip: "Fork Track 2 (4)",
     },
   ];
 
