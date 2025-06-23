@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import type { GamePiece } from "../components";
 
 /**
  * GUI STATE STORE
@@ -91,6 +90,26 @@ interface GuiState {
   isModalOpen: boolean;
 
   // =================
+  // MOUSE & INTERACTION STATE
+  // =================
+  /**
+   * Current mouse position relative to the viewport
+   * Useful for debugging and cursor-following elements
+   */
+  mousePosition: { x: number; y: number };
+
+  /**
+   * Canvas interaction states
+   * Tracks current user interaction mode with the canvas
+   */
+  canvasInteraction: {
+    isDragging: boolean;
+    isResizing: boolean;
+    resizeHandle: string;
+    lastMousePos: { x: number; y: number };
+  };
+
+  // =================
   // ACTIONS
   // =================
   /**
@@ -150,6 +169,25 @@ interface GuiState {
    * Useful for clearing user preferences or starting fresh
    */
   resetGui: () => void;
+
+  /**
+   * Update mouse position
+   * @param position - Current mouse position {x, y}
+   */
+  setMousePosition: (position: { x: number; y: number }) => void;
+
+  /**
+   * Update canvas interaction state
+   * @param interaction - Canvas interaction state object
+   */
+  setCanvasInteraction: (
+    interaction: Partial<{
+      isDragging: boolean;
+      isResizing: boolean;
+      resizeHandle: string;
+      lastMousePos: { x: number; y: number };
+    }>
+  ) => void;
 }
 
 /**
@@ -166,7 +204,8 @@ export const useGuiStore = create<GuiState>()(
     (set, get) => ({
       // =================
       // INITIAL STATE
-      // =================      selectedTool: "tool1",
+      // =================
+      selectedTool: "tool1",
       selectedPiece: "",
       zoomLevel: 1.0,
       panOffset: { x: 0, y: 0 },
@@ -175,6 +214,13 @@ export const useGuiStore = create<GuiState>()(
       showToolPanel: true,
       showPiecePanel: true,
       isModalOpen: false,
+      mousePosition: { x: 0, y: 0 },
+      canvasInteraction: {
+        isDragging: false,
+        isResizing: false,
+        resizeHandle: "",
+        lastMousePos: { x: 0, y: 0 },
+      },
 
       // =================
       // ACTIONS
@@ -251,9 +297,30 @@ export const useGuiStore = create<GuiState>()(
             showToolPanel: true,
             showPiecePanel: true,
             isModalOpen: false,
+            mousePosition: { x: 0, y: 0 },
+            canvasInteraction: {
+              isDragging: false,
+              isResizing: false,
+              resizeHandle: "",
+              lastMousePos: { x: 0, y: 0 },
+            },
           },
           false,
           "resetGui"
+        );
+      },
+
+      setMousePosition: (position) => {
+        set({ mousePosition: position }, false, "setMousePosition");
+      },
+
+      setCanvasInteraction: (interaction) => {
+        set(
+          (state) => ({
+            canvasInteraction: { ...state.canvasInteraction, ...interaction },
+          }),
+          false,
+          "setCanvasInteraction"
         );
       },
     }),

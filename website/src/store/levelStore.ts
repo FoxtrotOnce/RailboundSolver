@@ -178,6 +178,11 @@ interface LevelState {
    * Reset all level state to defaults
    */
   resetLevel: () => void;
+
+  /**
+   * Resize level to new dimensions
+   */
+  resizeLevel: (newWidth: number, newHeight: number) => void;
 }
 
 /**
@@ -539,6 +544,37 @@ export const useLevelStore = create<LevelState>()(
           },
           false,
           "resetLevel"
+        );
+      },
+
+      resizeLevel: (newWidth, newHeight) => {
+        const { levelData } = get();
+        if (!levelData || !levelData.grid) return;
+
+        // Save state before making changes
+        get().saveToUndoStack(`Resize level to ${newWidth}×${newHeight}`);
+
+        const oldGrid = levelData.grid;
+        const newGrid = createEmptyGrid(newWidth, newHeight);
+
+        // Copy existing pieces to new grid (preserve as much as possible)
+        for (let y = 0; y < Math.min(oldGrid.length, newHeight); y++) {
+          for (let x = 0; x < Math.min(oldGrid[0].length, newWidth); x++) {
+            newGrid[y][x] = { ...oldGrid[y][x] };
+          }
+        }
+
+        set(
+          {
+            levelData: {
+              ...levelData,
+              grid: newGrid,
+              modifiedAt: Date.now(),
+            },
+            isDirty: true,
+          },
+          false,
+          "resizeLevel"
         );
       },
     }),

@@ -1,12 +1,6 @@
-import React, {useEffect, useState} from "react";
-import {
-  UndoRedoButtons,
-  RightToolPanel,
-  BottomSelectionPanel,
-  GameCanvas,
-  type GamePiece
-} from "./components";
-import { useGuiStore, useLevelStore } from "./store";
+import React, { useEffect } from "react";
+import { BottomSelectionPanel, GameCanvas, RightToolPanel } from "./components";
+import { useGuiStore } from "./store";
 
 /**
  * RAILBOUND LEVEL EDITOR - MAIN APPLICATION
@@ -31,62 +25,29 @@ import { useGuiStore, useLevelStore } from "./store";
  * 3. Use selective subscriptions for performance
  * 4. Leverage separate devtools for each store
  */
-const MouseTracker: React.FC<{
-  // selectedTrack: GamePiece;
-}> = ({}) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+const MouseTracker: React.FC = () => {
+  const { mousePosition, setMousePosition } = useGuiStore();
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      setMousePos({ x: event.clientX, y: event.clientY });
+      setMousePosition({ x: event.clientX, y: event.clientY });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [setMousePosition]);
 
   return (
     <div>
       {/* {selectedTrack.icon} */}
       <div className="fixed top-2 left-2 text-sm bg-white/80 p-1 rounded shadow">
-        x: {mousePos.x}, y: {mousePos.y}
+        x: {mousePosition.x}, y: {mousePosition.y}
       </div>
     </div>
   );
 };
 
 export default function App() {
-  // =================
-  // SEPARATE ZUSTAND STORES
-  // =================
-
-  /**
-   * GUI Store - Manages UI state and display settings
-   */
-  const {
-    // UI State
-    selectedTool,
-    selectedPiece,
-    showGrid,
-    gridSize,
-  } = useGuiStore();
-
-  /**
-   * Level Store - Manages level data and undo/redo
-   */
-  const {
-    // Level State
-    levelData,
-    undoStack,
-    redoStack,
-    isDirty,
-
-    // Level Actions
-    undo,
-    redo,
-    createNewLevel,
-  } = useLevelStore();
-
   // =================
   // RENDER COMPONENT
   // =================
@@ -96,28 +57,13 @@ export default function App() {
       {/* 
         GAME CANVAS
         Main area where level editing happens
-        Now uses Zustand store for grid configuration
+        Now fully integrated with Zustand stores for zoom, pan, and level data
+        Includes integrated undo/redo buttons with MouseTracker-like styling
       */}
-      <GameCanvas showGrid={showGrid} gridSize={gridSize}>
-        {/* TODO: Add level editing functionality here */}
-        {/* TODO: Render placed track pieces */}
-        {/* TODO: Add click handlers for piece placement */}
-        {/* TODO: Implement drag and drop */}
-        {/* TODO: Add selection indicators */}
-        {/* <MouseTracker selectedTrack={selectedTool}/> */}
-        <MouseTracker/>
+      <GameCanvas>
+        {/* TODO: Add overlay UI elements here if needed */}
+        <MouseTracker />
       </GameCanvas>
-
-      {/* 
-        UNDO/REDO BUTTONS
-        Now uses Zustand store actions
-      */}
-      <UndoRedoButtons
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={undoStack.length > 0}
-        canRedo={redoStack.length > 0}
-      />
 
       {/* 
         RIGHT TOOL PANEL
