@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect} from "react";
 
 /**
  * GamePiece Interface
@@ -16,6 +16,7 @@ export interface GamePiece {
   name: string;
   icon?: string | React.ReactNode;
   description?: string;
+  hotkey?: string;
 }
 
 /**
@@ -51,6 +52,16 @@ export const GamePieceIcon: React.FC<{
         ? "bg-blue-600 border-blue-400 text-white"
         : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
     }`;
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === piece.hotkey) {
+        onClick ? (onClick()) : (null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClick])
 
   return (
     <button

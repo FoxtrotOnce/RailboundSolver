@@ -184,8 +184,8 @@ interface LevelState {
  * Create an empty grid of specified dimensions
  */
 const createEmptyGrid = (
-  width: number = 20,
-  height: number = 15
+  width: number = 12,
+  height: number = 12
 ): GridCell[][] => {
   return Array(height)
     .fill(null)
@@ -217,7 +217,7 @@ export const useLevelStore = create<LevelState>()(
       // ACTIONS
       // =================
 
-      createNewLevel: (width = 20, height = 15) => {
+      createNewLevel: (width = 12, height = 12) => {
         const newLevel: LevelData = {
           id: `level_${Date.now()}`,
           name: "Untitled Level",

@@ -13,11 +13,18 @@ import { GamePieceIcon } from "./GamePieceIcon";
  * - Selecting a piece updates the selectedPiece in the store.
  */
 import { useGuiStore } from "../store";
-import StraightTrack from "./sprite/StraightTrack";
-import EndingTrack from "./sprite/EndingTrack";
-import Car from "./sprite/Car";
-import ForkTrack from "./sprite/ForkTrack";
-import Tunnel from "./sprite/Tunnel";
+import StraightTrack from "../assets/Perm 1.svg";
+import EndingTrack from "../assets/Ending Track.svg";
+import Car from "../assets/Car 1.svg";
+import ForkTrack from "../assets/Swapping Track.svg";
+import Tunnel from "../assets/Tunnel.svg";
+import Station from "../assets/Station.svg";
+import Switch from "../assets/Switch.svg";
+import OpenGate from "../assets/Open Gate.svg";
+import ClosedGate from "../assets/Closed Gate.svg";
+import SwitchRail from "../assets/Switch Rail.svg";
+import Decoy from "../assets/Decoy.svg";
+import Roadblock from "../assets/4 Fence.svg";
 
 /**
  * Hardcoded game pieces configuration
@@ -29,49 +36,53 @@ const GAME_PIECES: GamePiece[][] = [
       id: "track",
       name: "Place Track",
       description: "Place Track",
-      icon: <StraightTrack rotate={90} variant="fixed" />,
-    },
+      icon: <img src={StraightTrack}/>
+    }
   ],
   [
     {
       id: "end_track",
       name: "End Track",
       description: "End Track",
-      icon: <EndingTrack />,
+      icon: <img src={EndingTrack}/>
     },
     {
       id: "car",
       name: "Place Car",
       description: "Place Car",
-      icon: <Car />,
+      icon: <img src={Car}/>
     },
-    // TODO: train station track
-    // {
-    //   id: "train_station_track",
-    //   name: "Place Train Station Track",
-    //   description: "Place Train Station Track",
-    //   icon: <TrainStationTrack />,
-    // }
+    {
+      id: "station",
+      name: "Place Station",
+      description: "Place Station",
+      icon: <img src={Station}/>
+    }
   ],
   [
     {
-      id: "switch_track",
-      name: "Place Switch Track",
-      description: "Place Switch Track",
-      icon: <StraightTrack rotate={90} isSwitch />,
+      id: "switch",
+      name: "Place Switch",
+      description: "Place Switch",
+      icon: <img src={Switch}/>,
     },
-    // TODO: gate_track
-    // {
-    //   id: "gate_track",
-    //   name: "Place Gate Track",
-    //   description: "Place Gate Track",
-    //   icon: todo
-    // },
+    {
+      id: "open_gate",
+      name: "Place Open Gate",
+      description: "Place Open Gate",
+      icon: <img src={OpenGate}/>
+    },
+        {
+      id: "closed_gate",
+      name: "Place Closed Gate",
+      description: "Place Closed Gate",
+      icon: <img src={ClosedGate}/>
+    },
     {
       id: "switch_fork_track",
       name: "Place Fork Track",
       description: "Place Fork Track",
-      icon: <ForkTrack rotate={90} color="green" />,
+      icon: <img src={ForkTrack}/>,
     },
   ],
   [
@@ -79,9 +90,26 @@ const GAME_PIECES: GamePiece[][] = [
       id: "tunnel",
       name: "Place Tunnel",
       description: "Place Tunnel",
-      icon: <Tunnel rotate={90} />,
+      icon: <img src={Tunnel}/>,
     },
-    // TODO: otherthings
+    {
+      id: "switch_rail",
+      name: "Place Switch Rail",
+      description: "Place Switch Rail",
+      icon: <img src={SwitchRail}/>
+    },
+    {
+      id: "decoy",
+      name: "Place Decoy",
+      description: "Place Decoy",
+      icon: <img src={Decoy}/>,
+    },
+    {
+      id: "fence",
+      name: "Place Fence",
+      description: "Place Fence",
+      icon: <img src={Roadblock}/>
+    }
   ],
 ];
 

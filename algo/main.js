@@ -3,18 +3,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.solve_level = solve_level;
 const classes_1 = require("./classes");
 // HYPERPARAMETERS (INTEGRATE WITH UI)
-const heatmap_limit_limit = 9;
-const decoy_heatmap_limit = 15;
-const gen_type = 'DFS';
-function tail_call_gen(args) {
-    if (gen_type === "DFS") {
+const HEATMAP_LIMIT_LIMIT = 9;
+const DECOY_HEATMAP_LIMIT = 15;
+const GEN_TYPE = 'DFS';
+/** How many iterations before the next visualization data is given. */
+const VISUALIZE_RATE = 1000;
+function tail_call_gen(args, visualize) {
+    /** iteration count of the last call to visualize */
+    let last_update = 0;
+    if (GEN_TYPE === "DFS") {
         let argslist = [args];
         while (argslist.length > 0) {
-            const args = [...generate_tracks(argslist.pop())];
+            const arg = argslist.pop();
+            if (iterations - last_update >= VISUALIZE_RATE) {
+                visualize({
+                    board: arg.board_to_use,
+                    mods: arg.mods_to_use,
+                    cars: arg.cars_to_use
+                });
+                last_update = Math.floor(iterations / VISUALIZE_RATE) * VISUALIZE_RATE;
+            }
+            const args = [...generate_tracks(arg)];
             argslist.push(...args.reverse());
         }
     }
-    else if (gen_type === "BFS") {
+    else if (GEN_TYPE === "BFS") {
         let argslist = new Map();
         for (let track_count = max_tracks; track_count > -1; track_count--) {
             argslist.set(track_count, new classes_1.deque());
@@ -22,7 +35,16 @@ function tail_call_gen(args) {
         argslist.get(max_tracks).append(args);
         for (const queue of argslist.values()) {
             while (queue.length > 0) {
-                for (const args of generate_tracks(queue.popleft())) {
+                const arg = queue.popleft();
+                if (iterations - last_update >= VISUALIZE_RATE) {
+                    visualize({
+                        board: arg.board_to_use,
+                        mods: arg.mods_to_use,
+                        cars: arg.cars_to_use
+                    });
+                    last_update = Math.floor(iterations / VISUALIZE_RATE) * VISUALIZE_RATE;
+                }
+                for (const args of generate_tracks(arg)) {
                     if (lowest_tracks_remaining !== -1) {
                         return;
                     }
@@ -148,7 +170,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
             heatmaps[car_index][car.direction.value][car.pos[0]][car.pos[1]]++;
             const heat = heatmaps[car_index][car.direction.value][car.pos[0]][car.pos[1]];
             if (car.type === classes_1.CarType.DECOY) {
-                if (heat > decoy_heatmap_limit) {
+                if (heat > DECOY_HEATMAP_LIMIT) {
                     return;
                 }
             }
@@ -589,7 +611,7 @@ function* generate_tracks({ cars_to_use, board_to_use, mods_to_use, available_tr
             if (car.type !== classes_1.CarType.CRASHED && (mods_to_pass[car.pos[0]][car.pos[1]] === classes_1.Mod.SWAPPING_TRACK ||
                 mods_to_pass[car.pos[0]][car.pos[1]] === classes_1.Mod.SWITCH_RAIL)) {
                 const car_index = car.car_index(cars, decoys, ncars);
-                if (heatmap_limits_pass[car_index][car.direction.value][car.pos[0]][car.pos[1]] < heatmap_limit_limit) {
+                if (heatmap_limits_pass[car_index][car.direction.value][car.pos[0]][car.pos[1]] < HEATMAP_LIMIT_LIMIT) {
                     if (!stalled[i]) {
                         for (let j = 0; j < heatmap_limits_pass[0].length; j++) {
                             for (let k = 0; k < heatmap_limits_pass[0][0].length; k++) {
@@ -654,7 +676,7 @@ var gate_poses;
 var swapping_track_poses;
 var station_poses;
 var board_solve_time;
-function solve_level(data) {
+function solve_level(data, visualize) {
     // if (lvl_name !== "1-11A") {continue}
     // console.log(lvl_name)
     board = classes_1.Track.convert_to_tracks(data.board);
@@ -763,7 +785,7 @@ function solve_level(data) {
             cars_to_use, board_to_use, mods_to_use, available_tracks, heatmaps,
             solved, stalled, switch_queue, station_stalled, crashed_decoys, mvmts_since_solved,
             available_semaphores, heatmap_limits
-        });
+        }, visualize);
     }
     const finalTime = (Date.now() - start_time) / 10e2;
     console.log(`\nFinished in: ${finalTime}s`);

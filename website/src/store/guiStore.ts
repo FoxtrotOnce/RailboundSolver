@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import type { GamePiece } from "../components";
 
 /**
  * GUI STATE STORE
@@ -100,9 +101,10 @@ interface GuiState {
 
   /**
    * Update the selected piece
-   * @param pieceId - Game piece identifier matching GAME_PIECES in BottomSelectionPanel
+   * @param piece - Game piece identifier.
    */
-  setSelectedPiece: (pieceId: string) => void;
+  // TODO: turn piece into a GamePiece somehow
+  setSelectedPiece: (piece: string) => void;
 
   /**
    * Update canvas zoom level
@@ -182,9 +184,9 @@ export const useGuiStore = create<GuiState>()(
         set({ selectedTool: tool }, false, "setSelectedTool");
         console.log(`🔧 Tool selected: ${tool}`);
       },
-      setSelectedPiece: (pieceId) => {
-        set({ selectedPiece: pieceId }, false, "setSelectedPiece");
-        console.log(`🎯 Piece selected: ${pieceId}`);
+      setSelectedPiece: (piece) => {
+        set({ selectedPiece: piece }, false, "setSelectedPiece");
+        console.log(`🎯 Piece selected: ${piece}`);
 
         // Auto-switch to first tool when piece is selected
         const { selectedTool } = get();

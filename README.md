@@ -34,7 +34,6 @@ A sample level, `test-1`, is at the top of the file for reference on how to crea
 
 # To-do
 
-- Convert the solving algorithm to JavaScript/TypeScript
 - Integrate RailboundSolver into a website for easier use
 
 # Documentation

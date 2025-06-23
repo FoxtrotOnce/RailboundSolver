@@ -32,6 +32,7 @@ interface GameCanvasProps {
  *   <div>Game objects go here</div>
  * </GameCanvas>
  */
+
 export const GameCanvas: React.FC<GameCanvasProps> = ({
   width,
   height,
@@ -47,8 +48,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const gridStyle = showGrid
     ? {
         backgroundImage: `
-      linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+      linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)
     `,
         backgroundSize: `${gridSize}px ${gridSize}px`,
       }
