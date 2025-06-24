@@ -3,9 +3,10 @@ import React from "react";
 import { GamePieceIcon } from "./GamePieceIcon";
 import type { GamePiece } from "./GamePieceIcon";
 import StraightTrack from "../assets/2 Vertical Track.svg";
-import TurnTrack from "../assets/5 Bottom-Right Turn.svg"
+import TurnTrack from "../assets/5 Bottom-Right Turn.svg";
 import ForkTrack from "../assets/9 Bottom-Right & Left 3-Way.svg";
 import ForkTrack2 from "../assets/11 Bottom-Left & Right 3-Way.svg";
+import { Track } from "../../../algo/classes";
 
 // ToolButton is now just GamePiece
 
@@ -29,32 +30,32 @@ export const RightToolPanel: React.FC = () => {
   const { selectedTool, setSelectedTool } = useGuiStore();
   const toolButtons: GamePiece[] = [
     {
-      id: "Straight Track",
+      id: "STRAIGHT",
       name: "Straight Track",
-      icon: <img src={StraightTrack}/>,
+      icon: <img src={StraightTrack} />,
       description: "Straight Track (1)",
-      hotkey: '1'
+      hotkey: "1",
     },
     {
-      id: "Curved Track",
+      id: "CURVED",
       name: "Curved Track",
-      icon: <img src={TurnTrack}/>,
+      icon: <img src={TurnTrack} />,
       description: "Curved Track (2)",
-      hotkey: '2'
+      hotkey: "2",
     },
     {
-      id: "Fork Track",
+      id: "FORK",
       name: "Fork Track",
-      icon: <img src={ForkTrack}/>,
+      icon: <img src={ForkTrack} />,
       description: "Fork Track (3)",
-      hotkey: '3'
+      hotkey: "3",
     },
     {
-      id: "Fork Track 2",
+      id: "FORK_2",
       name: "Fork Track 2",
-      icon: <img src={ForkTrack2}/>,
+      icon: <img src={ForkTrack2} />,
       description: "Fork Track 2 (4)",
-      hotkey: '4'
+      hotkey: "4",
     },
   ];
 

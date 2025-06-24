@@ -3,4 +3,4 @@ export { useGuiStore } from "./guiStore";
 export { useLevelStore } from "./levelStore";
 
 // Type exports
-export type { LevelData, GridCell, LevelStateSnapshot } from "./levelStore";
+export type { LevelData, LevelStateSnapshot } from "./levelStore";
