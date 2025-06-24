@@ -122,27 +122,25 @@ export const BottomSelectionPanel: React.FC = () => {
   const { selectedPiece, setSelectedPiece } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-40">
-      <div className="bg-gray-800 border-t-2 border-gray-600 p-4">
-        <div className="flex justify-center">
-          <div className="flex gap-4">
-            {/* Render each group of pieces */}
-            {pieces.map((group, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-1 bg-gray-700 rounded-lg p-2 border-2 border-gray-600"
-              >
-                {group.map((piece) => (
-                  <GamePieceIcon
-                    key={piece.id}
-                    piece={piece}
-                    onClick={() => setSelectedPiece(piece.id)}
-                    selected={selectedPiece === piece.id}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+    <div className="absolute bottom-0 left-0 right-0 bg-gray-800 border-t-2 border-gray-600 p-4 z-40">
+      <div className="flex justify-center">
+        <div className="flex gap-4">
+          {/* Render each group of pieces */}
+          {pieces.map((group, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-1 bg-gray-700 rounded-lg p-2 border-2 border-gray-600"
+            >
+              {group.map((piece) => (
+                <GamePieceIcon
+                  key={piece.id}
+                  piece={piece}
+                  onClick={() => setSelectedPiece(piece)}
+                  selected={selectedPiece === piece}
+                />
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,9 +1,11 @@
 import React from "react";
+import { GridTile } from "./GridTile";
 
 interface GameCanvasProps {
   width?: number;
   height?: number;
   showGrid?: boolean;
+  gridDims?: { y: number, x: number}
   gridSize?: number;
   children?: React.ReactNode;
 }
@@ -38,6 +40,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   height,
   showGrid = true,
   gridSize = 40,
+  gridDims,
   children,
 }) => {
   const canvasStyle = {
@@ -45,22 +48,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     height: height ? `${height}px` : "100%",
   };
 
-  const gridStyle = showGrid
-    ? {
-        backgroundImage: `
-      linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)
-    `,
-        backgroundSize: `${gridSize}px ${gridSize}px`,
-      }
-    : {};
-
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex justify-center items-center">
       {/* Grid pattern overlay */}
-      {showGrid && (
-        <div className="absolute inset-0 opacity-20" style={gridStyle} />
-      )}
+      <div className="grid border-t border-l border-gray-400 opacity-50"
+          style={{gridTemplateColumns: `repeat(${gridDims?.x}, ${gridSize}px)`, gridTemplateRows: `repeat(${gridDims?.y}, ${gridSize}px)`}}
+      >
+        {[...Array(gridDims!.x * gridDims!.y)].map((_, i) => (
+          <div className="border-r border-b border-gray-400">
+            <GridTile/>
+          </div>
+        ))}
+      </div>
 
       {/* Canvas content area */}
       <div className="absolute inset-0" style={canvasStyle}>

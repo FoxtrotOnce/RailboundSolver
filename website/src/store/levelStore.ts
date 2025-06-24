@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import {Track, Mod} from "../../../algo/classes";
 
 /**
  * Level data structure
@@ -8,7 +9,9 @@ import { devtools } from "zustand/middleware";
 export interface LevelData {
   id?: string;
   name?: string;
-  grid?: GridCell[][];
+  grid?: GridTile[][];
+  max_tracks?: number;
+  max_semaphores?: number;
   metadata?: Record<string, unknown>;
   createdAt?: number;
   modifiedAt?: number;
@@ -17,10 +20,10 @@ export interface LevelData {
 /**
  * Individual grid cell in the level
  */
-export interface GridCell {
-  type: string;
-  rotation?: number;
-  properties?: Record<string, unknown>;
+export interface GridTile {
+  track: Track;
+  mod: Mod;
+  mod_num: number;
 }
 
 /**
@@ -104,6 +107,21 @@ interface LevelState {
   createNewLevel: (width?: number, height?: number) => void;
 
   /**
+   * Set the dims for the level
+   */
+  setDims: (dims: {y: number, x: number}) => void;
+
+  /**
+   * Set the maximum track count
+   */
+  setTracks: (max_tracks: number) => void;
+
+  /**
+   * Set the maximum semaphore count
+   */
+  setSemaphores: (max_semaphores: number) => void;
+
+  /**
    * Load level data
    */
   loadLevel: (levelData: LevelData, filePath?: string) => void;
@@ -135,8 +153,9 @@ interface LevelState {
   placePiece: (
     x: number,
     y: number,
-    pieceType: string,
-    rotation?: number
+    track?: Track | undefined,
+    mod?: Mod | undefined,
+    mod_num?: number | undefined
   ) => void;
 
   /**
@@ -145,14 +164,9 @@ interface LevelState {
   removePiece: (x: number, y: number) => void;
 
   /**
-   * Rotate piece at specific grid coordinates
-   */
-  rotatePiece: (x: number, y: number) => void;
-
-  /**
    * Get piece at specific grid coordinates
    */
-  getPieceAt: (x: number, y: number) => GridCell | null;
+  getPieceAt: (x: number, y: number) => GridTile | null;
 
   /**
    * Clear entire level (remove all pieces)
@@ -186,14 +200,12 @@ interface LevelState {
 const createEmptyGrid = (
   width: number = 12,
   height: number = 12
-): GridCell[][] => {
-  return Array(height)
-    .fill(null)
-    .map(() =>
-      Array(width)
-        .fill(null)
-        .map(() => ({ type: "empty" }))
-    );
+): GridTile[][] => {
+  return Array(height).fill(null).map(() => Array(width).fill({
+    track: Track.EMPTY,
+    mod: Mod.EMPTY,
+    mod_num: 0
+  }))
 };
 
 /**
@@ -217,11 +229,13 @@ export const useLevelStore = create<LevelState>()(
       // ACTIONS
       // =================
 
-      createNewLevel: (width = 12, height = 12) => {
+      createNewLevel: (width = 12, height = 12, max_tracks: number, max_semaphores: number) => {
         const newLevel: LevelData = {
           id: `level_${Date.now()}`,
           name: "Untitled Level",
           grid: createEmptyGrid(width, height),
+          max_tracks: max_tracks,
+          max_semaphores: max_semaphores,
           metadata: {},
           createdAt: Date.now(),
           modifiedAt: Date.now(),
@@ -240,6 +254,80 @@ export const useLevelStore = create<LevelState>()(
         );
 
         console.log(`📄 New level created: ${width}x${height}`);
+      },
+
+      setTracks: (max_tracks) => {
+        const {levelData} = get()
+        set(
+          {
+            levelData: {
+              ...levelData,
+              max_tracks: max_tracks,
+              modifiedAt: Date.now(),
+            },
+            isDirty: true,
+          },
+          false,
+          "placePiece"
+        );        
+
+        console.log(`Max tracks updated to ${max_tracks}`);
+      },
+
+      setSemaphores: (max_semaphores) => {
+        const {levelData} = get()
+        set(
+          {
+            levelData: {
+              ...levelData,
+              max_semaphores: max_semaphores,
+              modifiedAt: Date.now(),
+            },
+            isDirty: true,
+          },
+          false,
+          "placePiece"
+        );        
+
+        console.log(`Max semaphores updated to ${max_semaphores}`);
+      },
+
+      setDims: (dims) => {
+        const { levelData } = get();
+        if (!levelData || !levelData.grid) return;
+
+        const grid = levelData.grid;
+        
+        let newGrid: GridTile[][] = []
+        for (let i = 0; i < dims.y; i++) {
+          newGrid.push([])
+          for (let j = 0; j < dims.x; j++) {
+            if (i < grid.length && j < grid[0].length) {
+              newGrid[i].push(grid[i][j])
+            } else {
+              newGrid[i].push({
+                track: Track.EMPTY,
+                mod: Mod.EMPTY,
+                mod_num: 0
+              })
+            }
+          }
+        }
+
+        set(
+          {
+            levelData: {
+              ...levelData,
+              grid: newGrid,
+              modifiedAt: Date.now(),
+            },
+            isDirty: true,
+          },
+          false,
+          "placePiece"
+        );        
+
+        console.log(`Board dims updated to (${dims.y}, ${dims.x})`);
       },
 
       loadLevel: (levelData, filePath) => {
@@ -348,20 +436,28 @@ export const useLevelStore = create<LevelState>()(
         set({ undoStack: [], redoStack: [] }, false, "clearHistory");
       },
 
-      placePiece: (x, y, pieceType, rotation = 0) => {
+      placePiece: (x, y, track, mod, mod_num) => {
         const { levelData } = get();
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
 
+        if (track === undefined) {track = grid[y][x].track}
+        if (mod === undefined) {mod = grid[y][x].mod}
+        if (mod_num === undefined) {mod_num = grid[y][x].mod_num}
+
         // Save state before making changes
-        get().saveToUndoStack(`Place ${pieceType} at (${x}, ${y})`);
+        get().saveToUndoStack(`Place ${track}/${mod}/${mod_num} at (${x}, ${y})`);
 
         const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
+          row.map((cell, colIndex): GridTile => {
             if (rowIndex === y && colIndex === x) {
-              return { type: pieceType, rotation, properties: {} };
+              return {
+                track: track,
+                mod: mod,
+                mod_num: mod_num
+              };
             }
             return cell;
           })
@@ -392,47 +488,12 @@ export const useLevelStore = create<LevelState>()(
         get().saveToUndoStack(`Remove piece at (${x}, ${y})`);
 
         const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
-            if (rowIndex === y && colIndex === x) {
-              return { type: "empty" };
-            }
-            return cell;
-          })
-        );
-
-        set(
-          {
-            levelData: {
-              ...levelData,
-              grid: newGrid,
-              modifiedAt: Date.now(),
-            },
-            isDirty: true,
-          },
-          false,
-          "removePiece"
-        );
-      },
-
-      rotatePiece: (x, y) => {
-        const { levelData } = get();
-        if (!levelData || !levelData.grid) return;
-
-        const grid = levelData.grid;
-        if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
-
-        const currentCell = grid[y][x];
-        if (currentCell.type === "empty") return;
-
-        // Save state before making changes
-        get().saveToUndoStack(`Rotate piece at (${x}, ${y})`);
-
-        const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex) => {
+          row.map((cell, colIndex): GridTile => {
             if (rowIndex === y && colIndex === x) {
               return {
-                ...cell,
-                rotation: ((cell.rotation || 0) + 90) % 360,
+                track: Track.EMPTY,
+                mod: Mod.EMPTY,
+                mod_num: 0
               };
             }
             return cell;
@@ -449,7 +510,7 @@ export const useLevelStore = create<LevelState>()(
             isDirty: true,
           },
           false,
-          "rotatePiece"
+          "removePiece"
         );
       },
 

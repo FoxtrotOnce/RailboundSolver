@@ -33,14 +33,13 @@ interface GuiState {
    * Controls what action is performed when clicking on the canvas
    * Examples: "place", "erase", "select", "move"
    */
-  selectedTool: string;
+  selectedTool: GamePiece | undefined;
 
   /**
    * Currently selected piece from the bottom panel
    * Controls what gets placed when in placement mode
-   * Should match piece IDs from hardcoded GAME_PIECES in BottomSelectionPanel
    */
-  selectedPiece: string;
+  selectedPiece: GamePiece | undefined;
 
   // =================
   // CANVAS DISPLAY STATE
@@ -68,6 +67,12 @@ interface GuiState {
    * Constrained between 10 and 100 pixels for usability
    */
   gridSize: number;
+
+  /**
+   * Grid dimensions by cell count.
+   * Constrained between 1 and 12 to reflect the game
+   */
+  gridDims: {y: number, x: number}
 
   // =================
   // UI PANEL STATE
@@ -97,14 +102,19 @@ interface GuiState {
    * Update the selected tool
    * @param tool - Tool identifier (e.g., "place", "erase", "select")
    */
-  setSelectedTool: (tool: string) => void;
+  setSelectedTool: (tool: GamePiece | undefined) => void;
 
   /**
    * Update the selected piece
    * @param piece - Game piece identifier.
    */
-  // TODO: turn piece into a GamePiece somehow
-  setSelectedPiece: (piece: string) => void;
+  setSelectedPiece: (piece: GamePiece | undefined) => void;
+
+  /**
+   * Set the dimensions of the grid for rendering.
+   * @param dims - The grid dimensions.
+   */
+  setGridDims: (dims: {y: number, x: number}) => void;
 
   /**
    * Update canvas zoom level
@@ -166,12 +176,14 @@ export const useGuiStore = create<GuiState>()(
     (set, get) => ({
       // =================
       // INITIAL STATE
-      // =================      selectedTool: "tool1",
-      selectedPiece: "",
+      // =================
+      selectedTool: undefined,
+      selectedPiece: undefined,
       zoomLevel: 1.0,
       panOffset: { x: 0, y: 0 },
       showGrid: true,
       gridSize: 40,
+      gridDims: { y: 6, x: 5},
       showToolPanel: true,
       showPiecePanel: true,
       isModalOpen: false,
@@ -182,17 +194,18 @@ export const useGuiStore = create<GuiState>()(
 
       setSelectedTool: (tool) => {
         set({ selectedTool: tool }, false, "setSelectedTool");
-        console.log(`🔧 Tool selected: ${tool}`);
+        console.log(`🔧 Tool selected: ${tool?.id}`);
       },
       setSelectedPiece: (piece) => {
         set({ selectedPiece: piece }, false, "setSelectedPiece");
-        console.log(`🎯 Piece selected: ${piece}`);
+        console.log(`🎯 Piece selected: ${piece?.id}`);
 
         // Auto-switch to first tool when piece is selected
-        const { selectedTool } = get();
-        if (selectedTool !== "tool1") {
-          get().setSelectedTool("tool1");
-        }
+        get().setSelectedTool(undefined);
+      },
+      setGridDims: (dims) => {
+        set({ gridDims: dims}, false, "setGridDims");
+        console.log(`Grid Dims set: ${dims}`)
       },
 
       setZoomLevel: (zoom) => {
@@ -242,12 +255,13 @@ export const useGuiStore = create<GuiState>()(
       resetGui: () => {
         set(
           {
-            selectedTool: "tool1",
-            selectedPiece: "",
+            selectedTool: undefined,
+            selectedPiece: undefined,
             zoomLevel: 1.0,
             panOffset: { x: 0, y: 0 },
             showGrid: true,
             gridSize: 40,
+            gridDims: { y: 6, x: 5 },
             showToolPanel: true,
             showPiecePanel: true,
             isModalOpen: false,
