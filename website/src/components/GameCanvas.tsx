@@ -1,70 +1,76 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { GridTile } from "./GridTile";
+import { useGuiStore, useLevelStore } from "../store";
+import CarImg from "../assets/Car 1.svg";
+import { motion } from "motion/react";
 
-interface GameCanvasProps {
-  width?: number;
-  height?: number;
-  showGrid?: boolean;
-  gridDims?: { y: number, x: number}
-  gridSize?: number;
-  children?: React.ReactNode;
+// THIS IS EXAMPLE OR HOW WE MOVE THE CAR
+const carPos = [
+  { x: 0, y: 0, rotate: 0 },
+  { x: 1, y: 0, rotate: 90 },
+  { x: 1, y: 1, rotate: 180 },
+  { x: 0, y: 1, rotate: 270 },
+];
+function Car({ carId, rotate = 0 }: { carId: string; rotate?: number }) {
+  return (
+    <motion.div
+      layoutId={`car-${carId}`}
+      className="absolute select-none inset-0"
+      style={{ pointerEvents: "none" }}
+      animate={{ rotate }}
+    >
+      <img src={CarImg} alt="Car" />
+    </motion.div>
+  );
 }
 
-/**
- * GameCanvas Component
- *
- * Provides the main game area with a blue gradient background and optional grid overlay.
- * This is where the actual game/level editing takes place.
- *
- * Props:
- * - width: Canvas width in pixels (optional, defaults to full screen)
- * - height: Canvas height in pixels (optional, defaults to full screen)
- * - showGrid: Whether to show the grid overlay (default: true)
- * - gridSize: Size of grid squares in pixels (default: 40)
- * - children: Any child components to render over the canvas
- *
- * Features:
- * - Blue gradient background matching the game theme
- * - Optional semi-transparent grid overlay for precise placement
- * - Responsive design that fills available space
- * - Supports overlay content through children prop
- *
- * Usage:
- * <GameCanvas showGrid={true} gridSize={40}>
- *   <div>Game objects go here</div>
- * </GameCanvas>
- */
+export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
+  const { showGrid, gridSize } = useGuiStore();
+  const { levelData } = useLevelStore();
+  const { width, height } = levelData;
 
-export const GameCanvas: React.FC<GameCanvasProps> = ({
-  width,
-  height,
-  showGrid = true,
-  gridSize = 40,
-  gridDims,
-  children,
-}) => {
-  const canvasStyle = {
-    width: width ? `${width}px` : "100%",
-    height: height ? `${height}px` : "100%",
-  };
+  const [currentCarPos, setCurrentCarPos] = useState(carPos[0]);
+  useEffect(() => {
+    // Simulate car movement
+    const interval = setInterval(() => {
+      setCurrentCarPos((prev) => {
+        const nextIndex = (carPos.indexOf(prev) + 1) % carPos.length;
+        return carPos[nextIndex];
+      });
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex justify-center items-center">
       {/* Grid pattern overlay */}
-      <div className="grid border-t border-l border-gray-400 opacity-50"
-          style={{gridTemplateColumns: `repeat(${gridDims?.x}, ${gridSize}px)`, gridTemplateRows: `repeat(${gridDims?.y}, ${gridSize}px)`}}
+      <motion.div
+        className={`grid z-10 ${
+          showGrid ? "border-t border-l border-gray-400" : ""
+        }`}
+        style={{
+          gridTemplateColumns: `repeat(${width}, ${gridSize}px)`,
+          gridTemplateRows: `repeat(${height}, ${gridSize}px)`,
+        }}
       >
-        {[...Array(gridDims!.x * gridDims!.y)].map((_, i) => (
-          <div className="border-r border-b border-gray-400">
-            <GridTile/>
-          </div>
-        ))}
-      </div>
-
-      {/* Canvas content area */}
-      <div className="absolute inset-0" style={canvasStyle}>
-        {children}
-      </div>
+        {levelData.grid.map((row, idx) =>
+          row.map((tile, jdx) => (
+            <div
+              key={`${idx}-${jdx}`}
+              className="border-r relative border-b border-gray-400"
+            >
+              <GridTile
+                track={tile.track}
+                mod={tile.mod}
+                mod_num={tile.mod_num}
+              />
+              {idx === currentCarPos.y && jdx === currentCarPos.x ? (
+                <Car rotate={currentCarPos.rotate} carId="1" />
+              ) : null}
+            </div>
+          ))
+        )}
+      </motion.div>
     </div>
   );
 };

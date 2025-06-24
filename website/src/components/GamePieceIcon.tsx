@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React, { useEffect } from "react";
 
 /**
  * GamePiece Interface
@@ -55,13 +55,13 @@ export const GamePieceIcon: React.FC<{
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === piece.hotkey) {
-        onClick ? (onClick()) : (null)
+        if (onClick) onClick();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClick])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClick]);
 
   return (
     <button
