@@ -1,10 +1,10 @@
 <svg width="90" height="90" viewBox="0 0 90 90" fill="none" xmlns="http://www.w3.org/2000/svg">
 <mask id="mask0_78_15" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="90" height="90">
-<rect width="90" height="90" fill="#D9D9D9"/>
+<rect x="90" width="90" height="90" transform="rotate(90 90 0)" fill="#D9D9D9"/>
 </mask>
 <g mask="url(#mask0_78_15)">
-<rect x="1" y="33" width="14" height="8" rx="3" fill="white" stroke="black" stroke-width="2"/>
-<rect x="1" y="41" width="88" height="8" rx="3" fill="white" stroke="black" stroke-width="2"/>
-<path fill-rule="evenodd" clip-rule="evenodd" d="M60.6491 42H44.8867L48.3508 48H64.1133L60.6491 42ZM73.3509 48H86C87.1046 48 88 47.1046 88 46V44C88 42.8954 87.1046 42 86 42H69.8867L73.3509 48ZM19.8868 42H35.6491L39.1132 48H23.3509L19.8868 42ZM10.6491 42H4C2.89543 42 2 42.8954 2 44V46C2 47.1046 2.89543 48 4 48H14.1132L10.6491 42Z" fill="#00FF00"/>
+<rect x="57" y="1" width="14" height="8" rx="3" transform="rotate(90 57 1)" fill="white" stroke="black" stroke-width="2"/>
+<rect x="49" y="1" width="88" height="8" rx="3" transform="rotate(90 49 1)" fill="white" stroke="black" stroke-width="2"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M48 60.6491L48 44.8867L42 48.3508V64.1133L48 60.6491ZM42 73.3509V86C42 87.1046 42.8954 88 44 88H46C47.1046 88 48 87.1046 48 86V69.8867L42 73.3509ZM48 19.8868V35.6491L42 39.1132V23.3509L48 19.8868ZM48 10.6491V4C48 2.89543 47.1046 2 46 2L44 2C42.8954 2 42 2.89543 42 4V14.1132L48 10.6491Z" fill="#00FF00"/>
 </g>
 </svg>

@@ -60,9 +60,12 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
               className="border-r relative border-b border-gray-400"
             >
               <GridTile
+                pos={{y: idx, x: jdx}}
+                car={tile.car}
                 track={tile.track}
                 mod={tile.mod}
                 mod_num={tile.mod_num}
+                mod_rot={tile.mod_rot}
               />
               {idx === currentCarPos.y && jdx === currentCarPos.x ? (
                 <Car rotate={currentCarPos.rotate} carId="1" />

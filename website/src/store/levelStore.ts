@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { Track, Mod } from "../../../algo/classes";
+import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
+import { useGuiStore } from "./guiStore";
 
 /**
  * Level data structure
@@ -10,6 +11,8 @@ export interface LevelData {
   id: string;
   name?: string;
   grid: GridTile[][];
+  car_nums: Map<CarType, boolean[]>;
+  next_nums: Map<CarType, number>;
   width: number;
   height: number;
   max_tracks?: number;
@@ -23,9 +26,11 @@ export interface LevelData {
  * Individual grid cell in the level
  */
 export interface GridTile {
+  car: Car | undefined;
   track: Track;
   mod: Mod;
   mod_num: number;
+  mod_rot: number;
 }
 
 /**
@@ -155,15 +160,37 @@ interface LevelState {
   placePiece: (
     x: number,
     y: number,
+    cartype?: CarType | undefined,
     track?: Track | undefined,
     mod?: Mod | undefined,
-    mod_num?: number | undefined
+    mod_num?: number | undefined,
+    mod_rot?: number | undefined
   ) => void;
 
   /**
    * Remove piece at specific grid coordinates
    */
   removePiece: (x: number, y: number) => void;
+
+  /**
+   * Remove mod/car at specific grid coordinates
+   */
+  removeModorCar: (x: number, y: number) => void;
+
+  /**
+   * Register the next car num for the car.
+   */
+  registerCar: (type: CarType) => number;
+
+  /**
+   * Unregister the given car.
+   */
+  unregisterCar: (car: Car) => void;
+
+  /**
+   * Check if all cars are registered for the given type.
+   */
+  registryFilled: (type: CarType) => boolean;
 
   /**
    * Get piece at specific grid coordinates
@@ -207,9 +234,11 @@ const createEmptyGrid = (
     .fill(null)
     .map(() =>
       Array(width).fill({
+        car: undefined,
         track: Track.EMPTY,
         mod: Mod.EMPTY,
         mod_num: 0,
+        mod_rot: 0
       })
     );
 };
@@ -221,6 +250,16 @@ const createDefaultLevel = (): LevelData => ({
   id: `level_${Date.now()}`,
   name: "New Level",
   grid: createEmptyGrid(12, 12),
+  car_nums: new Map<CarType, boolean[]>([
+    [CarType.NORMAL, Array(4).fill(false)],
+    [CarType.DECOY, Array(144).fill(false)],
+    [CarType.NUMERAL, Array(4).fill(false)],
+  ]),
+  next_nums: new Map<CarType, number>([
+    [CarType.NORMAL, 0],
+    [CarType.DECOY, 0],
+    [CarType.NUMERAL, 0]
+  ]),
   width: 12,
   height: 12,
   max_tracks: 0,
@@ -329,10 +368,21 @@ export const useLevelStore = create<LevelState>()(
               newGrid[i].push(grid[i][j]);
             } else {
               newGrid[i].push({
+                car: undefined,
                 track: Track.EMPTY,
                 mod: Mod.EMPTY,
                 mod_num: 0,
+                mod_rot: 0
               });
+            }
+          }
+        }
+        // Iterate over tracks that got cut off if dim was decreased to properly remove them
+        for (let i = 0; i < levelData.height; i++) {
+          for (let j = 0; j < levelData.width; j++) {
+            if (i >= dims.y || j >= dims.x) {
+              console.log(`removing ${i} ${j}`)
+              get().removePiece(j, i)
             }
           }
         }
@@ -457,13 +507,14 @@ export const useLevelStore = create<LevelState>()(
         set({ undoStack: [], redoStack: [] }, false, "clearHistory");
       },
 
-      placePiece: (x, y, track, mod, mod_num) => {
+      placePiece: (x, y, cartype, track, mod, mod_num, mod_rot) => {
+        const { setSelectedTool, selectedPiece } = useGuiStore.getState()
         const { levelData } = get();
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
-
+        
         if (track === undefined) {
           track = grid[y][x].track;
         }
@@ -471,21 +522,56 @@ export const useLevelStore = create<LevelState>()(
           mod = grid[y][x].mod;
         }
         if (mod_num === undefined) {
-          mod_num = grid[y][x].mod_num;
+          mod_num = 0
         }
-
+        if (mod_rot === undefined) {
+          mod_rot = 0
+        }
+        let car = grid[y][x].car
+        if (car) {
+          get().unregisterCar(car)
+        }
+        // Make sure the placement is legal
+        if (
+          (mod !== Mod.STATION && mod !== Mod.EMPTY && track.is_empty()) || (
+          mod === Mod.SWAPPING_TRACK && !track.is_3way() ||
+          mod === Mod.TUNNEL && !track.is_straight() ||
+          mod === Mod.SWITCH_RAIL && !track.is_3way()
+        )) { return }
         // Save state before making changes
         get().saveToUndoStack(
           `Place ${track}/${mod}/${mod_num} at (${x}, ${y})`
         );
+        if (
+          cartype !== undefined &&
+          !get().registryFilled(cartype)
+        ) {
+          let dir: Direction
+          if (mod_rot === 0) {
+            dir = Direction.RIGHT
+          } else if (mod_rot === 90) {
+            dir = Direction.UP
+          } else if (mod_rot === 180) {
+            dir = Direction.LEFT
+          } else {
+            dir = Direction.DOWN
+          }
+          car = new Car([y, x], dir, get().registerCar(cartype), cartype)
+          // Disable placing any more tracks with the cars piece if the registry is filled
+          if (get().registryFilled(cartype) && (selectedPiece === "NORMAL" || selectedPiece === "DECOY")) {
+            setSelectedTool(undefined)
+          }
+        }
 
         const newGrid = grid.map((row, rowIndex) =>
           row.map((cell, colIndex): GridTile => {
             if (rowIndex === y && colIndex === x) {
               return {
+                car: car,
                 track: track,
                 mod: mod,
                 mod_num: mod_num,
+                mod_rot: mod_rot
               };
             }
             return cell;
@@ -515,13 +601,20 @@ export const useLevelStore = create<LevelState>()(
         // Save state before making changes
         get().saveToUndoStack(`Remove piece at (${x}, ${y})`);
 
+        const car = levelData.grid[y][x].car
+        if (car !== undefined) {
+          get().unregisterCar(car)
+        }
+
         const newGrid = grid.map((row, rowIndex) =>
           row.map((cell, colIndex): GridTile => {
             if (rowIndex === y && colIndex === x) {
               return {
+                car: undefined,
                 track: Track.EMPTY,
                 mod: Mod.EMPTY,
                 mod_num: 0,
+                mod_rot: 0
               };
             }
             return cell;
@@ -539,6 +632,90 @@ export const useLevelStore = create<LevelState>()(
           false,
           "removePiece"
         );
+      },
+
+      removeModorCar: (x, y) => {
+        const { levelData } = get();
+        if (!levelData || !levelData.grid) return;
+
+        const grid = levelData.grid;
+        if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
+
+        // Save state before making changes
+        get().saveToUndoStack(`Remove mod at (${x}, ${y})`);
+        
+        const car = levelData.grid[y][x].car
+        if (car !== undefined) {
+          get().unregisterCar(car)
+        }
+
+        const newGrid = grid.map((row, rowIndex) =>
+          row.map((cell, colIndex): GridTile => {
+            if (rowIndex === y && colIndex === x) {
+              return {
+                car: undefined,
+                track: cell.track,
+                mod: Mod.EMPTY,
+                mod_num: 0,
+                mod_rot: 0
+              };
+            }
+            return cell;
+          })
+        );
+
+        set(
+          {
+            levelData: {
+              ...levelData,
+              grid: newGrid,
+              modifiedAt: Date.now(),
+            },
+          },
+          false,
+          "removeModorCar"
+        );
+      },
+
+      registerCar: (type) => {
+        const {levelData} = get()
+        const car_nums = levelData.car_nums.get(type)!
+        // Register the next car by getting its index with next_nums
+        const next_available = levelData.next_nums.get(type)!
+        levelData.car_nums.get(type)![next_available] = true
+        
+        // Set the next_num (next car.num to be registered)
+        let found_next_flag: boolean = false
+        for (let i = 0; i < car_nums.length; i++) {
+          if (!car_nums[i]) {
+            levelData.next_nums.set(type, i)
+            found_next_flag = true
+            break
+          }
+        }
+        if (!found_next_flag) {
+          levelData.next_nums.set(type, car_nums.length)
+        }
+        set({levelData: {
+          ...levelData,
+        }}, false, "registerCar")
+        return next_available
+      },
+
+      unregisterCar: (car) => {
+        const {levelData} = get()
+        levelData.car_nums.get(car.type)![car.num] = false
+        if (levelData.next_nums.get(car.type)! > car.num) {
+          levelData.next_nums.set(car.type, car.num)
+        }
+        set({levelData: {
+          ...levelData,
+        }}, false, "unregisterCar")
+      },
+
+      registryFilled: (type) => {
+        const {levelData} = get()
+        return levelData.next_nums.get(type)! >= levelData.car_nums.get(type)!.length
       },
 
       getPieceAt: (x, y) => {

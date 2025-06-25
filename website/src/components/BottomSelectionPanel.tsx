@@ -33,7 +33,7 @@ const GAME_PIECES: GamePiece[][] = [
   // Basic Track Pieces
   [
     {
-      id: "track",
+      id: "TRACK",
       name: "Place Track",
       description: "Place Track",
       icon: <img src={StraightTrack}/>
@@ -41,19 +41,19 @@ const GAME_PIECES: GamePiece[][] = [
   ],
   [
     {
-      id: "end_track",
+      id: "END_TRACK",
       name: "End Track",
       description: "End Track",
       icon: <img src={EndingTrack}/>
     },
     {
-      id: "car",
+      id: "NORMAL",
       name: "Place Car",
       description: "Place Car",
       icon: <img src={Car}/>
     },
     {
-      id: "station",
+      id: "STATION",
       name: "Place Station",
       description: "Place Station",
       icon: <img src={Station}/>
@@ -61,25 +61,25 @@ const GAME_PIECES: GamePiece[][] = [
   ],
   [
     {
-      id: "switch",
+      id: "SWITCH",
       name: "Place Switch",
       description: "Place Switch",
       icon: <img src={Switch}/>,
     },
     {
-      id: "open_gate",
+      id: "OPEN_GATE",
       name: "Place Open Gate",
       description: "Place Open Gate",
       icon: <img src={OpenGate}/>
     },
         {
-      id: "closed_gate",
+      id: "CLOSED_GATE",
       name: "Place Closed Gate",
       description: "Place Closed Gate",
       icon: <img src={ClosedGate}/>
     },
     {
-      id: "switch_fork_track",
+      id: "SWITCH_FORK_TRACK",
       name: "Place Fork Track",
       description: "Place Fork Track",
       icon: <img src={ForkTrack}/>,
@@ -87,25 +87,25 @@ const GAME_PIECES: GamePiece[][] = [
   ],
   [
     {
-      id: "tunnel",
+      id: "TUNNEL",
       name: "Place Tunnel",
       description: "Place Tunnel",
       icon: <img src={Tunnel}/>,
     },
     {
-      id: "switch_rail",
+      id: "SWITCH_RAIL",
       name: "Place Switch Rail",
       description: "Place Switch Rail",
       icon: <img src={SwitchRail}/>
     },
     {
-      id: "decoy",
+      id: "DECOY",
       name: "Place Decoy",
       description: "Place Decoy",
       icon: <img src={Decoy}/>,
     },
     {
-      id: "fence",
+      id: "ROADBLOCK",
       name: "Place Fence",
       description: "Place Fence",
       icon: <img src={Roadblock}/>
@@ -134,9 +134,14 @@ export const BottomSelectionPanel: React.FC = () => {
               {group.map((piece) => (
                 <GamePieceIcon
                   key={piece.id}
+                  icon={piece.icon}
                   piece={piece}
-                  onClick={() => setSelectedPiece(piece)}
-                  selected={selectedPiece === piece}
+                  onClick={() => 
+                    selectedPiece === piece.id ?
+                    setSelectedPiece(undefined) :
+                    setSelectedPiece(piece.id)
+                  }
+                  selected={selectedPiece === piece.id}
                 />
               ))}
             </div>

@@ -66,9 +66,14 @@ export const RightToolPanel: React.FC = () => {
         {toolButtons.map((tool) => (
           <GamePieceIcon
             key={tool.id}
+            icon={tool.icon}
             piece={tool}
-            onClick={() => setSelectedTool(tool)}
-            selected={selectedTool?.id === tool.id}
+            onClick={() =>
+              selectedTool === tool.id ?
+              setSelectedTool(undefined) :
+              setSelectedTool(tool.id)
+            }
+            selected={selectedTool === tool.id}
             title={tool.description || `Tool ${tool.id}`}
           />
         ))}

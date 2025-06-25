@@ -272,12 +272,19 @@ export class Direction {
 }
 
 export class CarType {
+    private static TYPES = new Map<string, CarType>()
+
     static readonly CRASHED = new CarType("CRASHED")
     static readonly NORMAL = new CarType("NORMAL")
     static readonly DECOY = new CarType("DECOY")
     static readonly NUMERAL = new CarType("NUMERAL")
 
-    private constructor(readonly name: string) {}
+    private constructor(readonly name: string) {CarType.TYPES.set(name, this)}
+
+    /** Return the CarType corresponding to the given name. */
+    static get(value: string): CarType {
+        return this.TYPES.get(value)!
+    }
 }
 
 /** 
@@ -293,7 +300,11 @@ export class Car {
     pos_ahead: readonly [number, number]
 
     constructor(public pos: readonly [number, number], public direction: Direction, public num: number, public type: CarType) {
-        this.pos_ahead = direction.add_vector(pos)
+        if (direction.value >= 0) {
+            this.pos_ahead = direction.add_vector(pos)
+        } else {
+            this.pos_ahead = this.pos
+        }
     }
     /** Reformat the json representation of a car to an object. */
     static from_json(car: {pos: number[], direction: string, num: number, type: string}): Car {

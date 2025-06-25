@@ -40,11 +40,12 @@ export interface GamePiece {
  */
 export const GamePieceIcon: React.FC<{
   piece: GamePiece;
+  icon: React.ReactNode;
   onClick?: () => void;
   selected?: boolean;
   buttonClassName?: string;
   title?: string;
-}> = ({ piece, onClick, selected = false, buttonClassName = "", title }) => {
+}> = ({ piece, icon, onClick, selected = false, buttonClassName = "", title }) => {
   const baseButtonClass =
     buttonClassName ||
     `w-12 h-12 rounded border-2 transition-all flex items-center justify-center ${
@@ -70,24 +71,10 @@ export const GamePieceIcon: React.FC<{
       onClick={onClick}
       title={title || piece.description || piece.name}
       tabIndex={0}
-    >
-      {piece.icon ? (
-        typeof piece.icon === "string" ? (
-          <img
-            src={piece.icon}
-            alt={piece.name}
-            className="w-10 h-10 object-contain drop-shadow"
-          />
-        ) : (
-          <span className="w-10 h-10 flex items-center justify-center">
-            {piece.icon}
-          </span>
-        )
-      ) : (
-        <span className="w-10 h-10 bg-gray-500 rounded flex items-center justify-center text-xl font-bold text-white shadow-inner">
-          ?
-        </span>
-      )}
+    > 
+      <span className="w-10 h-10 flex items-center justify-center">
+        {icon}
+      </span>
     </button>
   );
 };

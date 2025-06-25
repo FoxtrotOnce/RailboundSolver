@@ -1,13 +1,15 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import type { GamePiece } from "../components";
+import { select } from "framer-motion/client";
+import { useLevelStore } from "./levelStore";
+import { CarType } from "../../../algo/classes";
 
 // NOTE: THE ROTATE NUMBER SEEM WRONG, it better if it 0:left, 1:up, 2:right, 3:down
 
 interface GuiState {
   // Tool & piece selection
-  selectedTool: GamePiece | undefined;
-  selectedPiece: GamePiece | undefined;
+  selectedTool: string | undefined;
+  selectedPiece: string | undefined;
 
   // Rotation (0: left, 1: right, 2: down, 3: up))
   rotation: number;
@@ -24,8 +26,8 @@ interface GuiState {
   showPiecePanel: boolean;
 
   // Actions
-  setSelectedTool: (tool: GamePiece | undefined) => void;
-  setSelectedPiece: (piece: GamePiece | undefined) => void;
+  setSelectedTool: (tool: string | undefined) => void;
+  setSelectedPiece: (piece: string | undefined) => void;
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
   toggleToolPanel: () => void;
@@ -44,16 +46,40 @@ export const useGuiStore = create<GuiState>()(
       gridSize: 40,
       showToolPanel: true,
       showPiecePanel: true,
-
+      
       // Actions
       setSelectedTool: (tool) => {
-        set({ selectedTool: tool }, false, "setSelectedTool");
-        console.log(`🔧 Tool selected: ${tool?.id}`);
+        const registryFilled = useLevelStore.getState().registryFilled;
+
+        const piece = get().selectedPiece
+        if (
+          piece === "STATION" || piece === "ROADBLOCK" ||
+          (piece === "NORMAL" || piece === "DECOY") && registryFilled(CarType.get(piece))
+        ) {
+          set({ selectedTool: undefined }, false, "setSelectedTool");
+        } else if (
+          piece === "SWITCH_FORK_TRACK" &&
+          tool !== "FORK" && tool !== "FORK_2"
+        ) {
+          get().setSelectedTool("FORK")
+        } else if (piece === "TUNNEL" && tool !== "STRAIGHT") {
+          get().setSelectedTool("STRAIGHT")
+        } else if (piece === "SWITCH_RAIL" &&
+          tool !== "FORK" && tool !== "FORK_2"
+        ) {
+          get().setSelectedTool("FORK")
+        } else {
+          set({ selectedTool: tool }, false, "setSelectedTool");
+        }
+
+        console.log(`🔧 Tool selected: ${get().selectedTool}`);
       },
       setSelectedPiece: (piece) => {
         set({ selectedPiece: piece }, false, "setSelectedPiece");
-        console.log(`🎯 Piece selected: ${piece?.id}`);
-        get().setSelectedTool(undefined);
+        console.log(`🎯 Piece selected: ${piece}`);
+        
+        // Run the check in setSelectedTool to change tool if the piece is incompatible
+        get().setSelectedTool(get().selectedTool);
         // Optionally reset rotation when selecting a new piece
         // set({ rotation: 0 }, false, "resetRotationOnPieceSelect");
       },
