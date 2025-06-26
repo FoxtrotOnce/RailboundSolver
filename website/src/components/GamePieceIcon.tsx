@@ -65,16 +65,24 @@ export const GamePieceIcon: React.FC<{
   }, [onClick]);
 
   return (
-    <button
-      type="button"
-      className={baseButtonClass}
-      onClick={onClick}
-      title={title || piece.description || piece.name}
-      tabIndex={0}
-    > 
-      <span className="w-10 h-10 flex items-center justify-center">
-        {icon}
-      </span>
-    </button>
+    <div className="relative">
+      {/* Hotkey icon in corner */}
+      { piece.hotkey &&
+      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
+        {piece.hotkey}
+      </div>
+      }
+      <button
+        type="button"
+        className={baseButtonClass}
+        onClick={onClick}
+        title={title || piece.description || piece.name}
+        tabIndex={0}
+      > 
+        <span className="w-10 h-10 flex items-center justify-center">
+          {icon}
+        </span>
+      </button>
+    </div>
   );
 };

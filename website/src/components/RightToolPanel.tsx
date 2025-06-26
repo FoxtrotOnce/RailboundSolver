@@ -60,8 +60,8 @@ export const RightToolPanel: React.FC = () => {
   ];
 
   return (
-    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-40">
-      <div className="bg-gray-800 rounded-xl border-2 border-gray-600 p-2 flex flex-col gap-1">
+    <div className="absolute right-2 bottom-44 z-40 items-center">
+      <div className="bg-gray-800 rounded-xl border-2 border-gray-600 p-2 flex flex-col gap-2">
         {/* Tool Buttons */}
         {toolButtons.map((tool) => (
           <GamePieceIcon

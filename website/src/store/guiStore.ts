@@ -1,10 +1,16 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { select } from "framer-motion/client";
-import { useLevelStore } from "./levelStore";
-import { CarType } from "../../../algo/classes";
 
 // NOTE: THE ROTATE NUMBER SEEM WRONG, it better if it 0:left, 1:up, 2:right, 3:down
+
+// Generation parameters
+interface Hyperparameters {
+  heatmap_limit_limit: number;
+  decoy_heatmap_limit: number;
+  gen_type: "DFS" | "BFS";
+  visualize_rate: number;
+}
 
 interface GuiState {
   // Tool & piece selection
@@ -17,6 +23,8 @@ interface GuiState {
   rotateCW: () => void;
   rotateCCW: () => void;
 
+  hyperparameters: Hyperparameters;
+
   // Canvas display
   showGrid: boolean;
   gridSize: number;
@@ -24,16 +32,27 @@ interface GuiState {
   // UI panels & modal
   showToolPanel: boolean;
   showPiecePanel: boolean;
+  showLeftDisplay: boolean;
 
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
   setSelectedPiece: (piece: string | undefined) => void;
+  setHyperparams: (heatmap_limit_limit?: number, decoy_heatmap_limit?: number, gen_type?: "DFS" | "BFS", visualize_rate?: number) => void;
+  defaultHyperparams: () => Hyperparameters;
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
   toggleToolPanel: () => void;
   togglePiecePanel: () => void;
+  toggleLeftDisplay: () => void;
   resetGui: () => void;
 }
+
+const createHyperparams = (): Hyperparameters => ({
+  heatmap_limit_limit: 9,
+  decoy_heatmap_limit: 15,
+  gen_type: "DFS",
+  visualize_rate: 10000
+})
 
 export const useGuiStore = create<GuiState>()(
   devtools(
@@ -41,33 +60,32 @@ export const useGuiStore = create<GuiState>()(
       // Initial state
       selectedTool: undefined,
       selectedPiece: undefined,
+      hyperparameters: createHyperparams(),
       rotation: 0,
       showGrid: true,
       gridSize: 40,
       showToolPanel: true,
       showPiecePanel: true,
+      showLeftDisplay: true,
       
       // Actions
       setSelectedTool: (tool) => {
-        const registryFilled = useLevelStore.getState().registryFilled;
-
         const piece = get().selectedPiece
         if (
-          piece === "STATION" || piece === "ROADBLOCK" ||
-          (piece === "NORMAL" || piece === "DECOY") && registryFilled(CarType.get(piece))
+          piece === "STATION" || piece === "ROADBLOCK"
         ) {
           set({ selectedTool: undefined }, false, "setSelectedTool");
         } else if (
           piece === "SWITCH_FORK_TRACK" &&
           tool !== "FORK" && tool !== "FORK_2"
         ) {
-          get().setSelectedTool("FORK")
-        } else if (piece === "TUNNEL" && tool !== "STRAIGHT") {
-          get().setSelectedTool("STRAIGHT")
+          set({ selectedTool: "FORK" }, false, "setSelectedTool");
+        } else if ((piece === "TUNNEL" && tool !== "STRAIGHT") || piece === "END_TRACK") {
+          set({ selectedTool: "STRAIGHT" }, false, "setSelectedTool");
         } else if (piece === "SWITCH_RAIL" &&
           tool !== "FORK" && tool !== "FORK_2"
         ) {
-          get().setSelectedTool("FORK")
+          set({ selectedTool: "FORK" }, false, "setSelectedTool");
         } else {
           set({ selectedTool: tool }, false, "setSelectedTool");
         }
@@ -82,6 +100,25 @@ export const useGuiStore = create<GuiState>()(
         get().setSelectedTool(get().selectedTool);
         // Optionally reset rotation when selecting a new piece
         // set({ rotation: 0 }, false, "resetRotationOnPieceSelect");
+      },
+      setHyperparams: (heatmap_limit_limit, decoy_heatmap_limit, gen_type, visualize_rate) => {
+        const { hyperparameters } = get()
+        if (heatmap_limit_limit !== undefined) {
+          hyperparameters.heatmap_limit_limit = heatmap_limit_limit
+        }
+        if (decoy_heatmap_limit !== undefined) {
+          hyperparameters.decoy_heatmap_limit = decoy_heatmap_limit
+        }
+        if (gen_type !== undefined) {
+          hyperparameters.gen_type = gen_type
+        }
+        if (visualize_rate !== undefined) {
+          hyperparameters.visualize_rate = visualize_rate
+        }
+        set({ hyperparameters: hyperparameters}, false, "setHyperparams");
+      },
+      defaultHyperparams: () => {
+        return createHyperparams()
       },
       setRotation: (rotation) => {
         // Ensure rotation is always 0,1,2,3
@@ -150,6 +187,11 @@ export const useGuiStore = create<GuiState>()(
           false,
           "togglePiecePanel"
         );
+      },
+      toggleLeftDisplay: () => {
+        set((state) => ({ showLeftDisplay: !state.showLeftDisplay }),
+        false,
+        "toggleLeftDisplay")
       },
 
       resetGui: () => {

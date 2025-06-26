@@ -24,7 +24,7 @@ function Car({ carId, rotate = 0 }: { carId: string; rotate?: number }) {
   );
 }
 
-export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
+export const GameCanvas: React.FC<{ children?: React.ReactNode }> = ({children}) => {
   const { showGrid, gridSize } = useGuiStore();
   const { levelData } = useLevelStore();
   const { width, height } = levelData;
@@ -42,7 +42,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex justify-center items-center">
+    <div className="absolute flex-row inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex justify-center items-center">
       {/* Grid pattern overlay */}
       <motion.div
         className={`grid z-10 ${

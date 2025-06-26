@@ -507,43 +507,38 @@ export const useLevelStore = create<LevelState>()(
         set({ undoStack: [], redoStack: [] }, false, "clearHistory");
       },
 
-      placePiece: (x, y, cartype, track, mod, mod_num, mod_rot) => {
-        const { setSelectedTool, selectedPiece } = useGuiStore.getState()
-        const { levelData } = get();
+      placePiece: (x, y, cartype, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, mod_rot = 0) => {
+        let { levelData } = get();
+        const placing_car = cartype !== undefined
+        const placing_track = track !== undefined
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
+        let car = undefined
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
         
-        if (track === undefined) {
+        if (track.is_empty()) {
           track = grid[y][x].track;
-        }
-        if (mod === undefined) {
-          mod = grid[y][x].mod;
-        }
-        if (mod_num === undefined) {
-          mod_num = 0
-        }
-        if (mod_rot === undefined) {
-          mod_rot = 0
-        }
-        let car = grid[y][x].car
-        if (car) {
-          get().unregisterCar(car)
         }
         // Make sure the placement is legal
         if (
-          (mod !== Mod.STATION && mod !== Mod.EMPTY && track.is_empty()) || (
-          mod === Mod.SWAPPING_TRACK && !track.is_3way() ||
-          mod === Mod.TUNNEL && !track.is_straight() ||
-          mod === Mod.SWITCH_RAIL && !track.is_3way()
+          // First statement prevents any mod from being placed on anything that isn't a normal track
+          // EXCEPT for stations since they ignore this rule.
+          (
+            ((mod !== Mod.EMPTY && mod !== Mod.STATION) || placing_car) &&
+            !track.is_straight() && !track.is_turn() && !track.is_3way()
+          ) || (
+          mod === Mod.STATION && !track.is_empty()
         )) { return }
         // Save state before making changes
         get().saveToUndoStack(
           `Place ${track}/${mod}/${mod_num} at (${x}, ${y})`
         );
+        if (placing_track) {
+          get().removePiece(x, y)
+        }
         if (
-          cartype !== undefined &&
+          placing_car &&
           !get().registryFilled(cartype)
         ) {
           let dir: Direction
@@ -557,10 +552,6 @@ export const useLevelStore = create<LevelState>()(
             dir = Direction.DOWN
           }
           car = new Car([y, x], dir, get().registerCar(cartype), cartype)
-          // Disable placing any more tracks with the cars piece if the registry is filled
-          if (get().registryFilled(cartype) && (selectedPiece === "NORMAL" || selectedPiece === "DECOY")) {
-            setSelectedTool(undefined)
-          }
         }
 
         const newGrid = grid.map((row, rowIndex) =>
@@ -636,6 +627,7 @@ export const useLevelStore = create<LevelState>()(
 
       removeModorCar: (x, y) => {
         const { levelData } = get();
+        const { setSelectedTool } = useGuiStore.getState()
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;

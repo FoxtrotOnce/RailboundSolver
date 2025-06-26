@@ -620,7 +620,7 @@ function* generate_tracks({
                                             mods_to_pass[car.pos[0]][car.pos[1]] === M.SWITCH_RAIL)
             ) {
                 const car_index: number = car.car_index(cars, decoys, ncars)
-                if (heatmap_limits_pass[car_index][car.direction.value][car.pos[0]][car.pos[1]] < HEATMAP_LIMIT_LIMIT) {
+                if (heatmap_limits_pass[car_index][car.direction.value][car.pos[0]][car.pos[1]] <= HEATMAP_LIMIT_LIMIT) {
                     if (!stalled[i]) {
                         for (let j = 0; j < heatmap_limits_pass[0].length; j++) {
                         for (let k = 0; k < heatmap_limits_pass[0][0].length; k++) {

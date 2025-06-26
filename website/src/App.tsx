@@ -1,8 +1,11 @@
 import {
   BottomSelectionPanel,
   GameCanvas,
+  RightControlDisplay,
   RightToolPanel,
   TopPanel,
+  LeftDisplay,
+  Sidebar,
 } from "./components";
 import { useGuiStore } from "./store";
 
@@ -45,7 +48,7 @@ import { useEffect } from "react";
  */
 
 export default function App() {
-  const { rotateCW, rotateCCW } = useGuiStore();
+  const { rotateCW, rotateCCW, showLeftDisplay } = useGuiStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -61,25 +64,29 @@ export default function App() {
   }, [rotateCW, rotateCCW]);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-800 relative overflow-hidden">
-      <div className="relative flex-1">
-        {/* TOP PANEL - Grid controls and undo/redo */}
-        <TopPanel />
-
-        <div className="overflow-hidden absolute inset-3 top-16 rounded-lg border-2 border-gray-600">
-          <GameCanvas>
-            {/* TODO: Render placed track pieces */}
-            {/* TODO: Add click handlers for piece placement */}
-            {/* TODO: Implement drag and drop */}
-            {/* TODO: Add selection indicators */}
-          </GameCanvas>
-        </div>
+    <div className="flex h-screen bg-slate-800 relative overflow-hidden">
+      <div className={`w-100 relative ${
+        showLeftDisplay ? "left-0" : "-left-100"
+      }`}>
+        <LeftDisplay />
       </div>
-
-      <RightToolPanel />
-
-      <div className="relative h-25">
-        <BottomSelectionPanel />
+      <div className={`relative flex flex-1 flex-col ${
+        showLeftDisplay ? "ml-0" : "-ml-100"
+      }`}>
+        {/* TOP PANEL - Grid controls and undo/redo */}
+        <div className="relative h-16">
+          <TopPanel />
+        </div>
+        <div className="relative ml-3 mr-3 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
+          <Sidebar />
+          <RightToolPanel />
+          <RightControlDisplay />
+          <GameCanvas />
+            {/* TODO: Add selection indicators */}
+        </div>
+        <div className="relative h-25 ml-3 mr-3 mt-3 -mb-1">
+          <BottomSelectionPanel />
+        </div>
       </div>
     </div>
   );

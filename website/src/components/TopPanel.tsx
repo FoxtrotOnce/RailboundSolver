@@ -30,7 +30,7 @@ export function TopPanel() {
   const height = levelData?.height || 12;
 
   return (
-    <div className="absolute left-1/2 transform -translate-x-1/2 top-4 z-40 flex items-center gap-4">
+    <div className="absolute left-1/2 transform -translate-x-1/2 top-4 z-4 flex items-center gap-4">
       {/* Grid dimension controls */}
       <div className="flex gap-2 items-center">
         <input
@@ -63,7 +63,7 @@ export function TopPanel() {
       </div>
 
       {/* Level constraints */}
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center whitespace-nowrap">
         <div className="text-white text-sm">Max Tracks:</div>
         <input
           type="number"
@@ -80,7 +80,7 @@ export function TopPanel() {
         />
       </div>
 
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-2 items-center whitespace-nowrap">
         <div className="text-white text-sm">Max Semaphores:</div>
         <input
           type="number"
@@ -101,7 +101,7 @@ export function TopPanel() {
       {/* Clear grid button */}
       <button
         type="button"
-        className="cursor-pointer rounded text-white border-2 border-gray-600 px-3 py-1"
+        className="whitespace-nowrap cursor-pointer rounded text-white border-2 border-gray-600 px-3 py-1"
         onClick={() => clearLevel()}
       >
         Clear Grid

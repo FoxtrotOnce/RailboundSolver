@@ -33,14 +33,6 @@ const GAME_PIECES: GamePiece[][] = [
   // Basic Track Pieces
   [
     {
-      id: "TRACK",
-      name: "Place Track",
-      description: "Place Track",
-      icon: <img src={StraightTrack}/>
-    }
-  ],
-  [
-    {
       id: "END_TRACK",
       name: "End Track",
       description: "End Track",
@@ -122,7 +114,7 @@ export const BottomSelectionPanel: React.FC = () => {
   const { selectedPiece, setSelectedPiece } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-gray-800 border-t-2 border-gray-600 p-4 z-40">
+    <div className="bg-gray-800 border-2 border-gray-600 p-2 z-40 rounded-lg">
       <div className="flex justify-center">
         <div className="flex gap-4">
           {/* Render each group of pieces */}
