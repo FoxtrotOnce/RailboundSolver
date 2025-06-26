@@ -1,14 +1,15 @@
 import {
   BottomSelectionPanel,
   GameCanvas,
+  LeftDisplay,
   RightControlDisplay,
   RightToolPanel,
-  TopPanel,
-  LeftDisplay,
   Sidebar,
+  TopPanel,
 } from "./components";
 import { useGuiStore } from "./store";
 
+import { motion } from "motion/react";
 import { useEffect } from "react";
 
 /**
@@ -64,15 +65,16 @@ export default function App() {
   }, [rotateCW, rotateCCW]);
 
   return (
-    <div className="flex h-screen bg-slate-800 relative overflow-hidden">
-      <div className={`w-100 relative ${
-        showLeftDisplay ? "left-0" : "-left-100"
-      }`}>
-        <LeftDisplay />
-      </div>
-      <div className={`relative flex flex-1 flex-col ${
-        showLeftDisplay ? "ml-0" : "-ml-100"
-      }`}>
+    <motion.div
+      layout
+      className="flex h-screen bg-slate-800 relative overflow-hidden"
+    >
+      {showLeftDisplay && (
+        <motion.div layout className="w-100 relative">
+          <LeftDisplay />
+        </motion.div>
+      )}
+      <motion.div layout className="relative flex flex-1 flex-col">
         {/* TOP PANEL - Grid controls and undo/redo */}
         <div className="relative h-16">
           <TopPanel />
@@ -82,12 +84,12 @@ export default function App() {
           <RightToolPanel />
           <RightControlDisplay />
           <GameCanvas />
-            {/* TODO: Add selection indicators */}
+          {/* TODO: Add selection indicators */}
         </div>
         <div className="relative h-25 ml-3 mr-3 mt-3 -mb-1">
           <BottomSelectionPanel />
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
