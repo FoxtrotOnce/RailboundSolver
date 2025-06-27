@@ -80,9 +80,9 @@ export default function App() {
         </div>
         <div className="relative ml-3 mr-3 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
           <Sidebar />
-          <SolveLevelDisplay />
           <RightToolPanel />
           <RightControlDisplay />
+          <SolveLevelDisplay />
           <GameCanvas />
             {/* TODO: Add selection indicators */}
         </div>

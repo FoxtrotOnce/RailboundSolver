@@ -1,4 +1,5 @@
 import React from "react";
+import { useState } from "react";
 import { useGuiStore } from "../store";
 
 export const LeftDisplay: React.FC = () => {
