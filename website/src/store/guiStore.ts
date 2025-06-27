@@ -36,7 +36,12 @@ interface GuiState {
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
   setSelectedPiece: (piece: string | undefined) => void;
-  setHyperparams: (heatmap_limit_limit?: number, decoy_heatmap_limit?: number, gen_type?: "DFS" | "BFS", visualize_rate?: number) => void;
+  setHyperparams: (
+    heatmap_limit_limit?: number,
+    decoy_heatmap_limit?: number,
+    gen_type?: "DFS" | "BFS",
+    visualize_rate?: number
+  ) => void;
   defaultHyperparams: () => Hyperparameters;
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
@@ -50,8 +55,8 @@ const createHyperparams = (): Hyperparameters => ({
   heatmap_limit_limit: 9,
   decoy_heatmap_limit: 15,
   gen_type: "DFS",
-  visualize_rate: 10000
-})
+  visualize_rate: 10000,
+});
 
 export const useGuiStore = create<GuiState>()(
   devtools(
@@ -66,23 +71,27 @@ export const useGuiStore = create<GuiState>()(
       showToolPanel: true,
       showPiecePanel: true,
       showLeftDisplay: true,
-      
+
       // Actions
       setSelectedTool: (tool) => {
-        const piece = get().selectedPiece
-        if (
-          piece === "STATION" || piece === "ROADBLOCK"
-        ) {
+        const piece = get().selectedPiece;
+        if (piece === "STATION" || piece === "ROADBLOCK") {
           set({ selectedTool: undefined }, false, "setSelectedTool");
         } else if (
           piece === "SWITCH_FORK_TRACK" &&
-          tool !== "FORK" && tool !== "FORK_2"
+          tool !== "FORK" &&
+          tool !== "FORK_2"
         ) {
           set({ selectedTool: "FORK" }, false, "setSelectedTool");
-        } else if ((piece === "TUNNEL" && tool !== "STRAIGHT") || piece === "END_TRACK") {
+        } else if (
+          (piece === "TUNNEL" && tool !== "STRAIGHT") ||
+          piece === "END_TRACK"
+        ) {
           set({ selectedTool: "STRAIGHT" }, false, "setSelectedTool");
-        } else if (piece === "SWITCH_RAIL" &&
-          tool !== "FORK" && tool !== "FORK_2"
+        } else if (
+          piece === "SWITCH_RAIL" &&
+          tool !== "FORK" &&
+          tool !== "FORK_2"
         ) {
           set({ selectedTool: "FORK" }, false, "setSelectedTool");
         } else {
@@ -94,30 +103,35 @@ export const useGuiStore = create<GuiState>()(
       setSelectedPiece: (piece) => {
         set({ selectedPiece: piece }, false, "setSelectedPiece");
         console.log(`🎯 Piece selected: ${piece}`);
-        
+
         // Run the check in setSelectedTool to change tool if the piece is incompatible
         get().setSelectedTool(get().selectedTool);
         // Optionally reset rotation when selecting a new piece
         // set({ rotation: 0 }, false, "resetRotationOnPieceSelect");
       },
-      setHyperparams: (heatmap_limit_limit, decoy_heatmap_limit, gen_type, visualize_rate) => {
-        const { hyperparameters } = get()
+      setHyperparams: (
+        heatmap_limit_limit,
+        decoy_heatmap_limit,
+        gen_type,
+        visualize_rate
+      ) => {
+        const { hyperparameters } = get();
         if (heatmap_limit_limit !== undefined) {
-          hyperparameters.heatmap_limit_limit = heatmap_limit_limit
+          hyperparameters.heatmap_limit_limit = heatmap_limit_limit;
         }
         if (decoy_heatmap_limit !== undefined) {
-          hyperparameters.decoy_heatmap_limit = decoy_heatmap_limit
+          hyperparameters.decoy_heatmap_limit = decoy_heatmap_limit;
         }
         if (gen_type !== undefined) {
-          hyperparameters.gen_type = gen_type
+          hyperparameters.gen_type = gen_type;
         }
         if (visualize_rate !== undefined) {
-          hyperparameters.visualize_rate = visualize_rate
+          hyperparameters.visualize_rate = visualize_rate;
         }
-        set({ hyperparameters: hyperparameters}, false, "setHyperparams");
+        set({ hyperparameters: hyperparameters }, false, "setHyperparams");
       },
       defaultHyperparams: () => {
-        return createHyperparams()
+        return createHyperparams();
       },
       setRotation: (rotation) => {
         // Ensure rotation is always 0,1,2,3
@@ -188,9 +202,11 @@ export const useGuiStore = create<GuiState>()(
         );
       },
       toggleLeftDisplay: () => {
-        set((state) => ({ showLeftDisplay: !state.showLeftDisplay }),
-        false,
-        "toggleLeftDisplay")
+        set(
+          (state) => ({ showLeftDisplay: !state.showLeftDisplay }),
+          false,
+          "toggleLeftDisplay"
+        );
       },
 
       resetGui: () => {
