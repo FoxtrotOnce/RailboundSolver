@@ -55,8 +55,10 @@ export default function App() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (e.key === "q" || e.key === "Q") {
+        e.preventDefault();
         rotateCCW();
       } else if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
         rotateCW();
       }
     };
@@ -66,14 +68,18 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-800 relative overflow-hidden">
-      <div className={`w-100 relative transition-all duration-300 ${
-        showLeftDisplay ? "left-0" : "-left-100"
-      }`}>
+      <div
+        className={`w-100 relative transition-all duration-300 ${
+          showLeftDisplay ? "left-0" : "-left-100"
+        }`}
+      >
         <LeftDisplay />
       </div>
-      <div className={`relative flex flex-1 flex-col transition-all duration-300 ${
-        showLeftDisplay ? "ml-0" : "-ml-100"
-      }`}>
+      <div
+        className={`relative flex flex-1 flex-col transition-all duration-300 ${
+          showLeftDisplay ? "ml-0" : "-ml-100"
+        }`}
+      >
         {/* TOP PANEL - Grid controls and undo/redo */}
         <div className="relative h-16">
           <TopPanel />
@@ -84,7 +90,7 @@ export default function App() {
           <RightControlDisplay />
           <SolveLevelDisplay />
           <GameCanvas />
-            {/* TODO: Add selection indicators */}
+          {/* TODO: Add selection indicators */}
         </div>
         <div className="relative h-25 ml-3 mr-3 mt-3 -mb-1">
           <BottomSelectionPanel />

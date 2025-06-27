@@ -31,22 +31,16 @@ const fork_2_tracks = new Set<Track>([
   Track.BOTTOM_RIGHT_TOP_3WAY,
   Track.BOTTOM_LEFT_RIGHT_3WAY,
   Track.TOP_RIGHT_LEFT_3WAY,
-  Track.TOP_LEFT_BOTTOM_3WAY
-])
+  Track.TOP_LEFT_BOTTOM_3WAY,
+]);
 // NOTE: Tailwind rotations are clockwise, rotation from useGuiStore() is counterclockwise as it increases.
 const TrackIcons = new Map<Track, React.ReactNode>([
-  [Track.EMPTY, <img/>],
+  [Track.EMPTY, <img />],
   [Track.HORIZONTAL_TRACK, <img src={StraightTrack} />],
-  [Track.VERTICAL_TRACK, <img src={StraightTrack}/>],
-  [
-    Track.CAR_ENDING_TRACK_LEFT,
-    <img src={EndingTrack}/>,
-  ],
+  [Track.VERTICAL_TRACK, <img src={StraightTrack} />],
+  [Track.CAR_ENDING_TRACK_LEFT, <img src={EndingTrack} />],
   [Track.CAR_ENDING_TRACK_RIGHT, <img src={EndingTrack} />],
-  [
-    Track.CAR_ENDING_TRACK_DOWN,
-    <img src={EndingTrack}/>,
-  ],
+  [Track.CAR_ENDING_TRACK_DOWN, <img src={EndingTrack} />],
   [Track.CAR_ENDING_TRACK_UP, <img src={EndingTrack} />],
   [Track.ROADBLOCK, <img src={Fence} />],
   [Track.BOTTOM_RIGHT_TURN, <img src={CurvedTrack} />],
@@ -54,10 +48,7 @@ const TrackIcons = new Map<Track, React.ReactNode>([
   [Track.TOP_RIGHT_TURN, <img src={CurvedTrack} />],
   [Track.TOP_LEFT_TURN, <img src={CurvedTrack} />],
   [Track.BOTTOM_RIGHT_LEFT_3WAY, <img src={ForkTrack} />],
-  [
-    Track.BOTTOM_RIGHT_TOP_3WAY,
-    <img src={ForkTrack2} />,
-  ],
+  [Track.BOTTOM_RIGHT_TOP_3WAY, <img src={ForkTrack2} />],
   [Track.BOTTOM_LEFT_RIGHT_3WAY, <img src={ForkTrack2} />],
   [Track.BOTTOM_LEFT_TOP_3WAY, <img src={ForkTrack} />],
   [Track.TOP_RIGHT_LEFT_3WAY, <img src={ForkTrack2} />],
@@ -74,15 +65,9 @@ const TrackRotations = new Map<Track, number>([
   [Track.EMPTY, 0],
   [Track.HORIZONTAL_TRACK, 0],
   [Track.VERTICAL_TRACK, 90],
-  [
-    Track.CAR_ENDING_TRACK_LEFT,
-    180,
-  ],
+  [Track.CAR_ENDING_TRACK_LEFT, 180],
   [Track.CAR_ENDING_TRACK_RIGHT, 0],
-  [
-    Track.CAR_ENDING_TRACK_DOWN,
-    90,
-  ],
+  [Track.CAR_ENDING_TRACK_DOWN, 90],
   [Track.CAR_ENDING_TRACK_UP, 270],
   [Track.ROADBLOCK, 0],
   [Track.BOTTOM_RIGHT_TURN, 0],
@@ -90,10 +75,7 @@ const TrackRotations = new Map<Track, number>([
   [Track.TOP_RIGHT_TURN, 270],
   [Track.TOP_LEFT_TURN, 180],
   [Track.BOTTOM_RIGHT_LEFT_3WAY, 0],
-  [
-    Track.BOTTOM_RIGHT_TOP_3WAY,
-    270,
-  ],
+  [Track.BOTTOM_RIGHT_TOP_3WAY, 270],
   [Track.BOTTOM_LEFT_RIGHT_3WAY, 0],
   [Track.BOTTOM_LEFT_TOP_3WAY, 90],
   [Track.TOP_RIGHT_LEFT_3WAY, 180],
@@ -105,53 +87,64 @@ const TrackRotations = new Map<Track, number>([
   [Track.RIGHT_FACING_TUNNEL, 180],
   [Track.DOWN_FACING_TUNNEL, 270],
   [Track.UP_FACING_TUNNEL, 90],
-])
+]);
 const ModIcons = new Map<Mod | string, React.ReactNode>([
-  [Mod.EMPTY, <img/>],
-  [Mod.TUNNEL, <img />],  // Tunnel is blank since the track has rotation value, the mod doesn't
+  [Mod.EMPTY, <img />],
+  [Mod.TUNNEL, <img />], // Tunnel is blank since the track has rotation value, the mod doesn't
   [Mod.SWITCH, <img src={Switch} />],
   [Mod.OPEN_GATE, <img src={OpenGate} />],
   [Mod.CLOSED_GATE, <img src={ClosedGate} />],
   [Mod.SWAPPING_TRACK, <img src={SwappingTrack} />],
   ["SWAPPING_TRACK_2", <img src={SwappingTrack2} />],
   [Mod.STATION, <img src={Station} />],
-  [Mod.SWITCH_RAIL, <img src={SwitchRail} />]
+  [Mod.SWITCH_RAIL, <img src={SwitchRail} />],
 ]);
 const CarIcons = new Map<CarType, React.ReactNode[]>([
-  [CarType.NORMAL, [
-    <img src={Car1}/>,
-    <img src={Car2}/>,
-    <img src={Car3}/>,
-    <img src={Car4}/>
-  ]],
-  [CarType.NUMERAL, [
-    <img src={Numeral1}/>,
-    <img src={Numeral2}/>,
-    <img src={Numeral3}/>,
-    <img src={Numeral4}/>
-  ]],
-  [CarType.DECOY, Array(144).fill(<img src={Decoy}/>)]
-])
+  [
+    CarType.NORMAL,
+    [
+      <img src={Car1} />,
+      <img src={Car2} />,
+      <img src={Car3} />,
+      <img src={Car4} />,
+    ],
+  ],
+  [
+    CarType.NUMERAL,
+    [
+      <img src={Numeral1} />,
+      <img src={Numeral2} />,
+      <img src={Numeral3} />,
+      <img src={Numeral4} />,
+    ],
+  ],
+  [CarType.DECOY, Array(144).fill(<img src={Decoy} />)],
+]);
 
 interface return_types {
-  track: Track | undefined,
-  mod: Mod | undefined,
-  cartype: CarType | undefined,
+  track: Track | undefined;
+  mod: Mod | undefined;
+  cartype: CarType | undefined;
 }
 
-function getTypeFromInfo(toolId: string | undefined, pieceId: string | undefined, rotation: number): return_types {
-  let to_return: return_types = {
+function getTypeFromInfo(
+  toolId: string | undefined,
+  pieceId: string | undefined,
+  rotation: number
+): return_types {
+  const to_return: return_types = {
     track: undefined,
     mod: undefined,
-    cartype: undefined
-  }
+    cartype: undefined,
+  };
   if (toolId === "STRAIGHT") {
     if (rotation === 0 || rotation === 2) {
       to_return.track = Track.HORIZONTAL_TRACK;
     } else {
       to_return.track = Track.VERTICAL_TRACK;
     }
-  } if (toolId === "CURVED"){
+  }
+  if (toolId === "CURVED") {
     if (rotation === 0) {
       to_return.track = Track.BOTTOM_RIGHT_TURN;
     } else if (rotation === 1) {
@@ -161,7 +154,8 @@ function getTypeFromInfo(toolId: string | undefined, pieceId: string | undefined
     } else {
       to_return.track = Track.BOTTOM_LEFT_TURN;
     }
-  } if (toolId === "FORK") {
+  }
+  if (toolId === "FORK") {
     if (rotation === 0) {
       to_return.track = Track.BOTTOM_RIGHT_LEFT_3WAY;
     } else if (rotation === 1) {
@@ -171,7 +165,8 @@ function getTypeFromInfo(toolId: string | undefined, pieceId: string | undefined
     } else {
       to_return.track = Track.BOTTOM_LEFT_TOP_3WAY;
     }
-  } if (toolId === "FORK_2") {
+  }
+  if (toolId === "FORK_2") {
     if (rotation === 0) {
       to_return.track = Track.BOTTOM_LEFT_RIGHT_3WAY;
     } else if (rotation === 1) {
@@ -181,7 +176,8 @@ function getTypeFromInfo(toolId: string | undefined, pieceId: string | undefined
     } else {
       to_return.track = Track.TOP_LEFT_BOTTOM_3WAY;
     }
-  } if (pieceId === "END_TRACK") {
+  }
+  if (pieceId === "END_TRACK") {
     if (rotation === 0) {
       to_return.track = Track.CAR_ENDING_TRACK_RIGHT;
     } else if (rotation === 1) {
@@ -191,65 +187,86 @@ function getTypeFromInfo(toolId: string | undefined, pieceId: string | undefined
     } else {
       to_return.track = Track.CAR_ENDING_TRACK_DOWN;
     }
-  } if (pieceId === "ROADBLOCK") {
-    to_return.track = Track.ROADBLOCK
-  } if (pieceId === "STATION") {
-    to_return.mod = Mod.STATION
-  } if (pieceId === "SWITCH") {
-    to_return.mod = Mod.SWITCH
-  } if (pieceId === "OPEN_GATE") {
-    to_return.mod = Mod.OPEN_GATE
-  } if (pieceId === "CLOSED_GATE") {
-    to_return.mod = Mod.CLOSED_GATE
-  } if (pieceId === "SWITCH_FORK_TRACK") {
-    to_return.mod = Mod.SWAPPING_TRACK
-  } if (pieceId === "TUNNEL") {
-    to_return.mod = Mod.TUNNEL
-  } if (pieceId === "SWITCH_RAIL") {
-    to_return.mod = Mod.SWITCH_RAIL
-  } if (pieceId === "NORMAL") {
-    to_return.cartype = CarType.NORMAL
-  } if (pieceId === "DECOY") {
-    to_return.cartype = CarType.DECOY
   }
-  return to_return
+  if (pieceId === "ROADBLOCK") {
+    to_return.track = Track.ROADBLOCK;
+  }
+  if (pieceId === "STATION") {
+    to_return.mod = Mod.STATION;
+  }
+  if (pieceId === "SWITCH") {
+    to_return.mod = Mod.SWITCH;
+  }
+  if (pieceId === "OPEN_GATE") {
+    to_return.mod = Mod.OPEN_GATE;
+  }
+  if (pieceId === "CLOSED_GATE") {
+    to_return.mod = Mod.CLOSED_GATE;
+  }
+  if (pieceId === "SWITCH_FORK_TRACK") {
+    to_return.mod = Mod.SWAPPING_TRACK;
+  }
+  if (pieceId === "TUNNEL") {
+    to_return.mod = Mod.TUNNEL;
+  }
+  if (pieceId === "SWITCH_RAIL") {
+    to_return.mod = Mod.SWITCH_RAIL;
+  }
+  if (pieceId === "NORMAL") {
+    to_return.cartype = CarType.NORMAL;
+  }
+  if (pieceId === "DECOY") {
+    to_return.cartype = CarType.DECOY;
+  }
+  return to_return;
 }
-function carDirToDeg(dir: Direction): number {
+function getRotationClass(degrees: number): string {
+  switch (degrees) {
+    case 0:
+      return "rotate-0";
+    case 90:
+      return "rotate-90";
+    case 180:
+      return "rotate-180";
+    case 270:
+      return "rotate-270";
+    default:
+      return "rotate-0";
+  }
+}
+
+function carDirToDeg(dir: Direction): string {
   if (dir === Direction.LEFT) {
-    return 180
+    return "rotate-180";
   } else if (dir === Direction.RIGHT) {
-    return 0
+    return "rotate-0";
   } else if (dir === Direction.DOWN) {
-    return 90
+    return "rotate-90";
   } else if (dir === Direction.UP) {
-    return 270
+    return "rotate-270";
   } else {
-    console.log(`strange direction trying to be shown. Direction: ${dir}`)
-    return 30
+    console.log(`strange direction trying to be shown. Direction: ${dir}`);
+    return "rotate-0";
   }
 }
 
 export const GridTile: React.FC<{
-  pos: { y: number, x: number }
+  pos: { y: number; x: number };
   car?: Car;
   track?: Track;
   mod?: Mod;
   mod_num?: number;
-}> = ({
-  pos,
-  car = undefined,
-  track = Track.EMPTY,
-  mod = Mod.EMPTY,
-}) => {
+}> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { selectedTool, selectedPiece, rotation } = useGuiStore();
-  const { placePiece, removePiece, removeModorCar, registryFilled, levelData } = useLevelStore()
+  const { placePiece, removePiece, removeModorCar, registryFilled, levelData } =
+    useLevelStore();
 
   const {
     track: selected_track,
     mod: selected_mod,
-    cartype: selected_cartype
-  } = getTypeFromInfo(selectedTool, selectedPiece, rotation)
+    cartype: selected_cartype,
+  } = getTypeFromInfo(selectedTool, selectedPiece, rotation);
 
   function onClick() {
     placePiece(
@@ -260,13 +277,14 @@ export const GridTile: React.FC<{
       selected_mod,
       undefined,
       rotation
-  )}
+    );
+  }
   function onRightClick(e: React.MouseEvent) {
-    e.preventDefault()
+    e.preventDefault();
     if (track !== Track.EMPTY && (mod !== Mod.EMPTY || car !== undefined)) {
-      removeModorCar(pos.x, pos.y)
+      removeModorCar(pos.x, pos.y);
     } else {
-      removePiece(pos.x, pos.y)
+      removePiece(pos.x, pos.y);
     }
   }
   return (
@@ -277,31 +295,72 @@ export const GridTile: React.FC<{
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`absolute inset-0 rotate-${TrackRotations.get(track)}`}>{TrackIcons.get(track)}</div>
-      <div className={`absolute inset-0 rotate-${TrackRotations.get(track)}`}>
+      <div
+        className={`absolute inset-0 ${getRotationClass(
+          TrackRotations.get(track)!
+        )}`}
+      >
+        {TrackIcons.get(track)}
+      </div>
+      <div
+        className={`absolute inset-0 ${getRotationClass(
+          TrackRotations.get(track)!
+        )}`}
+      >
         {mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
-        ? ModIcons.get("SWAPPING_TRACK_2")
-        : ModIcons.get(mod)}
-      </div>
-      { car &&
-      <div className={`absolute inset-0 rotate-${carDirToDeg(car.direction)}`}>
-        {CarIcons.get(car.type)![car.num]}
-      </div>
-      }
-
-      <div className={`absolute inset-0 opacity-60 rotate-${selected_track ? TrackRotations.get(selected_track)! : 0}`}>{selected_track && isHovered && TrackIcons.get(selected_track)}</div>
-      <div className={`absolute inset-0 opacity-60 rotate-${selected_track ? TrackRotations.get(selected_track)! : 0}`}>
-        {selected_mod && isHovered && (
-          selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
           ? ModIcons.get("SWAPPING_TRACK_2")
-          : ModIcons.get(mod)
-        )}
+          : ModIcons.get(mod)}
       </div>
-      <div className={`absolute inset-0 opacity-60 rotate-${360 - rotation * 90}`}>
-        {selected_cartype
-        && isHovered
-        && !registryFilled(selected_cartype)
-        && CarIcons.get(selected_cartype)![levelData.next_nums.get(selected_cartype)!]}
+      {car && (
+        <div className={`absolute inset-0 ${carDirToDeg(car.direction)}`}>
+          {CarIcons.get(car.type)![car.num]}
+        </div>
+      )}
+
+      <div
+        className={`absolute inset-0 opacity-60 ${
+          selected_track
+            ? getRotationClass(TrackRotations.get(selected_track)!)
+            : "rotate-0"
+        }`}
+      >
+        {selected_track && isHovered && TrackIcons.get(selected_track)}
+      </div>
+      <div
+        className={`absolute inset-0 opacity-60 ${
+          selected_track
+            ? getRotationClass(TrackRotations.get(selected_track)!)
+            : "rotate-0"
+        }`}
+      >
+        {selected_mod &&
+          isHovered &&
+          (selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
+            ? ModIcons.get("SWAPPING_TRACK_2")
+            : ModIcons.get(mod))}
+      </div>
+      <div
+        className={`absolute inset-0 opacity-60 ${(() => {
+          switch (rotation) {
+            case 0:
+              return "rotate-0"; // left (0 degrees)
+            case 1:
+              return "rotate-270"; // right (270 degrees)
+            case 2:
+              return "rotate-180"; // down (180 degrees)
+            case 3:
+              return "rotate-90"; // up (90 degrees)
+            default:
+              return "rotate-0";
+          }
+        })()}`}
+      >
+        {selected_cartype &&
+          isHovered &&
+          !registryFilled(selected_cartype) &&
+          CarIcons.get(selected_cartype)![
+            levelData.next_nums.get(selected_cartype)!
+          ]}
       </div>
     </div>
   );

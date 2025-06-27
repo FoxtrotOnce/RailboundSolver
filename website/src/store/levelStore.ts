@@ -30,7 +30,7 @@ export interface jsonData {
     direction: string;
     num: number;
     type: string;
-  }[]
+  }[];
   tracks: number;
   semaphores: number;
 }
@@ -177,7 +177,7 @@ interface LevelState {
     track?: Track | undefined,
     mod?: Mod | undefined,
     mod_num?: number | undefined,
-    car_rot?: number | undefined,
+    car_rot?: number | undefined
   ) => void;
 
   /**
@@ -270,7 +270,7 @@ const createDefaultLevel = (): LevelData => ({
   next_nums: new Map<CarType, number>([
     [CarType.NORMAL, 0],
     [CarType.DECOY, 0],
-    [CarType.NUMERAL, 0]
+    [CarType.NUMERAL, 0],
   ]),
   width: 12,
   height: 12,
@@ -392,8 +392,8 @@ export const useLevelStore = create<LevelState>()(
         for (let i = 0; i < levelData.height; i++) {
           for (let j = 0; j < levelData.width; j++) {
             if (i >= dims.y || j >= dims.x) {
-              console.log(`removing ${i} ${j}`)
-              get().removePiece(j, i)
+              console.log(`removing ${i} ${j}`);
+              get().removePiece(j, i);
             }
           }
         }
@@ -416,13 +416,14 @@ export const useLevelStore = create<LevelState>()(
       },
 
       loadLevel: (levelData, name?) => {
-        let loadedData: LevelData
-        if (!("id" in levelData)) { // If the levelData is type jsonData it needs to be converted
-          loadedData = createDefaultLevel()
-          loadedData.height = levelData.board.length
-          loadedData.width = levelData.board[0].length
-          loadedData.max_tracks = levelData.tracks
-          loadedData.max_semaphores = levelData.semaphores
+        let loadedData: LevelData;
+        if (!("id" in levelData)) {
+          // If the levelData is type jsonData it needs to be converted
+          loadedData = createDefaultLevel();
+          loadedData.height = levelData.board.length;
+          loadedData.width = levelData.board[0].length;
+          loadedData.max_tracks = levelData.tracks;
+          loadedData.max_semaphores = levelData.semaphores;
           for (let i = 0; i < loadedData.height; i++) {
             for (let j = 0; j < loadedData.width; j++) {
               loadedData.grid[i][j] = {
@@ -430,24 +431,24 @@ export const useLevelStore = create<LevelState>()(
                 track: Track.get(levelData.board[i][j]),
                 mod: Mod.get(levelData.mods[i][j]),
                 mod_num: levelData.mod_nums[i][j],
-              }
+              };
             }
           }
           for (const raw_car of levelData.cars) {
-            const car = Car.from_json(raw_car)
-            console.log(car)
-            console.log(raw_car)
-            loadedData.grid[car.pos[0]][car.pos[1]].car = car
+            const car = Car.from_json(raw_car);
+            console.log(car);
+            console.log(raw_car);
+            loadedData.grid[car.pos[0]][car.pos[1]].car = car;
             for (let i = 0; i <= car.num; i++) {
-              loadedData.car_nums.get(car.type)![i] = true
+              loadedData.car_nums.get(car.type)![i] = true;
             }
-            loadedData.next_nums.set(car.type, car.num + 1)
+            loadedData.next_nums.set(car.type, car.num + 1);
           }
         } else {
-          loadedData = levelData
+          loadedData = levelData;
         }
         if (name !== undefined) {
-          loadedData.name = name
+          loadedData.name = name;
         }
         set(
           {
@@ -458,7 +459,7 @@ export const useLevelStore = create<LevelState>()(
           false,
           "loadLevel"
         );
-        get().setDims({y: loadedData.height, x: loadedData.width})
+        get().setDims({ y: loadedData.height, x: loadedData.width });
         console.log(`📂 Level loaded: ${get().levelData.name || "Untitled"}`);
       },
 
@@ -550,16 +551,24 @@ export const useLevelStore = create<LevelState>()(
         set({ undoStack: [], redoStack: [] }, false, "clearHistory");
       },
 
-      placePiece: (x, y, cartype, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, car_rot = 0) => {
-        let { levelData } = get();
-        const placing_car = cartype !== undefined
-        const placing_track = track !== undefined
+      placePiece: (
+        x,
+        y,
+        cartype,
+        track = Track.EMPTY,
+        mod = Mod.EMPTY,
+        mod_num = 0,
+        car_rot = 0
+      ) => {
+        const { levelData } = get();
+        const placing_car = cartype !== undefined;
+        const placing_track = track !== undefined;
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
-        let car = undefined
+        let car = undefined;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
-        
+
         if (track.is_empty()) {
           track = grid[y][x].track;
         }
@@ -567,34 +576,33 @@ export const useLevelStore = create<LevelState>()(
         if (
           // First statement prevents any mod from being placed on anything that isn't a normal track
           // EXCEPT for stations since they ignore this rule.
-          (
-            ((mod !== Mod.EMPTY && mod !== Mod.STATION) || placing_car) &&
-            !track.is_straight() && !track.is_turn() && !track.is_3way()
-          ) || (
-          mod === Mod.STATION && !track.is_empty()
-        )) { return }
+          (((mod !== Mod.EMPTY && mod !== Mod.STATION) || placing_car) &&
+            !track.is_straight() &&
+            !track.is_turn() &&
+            !track.is_3way()) ||
+          (mod === Mod.STATION && !track.is_empty())
+        ) {
+          return;
+        }
         // Save state before making changes
         get().saveToUndoStack(
           `Place ${track}/${mod}/${mod_num} at (${x}, ${y})`
         );
         if (placing_track) {
-          get().removePiece(x, y)
+          get().removePiece(x, y);
         }
-        if (
-          placing_car &&
-          !get().registryFilled(cartype)
-        ) {
-          let dir: Direction
+        if (placing_car && !get().registryFilled(cartype)) {
+          let dir: Direction;
           if (car_rot === 0) {
-            dir = Direction.RIGHT
+            dir = Direction.RIGHT;
           } else if (car_rot === 1) {
-            dir = Direction.UP
+            dir = Direction.UP;
           } else if (car_rot === 2) {
-            dir = Direction.LEFT
+            dir = Direction.LEFT;
           } else {
-            dir = Direction.DOWN
+            dir = Direction.DOWN;
           }
-          car = new Car([y, x], dir, get().registerCar(cartype), cartype)
+          car = new Car([y, x], dir, get().registerCar(cartype), cartype);
         }
 
         const newGrid = grid.map((row, rowIndex) =>
@@ -634,9 +642,9 @@ export const useLevelStore = create<LevelState>()(
         // Save state before making changes
         get().saveToUndoStack(`Remove piece at (${x}, ${y})`);
 
-        const car = levelData.grid[y][x].car
+        const car = levelData.grid[y][x].car;
         if (car !== undefined) {
-          get().unregisterCar(car)
+          get().unregisterCar(car);
         }
 
         const newGrid = grid.map((row, rowIndex) =>
@@ -675,10 +683,10 @@ export const useLevelStore = create<LevelState>()(
 
         // Save state before making changes
         get().saveToUndoStack(`Remove mod at (${x}, ${y})`);
-        
-        const car = levelData.grid[y][x].car
+
+        const car = levelData.grid[y][x].car;
         if (car !== undefined) {
-          get().unregisterCar(car)
+          get().unregisterCar(car);
         }
 
         const newGrid = grid.map((row, rowIndex) =>
@@ -709,44 +717,58 @@ export const useLevelStore = create<LevelState>()(
       },
 
       registerCar: (type) => {
-        const {levelData} = get()
-        const car_nums = levelData.car_nums.get(type)!
+        const { levelData } = get();
+        const car_nums = levelData.car_nums.get(type)!;
         // Register the next car by getting its index with next_nums
-        const next_available = levelData.next_nums.get(type)!
-        levelData.car_nums.get(type)![next_available] = true
-        
+        const next_available = levelData.next_nums.get(type)!;
+        levelData.car_nums.get(type)![next_available] = true;
+
         // Set the next_num (next car.num to be registered)
-        let found_next_flag: boolean = false
+        let found_next_flag: boolean = false;
         for (let i = 0; i < car_nums.length; i++) {
           if (!car_nums[i]) {
-            levelData.next_nums.set(type, i)
-            found_next_flag = true
-            break
+            levelData.next_nums.set(type, i);
+            found_next_flag = true;
+            break;
           }
         }
         if (!found_next_flag) {
-          levelData.next_nums.set(type, car_nums.length)
+          levelData.next_nums.set(type, car_nums.length);
         }
-        set({levelData: {
-          ...levelData,
-        }}, false, "registerCar")
-        return next_available
+        set(
+          {
+            levelData: {
+              ...levelData,
+            },
+          },
+          false,
+          "registerCar"
+        );
+        return next_available;
       },
 
       unregisterCar: (car) => {
-        const {levelData} = get()
-        levelData.car_nums.get(car.type)![car.num] = false
+        const { levelData } = get();
+        levelData.car_nums.get(car.type)![car.num] = false;
         if (levelData.next_nums.get(car.type)! > car.num) {
-          levelData.next_nums.set(car.type, car.num)
+          levelData.next_nums.set(car.type, car.num);
         }
-        set({levelData: {
-          ...levelData,
-        }}, false, "unregisterCar")
+        set(
+          {
+            levelData: {
+              ...levelData,
+            },
+          },
+          false,
+          "unregisterCar"
+        );
       },
 
       registryFilled: (type) => {
-        const {levelData} = get()
-        return levelData.next_nums.get(type)! >= levelData.car_nums.get(type)!.length
+        const { levelData } = get();
+        return (
+          levelData.next_nums.get(type)! >= levelData.car_nums.get(type)!.length
+        );
       },
 
       getPieceAt: (x, y) => {
