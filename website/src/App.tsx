@@ -1,15 +1,15 @@
 import {
   BottomSelectionPanel,
   GameCanvas,
+  LeftDisplay,
   RightControlDisplay,
   RightToolPanel,
-  TopPanel,
-  LeftDisplay,
   Sidebar,
   SolveLevelDisplay,
 } from "./components";
 import { useGuiStore } from "./store";
 
+import { motion } from "motion/react";
 import { useEffect } from "react";
 
 /**
@@ -84,12 +84,12 @@ export default function App() {
           <RightToolPanel />
           <RightControlDisplay />
           <GameCanvas />
-            {/* TODO: Add selection indicators */}
+          {/* TODO: Add selection indicators */}
         </div>
         <div className="relative h-25 ml-3 mr-3 mt-3 -mb-1">
           <BottomSelectionPanel />
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
