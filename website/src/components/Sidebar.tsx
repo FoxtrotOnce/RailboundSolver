@@ -2,9 +2,9 @@ import React from "react";
 import { useGuiStore } from "../store";
 
 export const Sidebar: React.FC = () => {
-    const { showLeftDisplay, toggleLeftDisplay } = useGuiStore();
+    const { toggleLeftDisplay } = useGuiStore();
     return (
-        <div className="relative left-0 top-10 z-40">
+        <div className="absolute left-0 top-10 z-40">
             <button
             onClick={() => (
                 toggleLeftDisplay()

@@ -381,7 +381,7 @@ export class Car {
         return mod_num === this.num && mod === this.get_station()
     }
     /** Return the index of the car in cars + decoys + ncars. */
-    car_index(cars: Car[], decoys: Car[], ncars: Car[]): number {
+    car_index(cars: Car[], decoys: Car[]): number {
         if (this.type === CarType.NORMAL) {
             return this.num
         }

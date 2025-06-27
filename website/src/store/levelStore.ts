@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
-import { useGuiStore } from "./guiStore";
 
 /**
  * Level data structure
@@ -22,6 +21,20 @@ export interface LevelData {
   modifiedAt?: number;
 }
 
+export interface jsonData {
+  board: number[][];
+  mods: number[][];
+  mod_nums: number[][];
+  cars: {
+    pos: number[];
+    direction: string;
+    num: number;
+    type: string;
+  }[]
+  tracks: number;
+  semaphores: number;
+}
+
 /**
  * Individual grid cell in the level
  */
@@ -30,7 +43,6 @@ export interface GridTile {
   track: Track;
   mod: Mod;
   mod_num: number;
-  mod_rot: number;
 }
 
 /**
@@ -110,7 +122,8 @@ interface LevelState {
     width?: number,
     height?: number,
     max_tracks?: number,
-    max_semaphores?: number
+    max_semaphores?: number,
+    car_rot?: number
   ) => void;
 
   /**
@@ -131,7 +144,7 @@ interface LevelState {
   /**
    * Load level data
    */
-  loadLevel: (levelData: LevelData, filePath?: string) => void;
+  loadLevel: (levelData: LevelData | jsonData, name?: string) => void;
 
   /**
    * Save current level state to undo stack
@@ -164,7 +177,7 @@ interface LevelState {
     track?: Track | undefined,
     mod?: Mod | undefined,
     mod_num?: number | undefined,
-    mod_rot?: number | undefined
+    car_rot?: number | undefined,
   ) => void;
 
   /**
@@ -238,7 +251,6 @@ const createEmptyGrid = (
         track: Track.EMPTY,
         mod: Mod.EMPTY,
         mod_num: 0,
-        mod_rot: 0
       })
     );
 };
@@ -372,7 +384,6 @@ export const useLevelStore = create<LevelState>()(
                 track: Track.EMPTY,
                 mod: Mod.EMPTY,
                 mod_num: 0,
-                mod_rot: 0
               });
             }
           }
@@ -404,19 +415,51 @@ export const useLevelStore = create<LevelState>()(
         console.log(`Board dims updated to (${dims.y}, ${dims.x})`);
       },
 
-      loadLevel: (levelData, filePath) => {
+      loadLevel: (levelData, name?) => {
+        let loadedData: LevelData
+        if (!("id" in levelData)) { // If the levelData is type jsonData it needs to be converted
+          loadedData = createDefaultLevel()
+          loadedData.height = levelData.board.length
+          loadedData.width = levelData.board[0].length
+          loadedData.max_tracks = levelData.tracks
+          loadedData.max_semaphores = levelData.semaphores
+          for (let i = 0; i < loadedData.height; i++) {
+            for (let j = 0; j < loadedData.width; j++) {
+              loadedData.grid[i][j] = {
+                car: undefined,
+                track: Track.get(levelData.board[i][j]),
+                mod: Mod.get(levelData.mods[i][j]),
+                mod_num: levelData.mod_nums[i][j],
+              }
+            }
+          }
+          for (const raw_car of levelData.cars) {
+            const car = Car.from_json(raw_car)
+            console.log(car)
+            console.log(raw_car)
+            loadedData.grid[car.pos[0]][car.pos[1]].car = car
+            for (let i = 0; i <= car.num; i++) {
+              loadedData.car_nums.get(car.type)![i] = true
+            }
+            loadedData.next_nums.set(car.type, car.num + 1)
+          }
+        } else {
+          loadedData = levelData
+        }
+        if (name !== undefined) {
+          loadedData.name = name
+        }
         set(
           {
-            levelData: { ...levelData, modifiedAt: Date.now() },
-            levelFilePath: filePath || null,
+            levelData: { ...loadedData, modifiedAt: Date.now() },
             undoStack: [],
             redoStack: [],
           },
           false,
           "loadLevel"
         );
-
-        console.log(`📂 Level loaded: ${levelData.name || "Untitled"}`);
+        get().setDims({y: loadedData.height, x: loadedData.width})
+        console.log(`📂 Level loaded: ${get().levelData.name || "Untitled"}`);
       },
 
       saveToUndoStack: (actionDescription) => {
@@ -507,7 +550,7 @@ export const useLevelStore = create<LevelState>()(
         set({ undoStack: [], redoStack: [] }, false, "clearHistory");
       },
 
-      placePiece: (x, y, cartype, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, mod_rot = 0) => {
+      placePiece: (x, y, cartype, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, car_rot = 0) => {
         let { levelData } = get();
         const placing_car = cartype !== undefined
         const placing_track = track !== undefined
@@ -542,11 +585,11 @@ export const useLevelStore = create<LevelState>()(
           !get().registryFilled(cartype)
         ) {
           let dir: Direction
-          if (mod_rot === 0) {
+          if (car_rot === 0) {
             dir = Direction.RIGHT
-          } else if (mod_rot === 90) {
+          } else if (car_rot === 1) {
             dir = Direction.UP
-          } else if (mod_rot === 180) {
+          } else if (car_rot === 2) {
             dir = Direction.LEFT
           } else {
             dir = Direction.DOWN
@@ -562,7 +605,6 @@ export const useLevelStore = create<LevelState>()(
                 track: track,
                 mod: mod,
                 mod_num: mod_num,
-                mod_rot: mod_rot
               };
             }
             return cell;
@@ -605,7 +647,6 @@ export const useLevelStore = create<LevelState>()(
                 track: Track.EMPTY,
                 mod: Mod.EMPTY,
                 mod_num: 0,
-                mod_rot: 0
               };
             }
             return cell;
@@ -627,7 +668,6 @@ export const useLevelStore = create<LevelState>()(
 
       removeModorCar: (x, y) => {
         const { levelData } = get();
-        const { setSelectedTool } = useGuiStore.getState()
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
@@ -649,7 +689,6 @@ export const useLevelStore = create<LevelState>()(
                 track: cell.track,
                 mod: Mod.EMPTY,
                 mod_num: 0,
-                mod_rot: 0
               };
             }
             return cell;

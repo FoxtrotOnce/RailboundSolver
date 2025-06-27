@@ -13,7 +13,6 @@ import { GamePieceIcon } from "./GamePieceIcon";
  * - Selecting a piece updates the selectedPiece in the store.
  */
 import { useGuiStore } from "../store";
-import StraightTrack from "../assets/Perm 1.svg";
 import EndingTrack from "../assets/Ending Track.svg";
 import Car from "../assets/Car 1.svg";
 import ForkTrack from "../assets/Swapping Track.svg";

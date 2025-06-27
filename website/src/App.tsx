@@ -6,6 +6,7 @@ import {
   TopPanel,
   LeftDisplay,
   Sidebar,
+  SolveLevelDisplay,
 } from "./components";
 import { useGuiStore } from "./store";
 
@@ -65,12 +66,12 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-800 relative overflow-hidden">
-      <div className={`w-100 relative ${
+      <div className={`w-100 relative transition-all duration-300 ${
         showLeftDisplay ? "left-0" : "-left-100"
       }`}>
         <LeftDisplay />
       </div>
-      <div className={`relative flex flex-1 flex-col ${
+      <div className={`relative flex flex-1 flex-col transition-all duration-300 ${
         showLeftDisplay ? "ml-0" : "-ml-100"
       }`}>
         {/* TOP PANEL - Grid controls and undo/redo */}
@@ -79,6 +80,7 @@ export default function App() {
         </div>
         <div className="relative ml-3 mr-3 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
           <Sidebar />
+          <SolveLevelDisplay />
           <RightToolPanel />
           <RightControlDisplay />
           <GameCanvas />

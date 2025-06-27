@@ -6,7 +6,6 @@ import StraightTrack from "../assets/2 Vertical Track.svg";
 import TurnTrack from "../assets/5 Bottom-Right Turn.svg";
 import ForkTrack from "../assets/9 Bottom-Right & Left 3-Way.svg";
 import ForkTrack2 from "../assets/11 Bottom-Left & Right 3-Way.svg";
-import { Track } from "../../../algo/classes";
 
 // ToolButton is now just GamePiece
 

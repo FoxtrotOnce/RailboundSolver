@@ -166,7 +166,7 @@ function* generate_tracks({
                     let gate_conflict: boolean = false
                     for (const car_under_gate of cars_to_use) {
                         if (car_under_gate.pos[0] === gate_pos[0] && car_under_gate.pos[1] === gate_pos[1]) {
-                            switch_queue[car.car_index(cars, decoys, ncars)] = gate_pos
+                            switch_queue[car.car_index(cars, decoys)] = gate_pos
                             gate_conflict = true
                             break
                         }
@@ -194,11 +194,11 @@ function* generate_tracks({
         // If the car is moving, add to heatmap
         if (!(car.type !== CT.DECOY && (
             car.on_correct_station(mods_to_use[car.pos[0]][car.pos[1]], mod_nums[car.pos[0]][car.pos[1]]) ||
-            station_stalled[car.car_index(cars, decoys, ncars)])) &&
+            station_stalled[car.car_index(cars, decoys)])) &&
             !mods_to_use[car.pos_ahead[0]][car.pos_ahead[1]].is_gate_or_sem()
         ) {
             // Increase heatmap limit to 1 if the car is going to a new tile.
-            const car_index: number = car.car_index(cars, decoys, ncars)
+            const car_index: number = car.car_index(cars, decoys)
             if (heatmap_limits[car_index][car.direction.value][car.pos[0]][car.pos[1]] === 0) {
                 heatmap_limits[car_index][car.direction.value][car.pos[0]][car.pos[1]]++
             }
@@ -266,7 +266,7 @@ function* generate_tracks({
 
         // Station processing
         if (car.type !== CT.DECOY) {
-            const car_index: number = car.car_index(cars, decoys, ncars)
+            const car_index: number = car.car_index(cars, decoys)
             if (car.on_correct_station(mods_to_use[car.pos[0]][car.pos[1]], mod_nums[car.pos[0]][car.pos[1]])) {
                 station_stalled[car_index] = true
                 mods_to_use[car.pos[0]][car.pos[1]] = M.DEACTIVATED_MOD
@@ -619,7 +619,7 @@ function* generate_tracks({
             if (car.type !== CT.CRASHED && (mods_to_pass[car.pos[0]][car.pos[1]] === M.SWAPPING_TRACK ||
                                             mods_to_pass[car.pos[0]][car.pos[1]] === M.SWITCH_RAIL)
             ) {
-                const car_index: number = car.car_index(cars, decoys, ncars)
+                const car_index: number = car.car_index(cars, decoys)
                 if (heatmap_limits_pass[car_index][car.direction.value][car.pos[0]][car.pos[1]] <= HEATMAP_LIMIT_LIMIT) {
                     if (!stalled[i]) {
                         for (let j = 0; j < heatmap_limits_pass[0].length; j++) {

@@ -1,5 +1,4 @@
 import React from "react";
-import { useState } from "react";
 import { useGuiStore } from "../store";
 
 export const LeftDisplay: React.FC = () => {
@@ -48,7 +47,8 @@ export const LeftDisplay: React.FC = () => {
                         Reset
                     </button>
                     <div>
-                        How many times a car can <span className="italic font-semibold text-violet-400">reasonably</span> loop before the generated branch is cut.
+                        How many times a car can <i>reasonably</i> loop before the generated branch is cut.
+                        {" "}<span className="font-semibold text-red-400">Only increase if you know a car must loop more than {defaultHyperparams().heatmap_limit_limit} times.</span>
                     </div>
                     <input
                         className="accent-violet-400"
@@ -76,6 +76,7 @@ export const LeftDisplay: React.FC = () => {
                     </button>
                     <div>
                         How many times a decoy can loop before the generated branch is cut.
+                        {" "}<span className="font-semibold text-red-400">Only increase if you know a decoy must loop more than {defaultHyperparams().decoy_heatmap_limit} times.</span>
                     </div>
                     <input
                         className="accent-violet-400"

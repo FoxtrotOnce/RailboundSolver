@@ -7,4 +7,5 @@ export { BottomSelectionPanel } from "./BottomSelectionPanel";
 export { TopPanel } from "./TopPanel";
 export { GameCanvas } from "./GameCanvas";
 export { GridTile } from "./GridTile";
+export { SolveLevelDisplay } from "./SolveLevelDisplay";
 export type { GamePiece } from "../components/GamePieceIcon";
