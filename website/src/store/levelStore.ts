@@ -575,8 +575,8 @@ export const useLevelStore = create<LevelState>()(
         // Make sure the placement is legal
         if (
           // First statement prevents any mod from being placed on anything that isn't a normal track
-          // EXCEPT for stations since they ignore this rule.
-          (((mod !== Mod.EMPTY && mod !== Mod.STATION) || placing_car) &&
+          // EXCEPT for stations/tunnels since they ignore this rule.
+          (((mod !== Mod.EMPTY && mod !== Mod.STATION && mod !== Mod.TUNNEL) || placing_car) &&
             !track.is_straight() &&
             !track.is_turn() &&
             !track.is_3way()) ||
@@ -680,6 +680,12 @@ export const useLevelStore = create<LevelState>()(
 
         const grid = levelData.grid;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
+
+        // Remove the entire tile instead if it's a tunnel
+        if (grid[y][x].mod === Mod.TUNNEL) {
+          get().removePiece(x, y)
+          return
+        }
 
         // Save state before making changes
         get().saveToUndoStack(`Remove mod at (${x}, ${y})`);

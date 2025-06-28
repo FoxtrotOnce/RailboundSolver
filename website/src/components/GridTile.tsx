@@ -207,6 +207,15 @@ function getTypeFromInfo(
     to_return.mod = Mod.SWAPPING_TRACK;
   }
   if (pieceId === "TUNNEL") {
+    if (rotation === 0) {
+      to_return.track = Track.RIGHT_FACING_TUNNEL
+    } else if (rotation === 1) {
+      to_return.track = Track.UP_FACING_TUNNEL
+    } else if (rotation === 2) {
+      to_return.track = Track.LEFT_FACING_TUNNEL
+    } else  {
+      to_return.track = Track.DOWN_FACING_TUNNEL
+    }
     to_return.mod = Mod.TUNNEL;
   }
   if (pieceId === "SWITCH_RAIL") {
@@ -337,7 +346,7 @@ export const GridTile: React.FC<{
           isHovered &&
           (selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
             ? ModIcons.get("SWAPPING_TRACK_2")
-            : ModIcons.get(mod))}
+            : ModIcons.get(selected_mod))}
       </div>
       <div
         className={`absolute inset-0 opacity-60 ${(() => {

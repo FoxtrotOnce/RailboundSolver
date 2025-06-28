@@ -143,7 +143,7 @@ export const LeftDisplay: React.FC = () => {
           <div>The tree traversal technique the algorithm uses.</div>
           <div className="flex flex-row items-center">
             <button
-              className="flex cursor-pointer border-2 rounded w-fit h-fit px-2 border-green-300 text-green-300 font-semibold hover:brightness-80 active:brightness-60"
+              className="flex cursor-pointer transition-all border-2 rounded w-fit h-fit px-2 border-green-300 text-green-300 font-semibold hover:brightness-80 active:brightness-60"
               onClick={() => setHyperparams(undefined, undefined, "DFS")}
             >
               DFS
@@ -159,7 +159,7 @@ export const LeftDisplay: React.FC = () => {
           </div>
           <div className="flex flex-row items-center">
             <button
-              className="flex cursor-pointer border-2 rounded w-fit h-fit px-2 border-blue-300 text-blue-300 font-semibold hover:brightness-80 active:brightness-60"
+              className="flex cursor-pointer transition-all border-2 rounded w-fit h-fit px-2 border-blue-300 text-blue-300 font-semibold hover:brightness-80 active:brightness-60"
               onClick={() => setHyperparams(undefined, undefined, "BFS")}
             >
               BFS

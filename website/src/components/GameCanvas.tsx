@@ -87,7 +87,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   return (
     <div className="absolute inset-0 flex flex-row items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
       {/* Grid pattern overlay */}
-      <motion.div
+      <div
         className={`grid z-10 ${
           showGrid ? "border-t border-l border-gray-400" : ""
         }`}
@@ -116,7 +116,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
             </div>
           ))
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };

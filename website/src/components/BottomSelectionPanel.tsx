@@ -13,6 +13,7 @@ import { GamePieceIcon } from "./GamePieceIcon";
  * - Selecting a piece updates the selectedPiece in the store.
  */
 import { useGuiStore } from "../store";
+import ForkTrackBase from "../assets/Perm 9.svg";
 import EndingTrack from "../assets/Ending Track.svg";
 import Car from "../assets/Car 1.svg";
 import ForkTrack from "../assets/Swapping Track.svg";
@@ -73,7 +74,7 @@ const GAME_PIECES: GamePiece[][] = [
       id: "SWITCH_FORK_TRACK",
       name: "Place Fork Track",
       description: "Place Fork Track",
-      icon: <img src={ForkTrack}/>,
+      icon: <div className="flex inset-0"><img src={ForkTrack} className="z-10"/><img src={ForkTrackBase} className="flex -ml-10"/></div>,
     },
   ],
   [
@@ -113,31 +114,29 @@ export const BottomSelectionPanel: React.FC = () => {
   const { selectedPiece, setSelectedPiece } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="bg-gray-800 border-2 border-gray-600 p-2 z-40 rounded-lg">
-      <div className="flex justify-center">
-        <div className="flex gap-4">
-          {/* Render each group of pieces */}
-          {pieces.map((group, idx) => (
-            <div
-              key={idx}
-              className="flex items-center gap-1 bg-gray-700 rounded-lg p-2 border-2 border-gray-600"
-            >
-              {group.map((piece) => (
-                <GamePieceIcon
-                  key={piece.id}
-                  icon={piece.icon}
-                  piece={piece}
-                  onClick={() => 
-                    selectedPiece === piece.id ?
-                    setSelectedPiece(undefined) :
-                    setSelectedPiece(piece.id)
-                  }
-                  selected={selectedPiece === piece.id}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+    <div className="relative flex justify-center -bottom-62">
+      <div className="flex gap-4">
+        {/* Render each group of pieces */}
+        {pieces.map((group, idx) => (
+          <div
+            key={idx}
+            className="relative flex items-center gap-1 bg-gray-800 rounded-lg p-2 border-2 border-gray-600"
+          >
+            {group.map((piece) => (
+              <GamePieceIcon
+                key={piece.id}
+                icon={piece.icon}
+                piece={piece}
+                onClick={() => 
+                  selectedPiece === piece.id ?
+                  setSelectedPiece(undefined) :
+                  setSelectedPiece(piece.id)
+                }
+                selected={selectedPiece === piece.id}
+              />
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

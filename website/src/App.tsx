@@ -84,16 +84,14 @@ export default function App() {
         <div className="relative h-16">
           <TopPanel />
         </div>
-        <div className="relative ml-3 mr-3 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
+        <div className="relative m-3 mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
           <Sidebar />
           <RightToolPanel />
           <RightControlDisplay />
           <SolveLevelDisplay />
           <GameCanvas />
-          {/* TODO: Add selection indicators */}
-        </div>
-        <div className="relative h-25 ml-3 mr-3 mt-3 -mb-1">
           <BottomSelectionPanel />
+          {/* TODO: Add selection indicators */}
         </div>
       </div>
     </div>
