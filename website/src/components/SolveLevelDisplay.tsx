@@ -50,7 +50,7 @@ export const SolveLevelDisplay: React.FC = () => {
   );
 
   return (
-    <div className="relative flex flex-col w-58 gap-2 py-2 px-4 top-30 rounded-lg left-2 bg-gray-800 border-2 border-gray-600 overflow-hidden z-30">
+    <div className="absolute flex flex-col w-58 gap-2 py-2 px-4 top-30 rounded-lg left-2 bg-gray-800 border-2 border-gray-600 overflow-hidden z-30">
       <div className="flex justify-center font-bold text-green-400 text-lg">
         Level Simulation
       </div>
@@ -122,25 +122,35 @@ export const SolveLevelDisplay: React.FC = () => {
         </div>
       </div>
       {/* Generation Control */}  
-      {/* Start Generation */}
-      <button
-        className={`transition-all duration-300 relative w-fit mx-auto whitespace-nowrap cursor-pointer px-5 py-1 rounded-md border-2 border-green-400 text-green-400 font-semibold hover:brightness-85 active:brightness-70 ${
-          isRunning
-          ? "-left-54"
-          : "left-0"
-        }`}
-        onClick={() => !isRunning && setRunningState(true)}
-      >
-        Solve Level
-      </button>
-      <div className={`transition-all duration-300 relative -mt-11 flex flex-row gap-2 justify-center ${
-        isRunning
-        ? "left-0"
-        : "left-54"
-      }`}>
+      <div className="relative flex flex-row gap-2 justify-center">
+        {/* Start Generation */}
+        <button
+          className={`transition-all relative w-fit whitespace-nowrap px-5 py-1 rounded-md border-2 border-green-400 text-green-400 font-semibold ${
+            isRunning
+            ? "opacity-50 cursor-not-allowed"
+            : "opacity-100 cursor-pointer hover:brightness-85 active:brightness-70"
+          }`}
+          onClick={() => !isRunning && setRunningState(true)}
+        >
+          Solve Level
+        </button>
+        {/* Step Generation */}
+        <button
+          className={`transition-all relative w-fit cursor-pointer px-5 py-1 rounded-md border-2 border-blue-400 text-blue-400 font-semibold hover:brightness-85 active:brightness-70 ${
+            null
+          }`}
+          onClick={() => {
+            setRunningState(true)
+            setPauseState(true)
+          }}
+        >
+          Step
+        </button>
+      </div>
+      <div className="relative flex flex-row gap-2 justify-center">
         {/* Pause/Resume Generation */}
         <button
-          className={`transition-all cursor-pointer w-fit px-5 py-1 font-semibold rounded-md border-2 hover:brightness-85 active:brightness-70 ${
+          className={`transition-all cursor-pointer w-fit px-6 py-1 font-semibold rounded-md border-2 hover:brightness-85 active:brightness-70 ${
             isPaused
             ? "border-gray-400 text-gray-400"
             : "border-yellow-400 text-yellow-400"
@@ -151,10 +161,10 @@ export const SolveLevelDisplay: React.FC = () => {
         </button>
         {/* Stop Generation */}
         <button
-          className={`transition-all w-fit px-5 py-1 font-semibold rounded-md border-2 ${
+          className={`transition-all w-fit px-6 py-1 font-semibold rounded-md border-2 border-red-400 text-red-400 ${
             isPaused
-            ? "border-red-400 text-red-400 cursor-pointer hover:brightness-85 active:brightness-70 "
-            : "border-red-300 text-red-300 brightness-80"
+            ? "cursor-pointer hover:brightness-85 active:brightness-70"
+            : "opacity-50 cursor-not-allowed"
           }`}
           onClick={() => {
             if (isPaused) {

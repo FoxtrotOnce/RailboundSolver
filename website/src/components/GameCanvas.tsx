@@ -2,7 +2,7 @@
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
 // import CarImg from "../assets/Car 1.svg";
-import { motion } from "motion/react";
+// import { motion } from "motion/react";
 import { Track } from "../../../algo/classes";
 
 // THIS IS EXAMPLE OR HOW WE MOVE THE CAR

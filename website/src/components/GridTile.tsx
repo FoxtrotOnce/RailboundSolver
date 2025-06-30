@@ -1,30 +1,31 @@
 import React, { useState } from "react";
 import { Track, Mod, Car, Direction, CarType } from "../../../algo/classes";
 
-import StraightTrack from "../assets/Perm 1.svg";
-import EndingTrack from "../assets/Ending Track.svg";
-import Fence from "../assets/4 Fence.svg";
-import CurvedTrack from "../assets/Perm 5.svg";
-import ForkTrack from "../assets/Perm 9.svg";
-import ForkTrack2 from "../assets/Perm 11.svg";
-import Tunnel from "../assets/Tunnel.svg";
-import Switch from "../assets/Switch.svg";
-import OpenGate from "../assets/Open Gate.svg";
-import ClosedGate from "../assets/Closed Gate.svg";
-import SwappingTrack from "../assets/Swapping Track.svg";
-import SwappingTrack2 from "../assets/Swapping Track 2.svg";
-import Station from "../assets/Station.svg";
-import SwitchRail from "../assets/Switch Rail.svg";
+import {
+  Ending_Track,
+  Perm_StraightTrack,
+  Perm_Turn,
+  Perm_Fork,
+  Perm_Fork2,
+  Roadblock,
+  Tunnel,
+  Switch,
+  Open_Gate,
+  Closed_Gate,
+  Swapping_Track,
+  Station,
+  Switch_Rail,
+  Car_1,
+  Car_2,
+  Car_3,
+  Car_4,
+  Car_I,
+  Car_II,
+  Car_III,
+  Car_IIII,
+  Decoy
+} from "../assets/svgs"
 // TODO: add post office
-import Car1 from "../assets/Car 1.svg";
-import Car2 from "../assets/Car 2.svg";
-import Car3 from "../assets/Car 3.svg";
-import Car4 from "../assets/Car 4.svg";
-import Numeral1 from "../assets/Car I.svg";
-import Numeral2 from "../assets/Car II.svg";
-import Numeral3 from "../assets/Car III.svg";
-import Numeral4 from "../assets/Car IIII.svg";
-import Decoy from "../assets/Decoy.svg";
 import { useGuiStore, useLevelStore } from "../store";
 
 const fork_2_tracks = new Set<Track>([
@@ -35,31 +36,31 @@ const fork_2_tracks = new Set<Track>([
 ]);
 // NOTE: Tailwind rotations are clockwise, rotation from useGuiStore() is counterclockwise as it increases.
 const TrackIcons = new Map<Track, React.ReactNode>([
-  [Track.EMPTY, <img />],
-  [Track.HORIZONTAL_TRACK, <img src={StraightTrack} />],
-  [Track.VERTICAL_TRACK, <img src={StraightTrack} />],
-  [Track.CAR_ENDING_TRACK_LEFT, <img src={EndingTrack} />],
-  [Track.CAR_ENDING_TRACK_RIGHT, <img src={EndingTrack} />],
-  [Track.CAR_ENDING_TRACK_DOWN, <img src={EndingTrack} />],
-  [Track.CAR_ENDING_TRACK_UP, <img src={EndingTrack} />],
-  [Track.ROADBLOCK, <img src={Fence} />],
-  [Track.BOTTOM_RIGHT_TURN, <img src={CurvedTrack} />],
-  [Track.BOTTOM_LEFT_TURN, <img src={CurvedTrack} />],
-  [Track.TOP_RIGHT_TURN, <img src={CurvedTrack} />],
-  [Track.TOP_LEFT_TURN, <img src={CurvedTrack} />],
-  [Track.BOTTOM_RIGHT_LEFT_3WAY, <img src={ForkTrack} />],
-  [Track.BOTTOM_RIGHT_TOP_3WAY, <img src={ForkTrack2} />],
-  [Track.BOTTOM_LEFT_RIGHT_3WAY, <img src={ForkTrack2} />],
-  [Track.BOTTOM_LEFT_TOP_3WAY, <img src={ForkTrack} />],
-  [Track.TOP_RIGHT_LEFT_3WAY, <img src={ForkTrack2} />],
-  [Track.TOP_RIGHT_BOTTOM_3WAY, <img src={ForkTrack} />],
-  [Track.TOP_LEFT_RIGHT_3WAY, <img src={ForkTrack} />],
-  [Track.TOP_LEFT_BOTTOM_3WAY, <img src={ForkTrack2} />],
+  [Track.EMPTY, <></>],
+  [Track.HORIZONTAL_TRACK, Perm_StraightTrack],
+  [Track.VERTICAL_TRACK, Perm_StraightTrack],
+  [Track.CAR_ENDING_TRACK_LEFT, Ending_Track],
+  [Track.CAR_ENDING_TRACK_RIGHT, Ending_Track],
+  [Track.CAR_ENDING_TRACK_DOWN, Ending_Track],
+  [Track.CAR_ENDING_TRACK_UP, Ending_Track],
+  [Track.ROADBLOCK, Roadblock],
+  [Track.BOTTOM_RIGHT_TURN, Perm_Turn],
+  [Track.BOTTOM_LEFT_TURN, Perm_Turn],
+  [Track.TOP_RIGHT_TURN, Perm_Turn],
+  [Track.TOP_LEFT_TURN, Perm_Turn],
+  [Track.BOTTOM_RIGHT_LEFT_3WAY, Perm_Fork],
+  [Track.BOTTOM_RIGHT_TOP_3WAY, Perm_Fork2],
+  [Track.BOTTOM_LEFT_RIGHT_3WAY, Perm_Fork2],
+  [Track.BOTTOM_LEFT_TOP_3WAY, Perm_Fork],
+  [Track.TOP_RIGHT_LEFT_3WAY, Perm_Fork2],
+  [Track.TOP_RIGHT_BOTTOM_3WAY, Perm_Fork],
+  [Track.TOP_LEFT_RIGHT_3WAY, Perm_Fork],
+  [Track.TOP_LEFT_BOTTOM_3WAY, Perm_Fork2],
   // Tunnels have straight tracks displayed underneath them to make it visually accurate.
-  [Track.LEFT_FACING_TUNNEL, <img src={Tunnel} />],
-  [Track.RIGHT_FACING_TUNNEL, <img src={Tunnel} />],
-  [Track.DOWN_FACING_TUNNEL, <img src={Tunnel} />],
-  [Track.UP_FACING_TUNNEL, <img src={Tunnel} />],
+  [Track.LEFT_FACING_TUNNEL, Tunnel],
+  [Track.RIGHT_FACING_TUNNEL, Tunnel],
+  [Track.DOWN_FACING_TUNNEL, Tunnel],
+  [Track.UP_FACING_TUNNEL, Tunnel],
 ]);
 const TrackRotations = new Map<Track, number>([
   [Track.EMPTY, 0],
@@ -88,37 +89,36 @@ const TrackRotations = new Map<Track, number>([
   [Track.DOWN_FACING_TUNNEL, 270],
   [Track.UP_FACING_TUNNEL, 90],
 ]);
-const ModIcons = new Map<Mod | string, React.ReactNode>([
-  [Mod.EMPTY, <img />],
-  [Mod.TUNNEL, <img />], // Tunnel is blank since the track has rotation value, the mod doesn't
-  [Mod.SWITCH, <img src={Switch} />],
-  [Mod.OPEN_GATE, <img src={OpenGate} />],
-  [Mod.CLOSED_GATE, <img src={ClosedGate} />],
-  [Mod.SWAPPING_TRACK, <img src={SwappingTrack} />],
-  ["SWAPPING_TRACK_2", <img src={SwappingTrack2} />],
-  [Mod.STATION, <img src={Station} />],
-  [Mod.SWITCH_RAIL, <img src={SwitchRail} />],
+const ModIcons = new Map<Mod, React.ReactNode>([
+  [Mod.EMPTY, <></>],
+  [Mod.TUNNEL, <></>], // Tunnel is blank since the track has rotation value, the mod doesn't
+  [Mod.SWITCH, Switch],
+  [Mod.OPEN_GATE, Open_Gate],
+  [Mod.CLOSED_GATE, Closed_Gate],
+  [Mod.SWAPPING_TRACK, Swapping_Track],
+  [Mod.STATION, Station],
+  [Mod.SWITCH_RAIL, Switch_Rail],
 ]);
 const CarIcons = new Map<CarType, React.ReactNode[]>([
   [
     CarType.NORMAL,
     [
-      <img src={Car1} />,
-      <img src={Car2} />,
-      <img src={Car3} />,
-      <img src={Car4} />,
+      Car_1,
+      Car_2,
+      Car_3,
+      Car_4,
     ],
   ],
   [
     CarType.NUMERAL,
     [
-      <img src={Numeral1} />,
-      <img src={Numeral2} />,
-      <img src={Numeral3} />,
-      <img src={Numeral4} />,
+      Car_I,
+      Car_II,
+      Car_III,
+      Car_IIII,
     ],
   ],
-  [CarType.DECOY, Array(144).fill(<img src={Decoy} />)],
+  [CarType.DECOY, Array(144).fill(Decoy)],
 ]);
 
 interface return_types {
@@ -314,11 +314,13 @@ export const GridTile: React.FC<{
       <div
         className={`absolute inset-0 ${getRotationClass(
           TrackRotations.get(track)!
-        )}`}
+        )} ${
+          mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
+          ? "scale-x-[-1]"
+          : "scale-x-[1]"
+        }`}
       >
-        {mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
-          ? ModIcons.get("SWAPPING_TRACK_2")
-          : ModIcons.get(mod)}
+        {ModIcons.get(mod)}
       </div>
       {car && (
         <div className={`absolute inset-0 ${carDirToDeg(car.direction)}`}>
@@ -340,13 +342,13 @@ export const GridTile: React.FC<{
           selected_track
             ? getRotationClass(TrackRotations.get(selected_track)!)
             : "rotate-0"
+        } ${
+          selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
+          ? "scale-x-[-1]"
+          : "scale-x-[1]"
         }`}
       >
-        {selected_mod &&
-          isHovered &&
-          (selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
-            ? ModIcons.get("SWAPPING_TRACK_2")
-            : ModIcons.get(selected_mod))}
+        {selected_mod && isHovered && ModIcons.get(selected_mod)}
       </div>
       <div
         className={`absolute inset-0 opacity-60 ${(() => {

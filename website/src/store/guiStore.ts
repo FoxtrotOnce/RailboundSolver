@@ -32,6 +32,7 @@ interface GuiState {
   showToolPanel: boolean;
   showPiecePanel: boolean;
   showLeftDisplay: boolean;
+  showModNumDisplay: boolean;
 
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
@@ -48,6 +49,7 @@ interface GuiState {
   toggleToolPanel: () => void;
   togglePiecePanel: () => void;
   toggleLeftDisplay: () => void;
+  toggleModNumDisplay: () => void;
   resetGui: () => void;
 }
 
@@ -71,6 +73,7 @@ export const useGuiStore = create<GuiState>()(
       showToolPanel: true,
       showPiecePanel: true,
       showLeftDisplay: true,
+      showModNumDisplay: false,
 
       // Actions
       setSelectedTool: (tool) => {
@@ -207,6 +210,13 @@ export const useGuiStore = create<GuiState>()(
           false,
           "toggleLeftDisplay"
         );
+      },
+      toggleModNumDisplay: () => {
+        set(
+          (state) => ({ showModNumDisplay: !state.showModNumDisplay }),
+          false,
+          "toggleModNumDisplay"
+        )
       },
 
       resetGui: () => {

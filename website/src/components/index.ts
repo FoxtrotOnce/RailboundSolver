@@ -4,6 +4,7 @@ export { RightControlDisplay } from "./RightControlDisplay"
 export { LeftDisplay } from "./LeftDisplay"
 export { Sidebar } from "./Sidebar"
 export { BottomSelectionPanel } from "./BottomSelectionPanel";
+export { ChangeModNum } from "./ChangeModNum";
 export { TopPanel } from "./TopPanel";
 export { GameCanvas } from "./GameCanvas";
 export { GridTile } from "./GridTile";

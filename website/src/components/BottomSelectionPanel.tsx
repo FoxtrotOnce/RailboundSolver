@@ -13,18 +13,20 @@ import { GamePieceIcon } from "./GamePieceIcon";
  * - Selecting a piece updates the selectedPiece in the store.
  */
 import { useGuiStore } from "../store";
-import ForkTrackBase from "../assets/Perm 9.svg";
-import EndingTrack from "../assets/Ending Track.svg";
-import Car from "../assets/Car 1.svg";
-import ForkTrack from "../assets/Swapping Track.svg";
-import Tunnel from "../assets/Tunnel.svg";
-import Station from "../assets/Station.svg";
-import Switch from "../assets/Switch.svg";
-import OpenGate from "../assets/Open Gate.svg";
-import ClosedGate from "../assets/Closed Gate.svg";
-import SwitchRail from "../assets/Switch Rail.svg";
-import Decoy from "../assets/Decoy.svg";
-import Roadblock from "../assets/4 Fence.svg";
+import {
+  Roadblock,
+  Perm_Fork,
+  Car_1,
+  Ending_Track,
+  Swapping_Track,
+  Tunnel,
+  Station,
+  Switch,
+  Open_Gate,
+  Closed_Gate,
+  Switch_Rail,
+  Decoy
+} from "../assets/svgs";
 
 /**
  * Hardcoded game pieces configuration
@@ -36,19 +38,19 @@ const GAME_PIECES: GamePiece[][] = [
       id: "END_TRACK",
       name: "End Track",
       description: "End Track",
-      icon: <img src={EndingTrack}/>
+      icon: Ending_Track
     },
     {
       id: "NORMAL",
       name: "Place Car",
       description: "Place Car",
-      icon: <img src={Car}/>
+      icon: Car_1
     },
     {
       id: "STATION",
       name: "Place Station",
       description: "Place Station",
-      icon: <img src={Station}/>
+      icon: Station
     }
   ],
   [
@@ -56,25 +58,25 @@ const GAME_PIECES: GamePiece[][] = [
       id: "SWITCH",
       name: "Place Switch",
       description: "Place Switch",
-      icon: <img src={Switch}/>,
+      icon: Switch
     },
     {
       id: "OPEN_GATE",
       name: "Place Open Gate",
       description: "Place Open Gate",
-      icon: <img src={OpenGate}/>
+      icon: Open_Gate
     },
         {
       id: "CLOSED_GATE",
       name: "Place Closed Gate",
       description: "Place Closed Gate",
-      icon: <img src={ClosedGate}/>
+      icon: Closed_Gate
     },
     {
       id: "SWITCH_FORK_TRACK",
       name: "Place Fork Track",
       description: "Place Fork Track",
-      icon: <div className="flex inset-0"><img src={ForkTrack} className="z-10"/><img src={ForkTrackBase} className="flex -ml-10"/></div>,
+      icon: <div className="flex inset-0"><div className="z-10">{Swapping_Track}</div><div className="flex -ml-10">{Perm_Fork}</div></div>,
     },
   ],
   [
@@ -82,25 +84,25 @@ const GAME_PIECES: GamePiece[][] = [
       id: "TUNNEL",
       name: "Place Tunnel",
       description: "Place Tunnel",
-      icon: <img src={Tunnel}/>,
+      icon: Tunnel
     },
     {
       id: "SWITCH_RAIL",
       name: "Place Switch Rail",
       description: "Place Switch Rail",
-      icon: <img src={SwitchRail}/>
+      icon: Switch_Rail
     },
     {
       id: "DECOY",
       name: "Place Decoy",
       description: "Place Decoy",
-      icon: <img src={Decoy}/>,
+      icon: Decoy
     },
     {
       id: "ROADBLOCK",
       name: "Place Fence",
       description: "Place Fence",
-      icon: <img src={Roadblock}/>
+      icon: Roadblock
     }
   ],
 ];
@@ -114,7 +116,7 @@ export const BottomSelectionPanel: React.FC = () => {
   const { selectedPiece, setSelectedPiece } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="relative flex justify-center -bottom-62">
+    <div className="relative flex justify-center z-40 top-144">
       <div className="flex gap-4">
         {/* Render each group of pieces */}
         {pieces.map((group, idx) => (

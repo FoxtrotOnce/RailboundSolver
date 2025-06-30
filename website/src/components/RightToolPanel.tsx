@@ -2,10 +2,12 @@ import React from "react";
 
 import { GamePieceIcon } from "./GamePieceIcon";
 import type { GamePiece } from "./GamePieceIcon";
-import StraightTrack from "../assets/2 Vertical Track.svg";
-import TurnTrack from "../assets/5 Bottom-Right Turn.svg";
-import ForkTrack from "../assets/9 Bottom-Right & Left 3-Way.svg";
-import ForkTrack2 from "../assets/11 Bottom-Left & Right 3-Way.svg";
+import {
+  Normal_StraightTrack,
+  Normal_Turn,
+  Normal_Fork,
+  Normal_Fork2
+} from "../assets/svgs"
 
 // ToolButton is now just GamePiece
 
@@ -31,35 +33,35 @@ export const RightToolPanel: React.FC = () => {
     {
       id: "STRAIGHT",
       name: "Straight Track",
-      icon: <img src={StraightTrack} />,
+      icon: <div className="rotate-90">{Normal_StraightTrack}</div>,
       description: "Straight Track (1)",
       hotkey: "1",
     },
     {
       id: "CURVED",
       name: "Curved Track",
-      icon: <img src={TurnTrack} />,
+      icon: Normal_Turn,
       description: "Curved Track (2)",
       hotkey: "2",
     },
     {
       id: "FORK",
       name: "Fork Track",
-      icon: <img src={ForkTrack} />,
+      icon: Normal_Fork,
       description: "Fork Track (3)",
       hotkey: "3",
     },
     {
       id: "FORK_2",
       name: "Fork Track 2",
-      icon: <img src={ForkTrack2} />,
+      icon: Normal_Fork2,
       description: "Fork Track 2 (4)",
       hotkey: "4",
     },
   ];
 
   return (
-    <div className="absolute right-2 bottom-44 z-40 items-center">
+    <div className="absolute right-2 bottom-56.5 z-40 items-center">
       <div className="bg-gray-800 rounded-xl border-2 border-gray-600 p-2 flex flex-col gap-2">
         {/* Tool Buttons */}
         {toolButtons.map((tool) => (

@@ -7,6 +7,7 @@ import {
   LeftDisplay,
   Sidebar,
   SolveLevelDisplay,
+  ChangeModNum,
 } from "./components";
 import { useGuiStore } from "./store";
 
@@ -86,11 +87,16 @@ export default function App() {
         </div>
         <div className="relative m-3 mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
           <Sidebar />
+          <BottomSelectionPanel />
           <RightToolPanel />
-          <RightControlDisplay />
+          <div className="absolute bottom-0 right-0">
+            <div className="relative flex flex-row gap-4 items-end">
+              <ChangeModNum />
+              <RightControlDisplay />
+            </div>
+          </div>
           <SolveLevelDisplay />
           <GameCanvas />
-          <BottomSelectionPanel />
           {/* TODO: Add selection indicators */}
         </div>
       </div>
