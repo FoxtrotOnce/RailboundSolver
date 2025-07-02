@@ -1,8 +1,7 @@
 // Component exports for easy importing
-export { RightToolPanel } from "./RightToolPanel";
-export { RightControlDisplay } from "./RightControlDisplay"
-export { LeftDisplay } from "./LeftDisplay"
-export { Sidebar } from "./Sidebar"
+export { RightPanel } from "./RightPanel";
+export { LeftDisplay } from "./LeftDisplay";
+export { Sidebar } from "./Sidebar";
 export { BottomSelectionPanel } from "./BottomSelectionPanel";
 export { ChangeModNum } from "./ChangeModNum";
 export { TopPanel } from "./TopPanel";
