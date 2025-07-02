@@ -1,8 +1,7 @@
 import {
   BottomSelectionPanel,
   GameCanvas,
-  RightControlDisplay,
-  RightToolPanel,
+  RightPanel,
   TopPanel,
   LeftDisplay,
   Sidebar,
@@ -22,7 +21,7 @@ import { useEffect, useState, useRef } from "react";
  * COMPONENT STRUCTURE:
  * - TopPanel: Top control panel with grid settings, constraints, and undo/redo functionality
  * - GameCanvas: Main blue background editing area where level construction happens
- * - RightToolPanel: Right sidebar containing editing tools and utilities
+ * - RightPanel: Right sidebar containing editing tools and controls help information
  * - BottomSelectionPanel: Bottom panel with track pieces, special items, and tool selection
  * - InputHandler: Handles mouse tracking and keyboard input for piece rotation (Q/E keys)
  *
@@ -50,30 +49,34 @@ import { useEffect, useState, useRef } from "react";
  */
 
 export default function App() {
-  const { rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } = useGuiStore();
+  const { rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } =
+    useGuiStore();
   const { clearLevel } = useLevelStore();
   const currMousePos = useRef({ x: 0, y: 0 });
   // lastMousePos is used to show the location of the palette
-  const [ lastMousePos, setLastMousePos ] = useState({ x: 0, y: 0 });
+  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (canvasRef.current !== null) {
-        const rect = canvasRef.current.getBoundingClientRect()
-        currMousePos.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        const rect = canvasRef.current.getBoundingClientRect();
+        currMousePos.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        };
       }
-    }
+    };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (e.key === "q" || e.key === "Q") {
-        e.preventDefault()
+        e.preventDefault();
         rotateCCW();
       } else if (e.key === "e" || e.key === "E") {
-        e.preventDefault()
+        e.preventDefault();
         rotateCW();
       } else if (e.key === "w" || e.key === "W") {
-        e.preventDefault()
+        e.preventDefault();
         // Update the lastMousePos (where the palette should be) only if it's being shown,
         // so it doesn't teleport to the player's mouse when they try to close it.
         if (!showPalette) {
@@ -81,7 +84,7 @@ export default function App() {
         }
         togglePalette();
       } else if (e.key === "r" || e.key === "R") {
-        e.preventDefault()
+        e.preventDefault();
         clearLevel();
       }
     };
@@ -90,8 +93,8 @@ export default function App() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("mousemove", handleMouseMove);
-    }
-  }, [rotateCW, rotateCCW, togglePalette, showPalette]);
+    };
+  }, [rotateCW, rotateCCW, togglePalette, showPalette, clearLevel]);
 
   return (
     <div className="flex h-screen bg-slate-800 relative overflow-hidden">
@@ -116,22 +119,19 @@ export default function App() {
           className="relative flex m-3 justify-center mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
         >
           <div
-              className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
-                  showPalette ? "scale-100" : "scale-1"
-              }`}
-              style={{
-                  left: lastMousePos.x,
-                  top: lastMousePos.y
-              }}
+            className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
+              showPalette ? "scale-100" : "scale-1"
+            }`}
+            style={{
+              left: lastMousePos.x,
+              top: lastMousePos.y,
+            }}
           >
             <ChangeModNum />
           </div>
           <Sidebar />
           <BottomSelectionPanel />
-          <RightToolPanel />
-          <div className="absolute bottom-0 right-0">
-            <RightControlDisplay />
-          </div>
+          <RightPanel />
           <SolveLevelDisplay />
           <GameCanvas />
           {/* TODO: Add selection indicators */}
