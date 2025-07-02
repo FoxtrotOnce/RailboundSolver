@@ -208,7 +208,7 @@ export const SolveLevelDisplay: React.FC = () => {
           Step: ?,???,???,???
         </div>
         <div className="text-gray-300 text-sm">
-          another stat?
+          Iterations: ?,???,???,???
         </div>
       </div>
     </div>

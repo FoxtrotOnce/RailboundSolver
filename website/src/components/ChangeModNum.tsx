@@ -1,68 +1,70 @@
 import React from "react";
 import { useGuiStore } from "../store";
-import { useEffect } from "react";
+import { piecesById } from "./BottomSelectionPanel";
+
+export const modColors = [
+    { currentColor: "text-red-500", style: "bg-red-500 border-red-600" },
+    { currentColor: "text-yellow-400", style: "bg-yellow-400 border-yellow-500" },
+    { currentColor: "text-green-500", style: "bg-green-500 border-green-600" },
+    { currentColor: "text-blue-500", style: "bg-blue-500 border-blue-600" },
+    { currentColor: "text-violet-500", style: "bg-violet-500 border-violet-600" },
+    { currentColor: "text-pink-400", style: "bg-pink-400 border-pink-500" },
+    { currentColor: "text-gray-200", style: "bg-gray-200 border-gray-300" },
+    { currentColor: "text-slate-500", style: "bg-slate-500 border-slate-600" },
+]
+
+const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButton = true }) => {
+    const { togglePalette, setSelectedModNum, selectedPiece } = useGuiStore();
+    return (
+        <div className={`transition-all p-1 border-2 rounded-lg bg-gray-800 border-gray-600 ${
+            isButton && "hover:bg-gray-700 hover:border-gray-400"
+        }`}>
+            <button
+                className={`relative inset-0 w-10 h-10 border-2 rounded ${
+                    isButton && "cursor-pointer"
+                } ${
+                    modColors[idx].currentColor
+                } ${
+                    modColors[idx].style
+                }`}
+                onClick={() => {
+                    if (isButton) {
+                        togglePalette()
+                        setSelectedModNum(idx)
+                    }
+                }}
+                tabIndex={0}
+            >
+                {selectedPiece &&
+                <div className="absolute inset-0">
+                    {piecesById.get(selectedPiece)!.icon}
+                </div>}
+            </button>
+        </div>
+    )
+}
 
 export const ChangeModNum: React.FC = () => {
-    const { showModNumDisplay, toggleModNumDisplay } = useGuiStore()
-    const hotkey = "R"
-    const modColors = [
-        "bg-red-400 border-red-500",
-        "bg-orange-400 border-orange-500",
-        "bg-yellow-400 border-yellow-500",
-        "bg-green-400 border-green-500",
-        "bg-teal-400 border-teal-500",
-        "bg-blue-400 border-blue-500",
-        "bg-indigo-400 border-indigo-500",
-        "bg-violet-400 border-violet-500",
-    ]
-    const hotkeys = "ASDFZXCV"
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat) return;
-      if (e.key === hotkey.toLowerCase() || e.key === hotkey.toUpperCase()) {
-        e.preventDefault();
-        toggleModNumDisplay();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    const { showPalette, selectedModNum } = useGuiStore()    
 
     return (
-        <div className="relative z-40 bottom-2">
-            <div className="relative overflow-hidden left-0 w-50 h-32 top-2 z-20">
-                <div className={`transition-all duration-300 w-full absolute grid grid-cols-4 grid-rows-2 border-2 border-gray-600 bg-gray-800 rounded-lg p-2 mb-2 w-15 gap-2 ${
-                    showModNumDisplay
-                    ? "top-0"
-                    : "top-32"
-                }`}>
-                    {modColors.map((color, idx) => (
-                        <button
-                            type="button"
-                            key={idx}
-                            className={`relative rounded border-2 w-10 h-10 cursor-pointer hover:brightness-90 active:brightness-80 ${color}`}
-                        >
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded ring-2 ring-gray-800 border-2 border-gray-600 bg-gray-700 flex items-center justify-center text-xs text-white font-bold select-none z-20">
-                                {hotkeys[idx]}
-                            </div>
-                        </button>
-                    ))}
-                </div>
+        <div className="absolute z-40 transition-all duration-300">
+            <div className="relative z-50">
+                <ColorIcon idx={selectedModNum} isButton={false} />
             </div>
-            <div className="relative flex p-2 w-15 h-15 left-18 bg-gray-800 border-2 border-gray-600 rounded-lg items-center justify-center z-40">
-                <button
-                    type="button"
-                    className="transition-all absolute rounded w-10 h-10 bg-[#0f0] border-2 border-[#0a0] cursor-pointer hover:brightness-90 active:brightness-80"
-                    onClick={() => {
-                        toggleModNumDisplay()
-                    }}
-                    tabIndex={0}
-                >
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded ring-2 ring-gray-800 border-2 border-gray-600 bg-gray-700 flex items-center justify-center text-xs text-white font-bold select-none z-20">
-                        {hotkey}
+            <div className="absolute inset-0 transition-all duration-300" style={{transform: `rotate(${(Number(showPalette) * -90).toString()}deg)`}}>
+                {modColors.map((_, idx) => (
+                    <div
+                        className="absolute transition-all duration-300"
+                        style={{
+                            left: Math.cos((idx * 2 * Math.PI) / modColors.length) * Number(showPalette) * 100,
+                            top: Math.sin((idx * 2 * Math.PI) / modColors.length) * Number(showPalette) * 100,
+                            transform: `rotate(${(Number(showPalette) * 90).toString()}deg)`,
+                        }}
+                    >
+                        <ColorIcon idx={idx} isButton={true} />
                     </div>
-                </button>
+                ))}
             </div>
         </div>
     )

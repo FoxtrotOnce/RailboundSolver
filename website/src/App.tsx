@@ -9,9 +9,9 @@ import {
   SolveLevelDisplay,
   ChangeModNum,
 } from "./components";
-import { useGuiStore } from "./store";
+import { useGuiStore, useLevelStore } from "./store";
 
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 
 /**
  * RAILBOUND LEVEL EDITOR - MAIN APPLICATION
@@ -50,22 +50,48 @@ import { useEffect } from "react";
  */
 
 export default function App() {
-  const { rotateCW, rotateCCW, showLeftDisplay } = useGuiStore();
+  const { rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } = useGuiStore();
+  const { clearLevel } = useLevelStore();
+  const currMousePos = useRef({ x: 0, y: 0 });
+  // lastMousePos is used to show the location of the palette
+  const [ lastMousePos, setLastMousePos ] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (canvasRef.current !== null) {
+        const rect = canvasRef.current.getBoundingClientRect()
+        currMousePos.current = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+      }
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (e.key === "q" || e.key === "Q") {
-        e.preventDefault();
+        e.preventDefault()
         rotateCCW();
       } else if (e.key === "e" || e.key === "E") {
-        e.preventDefault();
+        e.preventDefault()
         rotateCW();
+      } else if (e.key === "w" || e.key === "W") {
+        e.preventDefault()
+        // Update the lastMousePos (where the palette should be) only if it's being shown,
+        // so it doesn't teleport to the player's mouse when they try to close it.
+        if (!showPalette) {
+          setLastMousePos(currMousePos.current);
+        }
+        togglePalette();
+      } else if (e.key === "r" || e.key === "R") {
+        e.preventDefault()
+        clearLevel();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [rotateCW, rotateCCW]);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+    }
+  }, [rotateCW, rotateCCW, togglePalette, showPalette]);
 
   return (
     <div className="flex h-screen bg-slate-800 relative overflow-hidden">
@@ -85,15 +111,26 @@ export default function App() {
         <div className="relative h-16">
           <TopPanel />
         </div>
-        <div className="relative m-3 mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600">
+        <div
+          ref={canvasRef}
+          className="relative flex m-3 justify-center mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
+        >
+          <div
+              className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
+                  showPalette ? "scale-100" : "scale-1"
+              }`}
+              style={{
+                  left: lastMousePos.x,
+                  top: lastMousePos.y
+              }}
+          >
+            <ChangeModNum />
+          </div>
           <Sidebar />
           <BottomSelectionPanel />
           <RightToolPanel />
           <div className="absolute bottom-0 right-0">
-            <div className="relative flex flex-row gap-4 items-end">
-              <ChangeModNum />
-              <RightControlDisplay />
-            </div>
+            <RightControlDisplay />
           </div>
           <SolveLevelDisplay />
           <GameCanvas />

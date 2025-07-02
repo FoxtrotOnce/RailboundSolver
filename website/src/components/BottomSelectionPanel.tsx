@@ -1,6 +1,7 @@
 import React from "react";
 import type { GamePiece } from "./GamePieceIcon";
 import { GamePieceIcon } from "./GamePieceIcon";
+import { modColors } from "./ChangeModNum";
 
 /**
  * BottomSelectionPanel Component
@@ -18,10 +19,10 @@ import {
   Perm_Fork,
   Car_1,
   Ending_Track,
-  Swapping_Track,
   Tunnel,
   Station,
   Switch,
+  Swapping_Track,
   Open_Gate,
   Closed_Gate,
   Switch_Rail,
@@ -76,7 +77,7 @@ const GAME_PIECES: GamePiece[][] = [
       id: "SWITCH_FORK_TRACK",
       name: "Place Fork Track",
       description: "Place Fork Track",
-      icon: <div className="flex inset-0"><div className="z-10">{Swapping_Track}</div><div className="flex -ml-10">{Perm_Fork}</div></div>,
+      icon: Swapping_Track
     },
   ],
   [
@@ -107,16 +108,24 @@ const GAME_PIECES: GamePiece[][] = [
   ],
 ];
 
+export let piecesById: Map<string, GamePiece> = new Map()
+
+GAME_PIECES.forEach((group) => (
+  group.forEach((piece) => (
+    piecesById.set(piece.id, piece)
+  ))
+))
+
 /**
  * BottomSelectionPanel Component (Zustand version)
  * Uses Zustand store for selectedPiece and setSelectedPiece.
  * Game pieces are now hardcoded in the component.
  */
 export const BottomSelectionPanel: React.FC = () => {
-  const { selectedPiece, setSelectedPiece } = useGuiStore();
+  const { selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="relative flex justify-center z-40 top-144">
+    <div className="absolute flex justify-center bottom-2 z-40">
       <div className="flex gap-4">
         {/* Render each group of pieces */}
         {pieces.map((group, idx) => (
@@ -127,7 +136,11 @@ export const BottomSelectionPanel: React.FC = () => {
             {group.map((piece) => (
               <GamePieceIcon
                 key={piece.id}
-                icon={piece.icon}
+                icon={
+                  <div className={modColors[selectedModNum].currentColor}>
+                    {piece.icon}
+                  </div>
+                }
                 piece={piece}
                 onClick={() => 
                   selectedPiece === piece.id ?

@@ -15,6 +15,7 @@ interface GuiState {
   // Tool & piece selection
   selectedTool: string | undefined;
   selectedPiece: string | undefined;
+  selectedModNum: number;
 
   // Rotation (0: left, 1: right, 2: down, 3: up))
   rotation: number;
@@ -32,11 +33,12 @@ interface GuiState {
   showToolPanel: boolean;
   showPiecePanel: boolean;
   showLeftDisplay: boolean;
-  showModNumDisplay: boolean;
+  showPalette: boolean;
 
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
   setSelectedPiece: (piece: string | undefined) => void;
+  setSelectedModNum: (mod_num: number) => void;
   setHyperparams: (
     heatmap_limit_limit?: number,
     decoy_heatmap_limit?: number,
@@ -49,7 +51,7 @@ interface GuiState {
   toggleToolPanel: () => void;
   togglePiecePanel: () => void;
   toggleLeftDisplay: () => void;
-  toggleModNumDisplay: () => void;
+  togglePalette: () => void;
   resetGui: () => void;
 }
 
@@ -66,6 +68,7 @@ export const useGuiStore = create<GuiState>()(
       // Initial state
       selectedTool: undefined,
       selectedPiece: undefined,
+      selectedModNum: 0,
       hyperparameters: createHyperparams(),
       rotation: 0,
       showGrid: true,
@@ -73,7 +76,7 @@ export const useGuiStore = create<GuiState>()(
       showToolPanel: true,
       showPiecePanel: true,
       showLeftDisplay: true,
-      showModNumDisplay: false,
+      showPalette: false,
 
       // Actions
       setSelectedTool: (tool) => {
@@ -111,6 +114,9 @@ export const useGuiStore = create<GuiState>()(
         get().setSelectedTool(get().selectedTool);
         // Optionally reset rotation when selecting a new piece
         // set({ rotation: 0 }, false, "resetRotationOnPieceSelect");
+      },
+      setSelectedModNum: (mod_num) => {
+        set({ selectedModNum: mod_num }, false, "setSelectedModNum")
       },
       setHyperparams: (
         heatmap_limit_limit,
@@ -211,11 +217,11 @@ export const useGuiStore = create<GuiState>()(
           "toggleLeftDisplay"
         );
       },
-      toggleModNumDisplay: () => {
+      togglePalette: () => {
         set(
-          (state) => ({ showModNumDisplay: !state.showModNumDisplay }),
+          (state) => ({ showPalette: !state.showPalette }),
           false,
-          "toggleModNumDisplay"
+          "togglePalette"
         )
       },
 
