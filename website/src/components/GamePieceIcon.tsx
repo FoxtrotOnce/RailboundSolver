@@ -44,6 +44,7 @@ export const GamePieceIcon: React.FC<{
   onClick?: () => void;
   selected?: boolean;
   buttonClassName?: string;
+  iconClassName?: string;
   title?: string;
 }> = ({
   piece,
@@ -51,15 +52,14 @@ export const GamePieceIcon: React.FC<{
   onClick,
   selected = false,
   buttonClassName = "",
+  iconClassName,
   title,
 }) => {
-  const baseButtonClass =
-    buttonClassName ||
-    `w-12 h-12 rounded border-2 transition-all flex items-center justify-center ${
-      selected
-        ? "bg-blue-600 border-blue-400 text-white"
-        : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-    }`;
+  const baseButtonClass = `${buttonClassName} w-12 h-12 rounded border-2 transition-all flex items-center justify-center ${
+    selected
+      ? "bg-blue-600 border-blue-400 text-white"
+      : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
+  }`;
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === piece.hotkey) {
@@ -75,7 +75,7 @@ export const GamePieceIcon: React.FC<{
     <div className="relative">
       {/* Hotkey icon in corner */}
       {piece.hotkey && (
-        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
+        <div className="absolute bottom-0 right-0 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
           {piece.hotkey}
         </div>
       )}
@@ -86,7 +86,9 @@ export const GamePieceIcon: React.FC<{
         title={title || piece.description || piece.name}
         tabIndex={0}
       >
-        <span className="w-10 h-10 flex items-center justify-center">
+        <span
+          className={`w-10 h-10 flex items-center justify-center ${iconClassName}`}
+        >
           {icon}
         </span>
       </button>

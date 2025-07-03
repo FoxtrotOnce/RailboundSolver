@@ -57,7 +57,7 @@ export const RightPanel: React.FC = () => {
   return (
     <div className="absolute right-2 bottom-2 z-40 flex flex-col gap-3">
       {/* Tool Buttons Section */}
-      <div className="w-40 bg-gray-800 rounded-xl border-2 border-gray-600 p-2 flex flex-col gap-2 shadow-lg items-center">
+      <div className=" bg-gray-800 rounded-xl border-2 border-gray-600 p-2 grid grid-cols-2  gap-2 shadow-lg items-center">
         {toolButtons.map((tool) => (
           <GamePieceIcon
             key={tool.id}
@@ -70,12 +70,14 @@ export const RightPanel: React.FC = () => {
             }
             selected={selectedTool === tool.id}
             title={tool.description || `Tool ${tool.id}`}
+            buttonClassName="w-full h-full aspect-square"
+            iconClassName="w-14 h-14"
           />
         ))}
       </div>
 
       {/* Controls Help Section */}
-      <div className="w-40 p-3 rounded-xl bg-gray-800 border-2 border-gray-600 shadow-lg select-none">
+      <div className="p-3 rounded-xl bg-gray-800 border-2 border-gray-600 shadow-lg select-none">
         <h3 className="text-white text-sm font-semibold mb-2 text-center">
           Controls
         </h3>
