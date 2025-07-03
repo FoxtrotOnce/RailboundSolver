@@ -5,7 +5,6 @@ import {
   TopPanel,
   LeftDisplay,
   Sidebar,
-  SolveLevelDisplay,
   ChangeModNum,
 } from "./components";
 import { useGuiStore, useLevelStore } from "./store";
@@ -97,7 +96,7 @@ export default function App() {
   }, [rotateCW, rotateCCW, togglePalette, showPalette, clearLevel]);
 
   return (
-    <div className="flex h-screen bg-slate-800 relative overflow-hidden">
+    <div className="flex h-screen bg-muted relative overflow-hidden">
       <div
         className={`w-100 relative transition-all duration-300 ${
           showLeftDisplay ? "left-0" : "-left-100"
@@ -116,7 +115,7 @@ export default function App() {
         </div>
         <div
           ref={canvasRef}
-          className="relative flex m-3 justify-center mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
+          className="relative flex m-3 justify-center mt-0 overflow-hidden flex-1 rounded-lg border"
         >
           <div
             className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
@@ -132,7 +131,6 @@ export default function App() {
           <Sidebar />
           <BottomSelectionPanel />
           <RightPanel />
-          <SolveLevelDisplay />
           <GameCanvas />
           {/* TODO: Add selection indicators */}
         </div>

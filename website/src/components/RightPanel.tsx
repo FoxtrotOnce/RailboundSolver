@@ -1,15 +1,30 @@
 import React from "react";
-import { GamePieceIcon } from "./GamePieceIcon";
-import type { GamePiece } from "./GamePieceIcon";
 import {
-  Normal_StraightTrack,
-  Normal_Turn,
+  LeftClick,
   Normal_Fork,
   Normal_Fork2,
-  LeftClick,
+  Normal_StraightTrack,
+  Normal_Turn,
   RightClick,
 } from "../assets/svgs";
 import { useGuiStore } from "../store";
+import type { GamePiece } from "./GamePieceIcon";
+import { GamePieceIcon } from "./GamePieceIcon";
+import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
+
+interface MouseControl {
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+}
+
+interface KeyboardControl {
+  keys: string[];
+  label: string;
+  description: string;
+}
 
 /**
  * RightPanel Component
@@ -54,77 +69,85 @@ export const RightPanel: React.FC = () => {
     },
   ];
 
+  const handleToolSelect = (toolId: string) => {
+    setSelectedTool(selectedTool === toolId ? undefined : toolId);
+  };
+
+  const mouseControls: MouseControl[] = [
+    { icon: LeftClick, label: "Place", description: "Left click to place" },
+    { icon: RightClick, label: "Delete", description: "Right click to delete" },
+  ];
+
+  const keyboardControls: KeyboardControl[] = [
+    { keys: ["Q", "E"], label: "Rotate", description: "Rotate selected piece" },
+    { keys: ["W"], label: "Change Color", description: "Change piece color" },
+    { keys: ["R"], label: "Clear Grid", description: "Reset the grid" },
+  ];
+
   return (
     <div className="absolute right-2 bottom-2 z-40 flex flex-col gap-3">
-      {/* Tool Buttons Section */}
-      <div className=" bg-gray-800 rounded-xl border-2 border-gray-600 p-2 grid grid-cols-2  gap-2 shadow-lg items-center">
-        {toolButtons.map((tool) => (
-          <GamePieceIcon
-            key={tool.id}
-            icon={tool.icon}
-            piece={tool}
-            onClick={() =>
-              selectedTool === tool.id
-                ? setSelectedTool(undefined)
-                : setSelectedTool(tool.id)
-            }
-            selected={selectedTool === tool.id}
-            title={tool.description || `Tool ${tool.id}`}
-            buttonClassName="w-full h-full aspect-square"
-            iconClassName="w-14 h-14"
-          />
-        ))}
-      </div>
+      {/* Tool Selection Panel */}
+      <Card className="p-1">
+        <CardContent className="grid grid-cols-2 gap-2 p-1">
+          {toolButtons.map((tool) => (
+            <GamePieceIcon
+              key={tool.id}
+              icon={tool.icon}
+              piece={tool}
+              onClick={() => handleToolSelect(tool.id)}
+              selected={selectedTool === tool.id}
+              buttonClassName="size-full"
+            />
+          ))}
+        </CardContent>
+      </Card>
 
-      {/* Controls Help Section */}
-      <div className="p-3 rounded-xl bg-gray-800 border-2 border-gray-600 shadow-lg select-none">
-        <h3 className="text-white text-sm font-semibold mb-2 text-center">
-          Controls
-        </h3>
-
-        {/* Mouse Controls */}
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <div className="flex justify-center items-center">
-            <div className="w-6">{LeftClick}</div>
-          </div>
-          <div className="flex items-center text-white text-sm">Place</div>
-
-          <div className="flex justify-center items-center">
-            <div className="w-6">{RightClick}</div>
-          </div>
-          <div className="flex items-center text-white text-sm">Delete</div>
-        </div>
-
-        {/* Keyboard Shortcuts */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex gap-1 items-center justify-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
-              Q
-            </div>
-            <span className="text-white">/</span>
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
-              E
-            </div>
-          </div>
-          <div className="flex items-center text-white text-sm">Rotate</div>
-
-          <div className="flex justify-center items-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
-              W
-            </div>
-          </div>
-          <div className="flex items-center text-white text-sm">
-            Change Color
+      {/* Controls Help Panel */}
+      <Card className="gap-3">
+        <CardHeader>
+          <CardTitle className="text-sm">Controls</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Mouse Controls */}
+          <div className="space-y-2">
+            {mouseControls.map((control, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  {control.icon}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {control.label}
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className="flex justify-center items-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
-              R
-            </div>
+          <Separator />
+
+          {/* Keyboard Controls */}
+          <div className="space-y-2">
+            {keyboardControls.map((control, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {control.keys.map((key, keyIndex) => (
+                    <React.Fragment key={key}>
+                      {keyIndex > 0 && (
+                        <span className="text-xs text-muted-foreground">/</span>
+                      )}
+                      <Badge variant="outline" className="h-6 w-6 p-0 text-xs">
+                        {key}
+                      </Badge>
+                    </React.Fragment>
+                  ))}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {control.label}
+                </span>
+              </div>
+            ))}
           </div>
-          <div className="flex items-center text-white text-sm">Clear Grid</div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

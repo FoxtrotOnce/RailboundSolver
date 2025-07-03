@@ -1,4 +1,6 @@
 import { useLevelStore } from "../store";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 /**
  * TOP PANEL COMPONENT
@@ -33,11 +35,11 @@ export function TopPanel() {
     <div className="absolute left-1/2 transform -translate-x-1/2 top-4 z-4 flex items-center gap-4">
       {/* Grid dimension controls */}
       <div className="flex gap-2 items-center">
-        <input
+        <Input
           type="number"
           min={1}
           max={12}
-          className="text-white bg-gray-600 p-1 rounded border-1 border-gray-500"
+          className="w-16 text-center"
           value={width}
           onChange={(e) => {
             const val = Number(e.target.value);
@@ -47,11 +49,11 @@ export function TopPanel() {
           }}
         />
         <div className="text-white text-lg">x</div>
-        <input
+        <Input
           type="number"
           min={1}
           max={12}
-          className="text-white bg-gray-600 p-1 rounded border-1 border-gray-500"
+          className="w-16 text-center"
           value={height}
           onChange={(e) => {
             const val = Number(e.target.value);
@@ -65,11 +67,11 @@ export function TopPanel() {
       {/* Level constraints */}
       <div className="flex gap-2 items-center whitespace-nowrap">
         <div className="text-white text-sm">Max Tracks:</div>
-        <input
+        <Input
           type="number"
           min={0}
           max={144}
-          className="text-white bg-gray-600 p-1 rounded border-1 border-gray-500"
+          className="w-16 text-center"
           value={levelData?.max_tracks}
           onChange={(e) => {
             const val = Number(e.target.value);
@@ -82,11 +84,11 @@ export function TopPanel() {
 
       <div className="flex gap-2 items-center whitespace-nowrap">
         <div className="text-white text-sm">Max Semaphores:</div>
-        <input
+        <Input
           type="number"
           min={0}
           max={5}
-          className="text-white bg-gray-600 p-1 rounded border-1 border-gray-500"
+          className="w-16 text-center"
           value={levelData?.max_semaphores}
           onChange={(e) => {
             const val = Number(e.target.value);
@@ -99,40 +101,30 @@ export function TopPanel() {
       </div>
 
       {/* Clear grid button */}
-      <button
-        type="button"
-        className="whitespace-nowrap cursor-pointer rounded text-white border-2 border-gray-600 px-3 py-1"
-        onClick={() => clearLevel()}
-      >
+      <Button variant="outline" onClick={() => clearLevel()}>
         Clear Grid
-      </button>
+      </Button>
 
       {/* Undo/Redo buttons */}
       <div className="flex gap-2 items-center">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={undo}
           disabled={undoStack.length === 0}
-          className={`px-3 py-1 rounded border-2 transition-colors ${
-            undoStack.length > 0
-              ? "bg-gray-600 hover:bg-gray-500 text-white border-gray-500"
-              : "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-          }`}
           title="Undo (Ctrl+Z)"
         >
           ←
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={redo}
           disabled={redoStack.length === 0}
-          className={`px-3 py-1 rounded border-2 transition-colors ${
-            redoStack.length > 0
-              ? "bg-gray-600 hover:bg-gray-500 text-white border-gray-500"
-              : "bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-          }`}
           title="Redo (Ctrl+Y)"
         >
           →
-        </button>
+        </Button>
       </div>
     </div>
   );

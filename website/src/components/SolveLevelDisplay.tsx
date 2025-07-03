@@ -3,6 +3,16 @@ import lvls from "../../../levels.json";
 import { useLevelStore } from "../store";
 import type { jsonData } from "../store/levelStore";
 import { useState } from "react";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Separator } from "./ui/separator";
 
 type LevelType = (typeof lvls)[keyof typeof lvls];
 
@@ -21,196 +31,172 @@ for (const key in lvls) {
 
 export const SolveLevelDisplay: React.FC = () => {
   const { loadLevel, levelData } = useLevelStore();
-  const [selectedWorld, setSelectedWorld] = useState('11');
-  const [selectedLevel, setSelectedLevel] = useState('11-8B');
+  const [selectedWorld, setSelectedWorld] = useState("11");
+  const [selectedLevel, setSelectedLevel] = useState("11-8B");
   const [isRunning, setRunningState] = useState(false);
   const [isPaused, setPauseState] = useState(false);
   // In milliseconds
   const [updateRate, setUpdateRate] = useState(1);
 
   // Handle world change
-  const handleWorldChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      setSelectedWorld(e.target.value);
-      setSelectedLevel('')
-    },
-    []
-  );
+  const handleWorldChange = useCallback((value: string) => {
+    setSelectedWorld(value);
+    setSelectedLevel("");
+  }, []);
 
   // Handle level selection
   const handleLevelChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const levelKey = e.target.value;
-      const levelData = worlds.get(selectedWorld)!.get(levelKey);
+    (value: string) => {
+      const levelData = worlds.get(selectedWorld)!.get(value);
 
-      setSelectedLevel(levelKey)
-      loadLevel(levelData as jsonData, levelKey);
+      setSelectedLevel(value);
+      loadLevel(levelData as jsonData, value);
     },
     [selectedWorld, loadLevel]
   );
 
   return (
-    <div className="absolute flex flex-col w-58 gap-2 py-2 px-4 top-30 rounded-lg left-2 bg-gray-800 border-2 border-gray-600 overflow-hidden z-30">
-      <div className="flex justify-center font-bold text-green-400 text-lg">
-        Level Simulation
-      </div>
-      <div className="flex justify-center text-gray-300 text-sm">
-        Current Level: {levelData.name}
-      </div>
-      <div className="flex justify-center flex-row gap-2 pb-2 border-b-2 border-dashed border-gray-600">
-        {/* World Select */}
-        <select
-          className="bg-gray-800 border-2 p-1 w-24 rounded-md border-gray-600 text-white"
-          value={selectedWorld}
-          onChange={handleWorldChange}
-        >
-          {[...worlds.entries()].map(([worldKey]) => (
-            <option key={worldKey} value={worldKey}>
-              World {worldKey}
-            </option>
-          ))}
-        </select>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-center text-lg">Level Simulation</CardTitle>
+        <p className="text-center text-sm text-muted-foreground">
+          Current Level: {levelData.name}
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* World and Level Selection */}
+        <div className="flex gap-2">
+          <Select value={selectedWorld} onValueChange={handleWorldChange}>
+            <SelectTrigger className="flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[...worlds.entries()].map(([worldKey]) => (
+                <SelectItem key={worldKey} value={worldKey}>
+                  World {worldKey}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Level Select */}
-        <select
-          className="bg-gray-800 border-2 p-1 w-24 rounded-md border-gray-600 text-white"
-          onChange={handleLevelChange}
-          value={selectedLevel}
-          defaultValue=""
-        >
-          <option value="" disabled>
-            Select Level
-          </option>
-          {[...worlds.get(selectedWorld)!.entries()].map(([levelKey]) => (
-            <option key={levelKey} value={levelKey}>
-              {levelKey}
-            </option>
-          ))}
-        </select>
-      </div>
-      {/* Update Rate */}
-      <div className="relative flex items-center my-1">
-        <div className="text-gray-300 text-sm">
-          Update Rate: {
-            updateRate < 1000
-            ? updateRate.toString().concat("ms")
-            : (updateRate / 1000).toString().concat("s")
-          }
+          <Select value={selectedLevel} onValueChange={handleLevelChange}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select Level" />
+            </SelectTrigger>
+            <SelectContent>
+              {[...worlds.get(selectedWorld)!.entries()].map(([levelKey]) => (
+                <SelectItem key={levelKey} value={levelKey}>
+                  {levelKey}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <button
-          className="absolute right-0 cursor-pointer border-2 rounded-md border-gray-600 px-2 py-0.5 text-white hover:brightness-85 active:brightness-70"
-          onClick={() => {
-            updateRate === 10000
-            ? setUpdateRate(1)
-            : setUpdateRate(updateRate * 10)
-          }}
-        >
-          Toggle
-        </button>
-      </div>
-      {/* Time Elapsed */}
-      <div className={`relative flex ${
-        isRunning
-        ? isPaused ? "text-yellow-300" : "text-gray-300"
-        : "text-gray-300"
-      }`}>
-        <div>
-          Time Elapsed:
+
+        <Separator />
+
+        {/* Update Rate */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Update Rate:{" "}
+            {updateRate < 1000
+              ? updateRate.toString().concat("ms")
+              : (updateRate / 1000).toString().concat("s")}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (updateRate === 10000) {
+                setUpdateRate(1);
+              } else {
+                setUpdateRate(updateRate * 10);
+              }
+            }}
+          >
+            Toggle
+          </Button>
         </div>
-        <div className="absolute right-0">
-          0.00s
+
+        {/* Time Elapsed */}
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">Time Elapsed:</span>
+          <span className="text-sm">0.00s</span>
         </div>
-      </div>
-      {/* Generation Control */}  
-      <div className="relative flex flex-row gap-2 justify-center">
-        {/* Start Generation */}
-        <button
-          className={`transition-all relative w-fit whitespace-nowrap px-5 py-1 rounded-md border-2 border-green-400 text-green-400 font-semibold ${
-            isRunning
-            ? "opacity-50 cursor-not-allowed"
-            : "opacity-100 cursor-pointer hover:brightness-85 active:brightness-70"
-          }`}
-          onClick={() => !isRunning && setRunningState(true)}
-        >
-          Solve Level
-        </button>
-        {/* Step Generation */}
-        <button
-          className={`transition-all relative w-fit cursor-pointer px-5 py-1 rounded-md border-2 border-blue-400 text-blue-400 font-semibold hover:brightness-85 active:brightness-70 ${
-            null
-          }`}
-          onClick={() => {
-            setRunningState(true)
-            setPauseState(true)
-          }}
-        >
-          Step
-        </button>
-      </div>
-      <div className="relative flex flex-row gap-2 justify-center">
-        {/* Pause/Resume Generation */}
-        <button
-          className={`transition-all cursor-pointer w-fit px-6 py-1 font-semibold rounded-md border-2 hover:brightness-85 active:brightness-70 ${
-            isPaused
-            ? "border-gray-400 text-gray-400"
-            : "border-yellow-400 text-yellow-400"
-          }`}
-          onClick={() => isRunning && setPauseState(!isPaused)}
-        >
-          {isPaused ? "Resume" : "Pause"}
-        </button>
-        {/* Stop Generation */}
-        <button
-          className={`transition-all w-fit px-6 py-1 font-semibold rounded-md border-2 border-red-400 text-red-400 ${
-            isPaused
-            ? "cursor-pointer hover:brightness-85 active:brightness-70"
-            : "opacity-50 cursor-not-allowed"
-          }`}
-          onClick={() => {
-            if (isPaused) {
-              setRunningState(false)
-              setPauseState(false)
-            }}}
-        >
-          Reset
-        </button>
-      </div>
-      {/* Simulation Status */}
-      <div className="relative flex top-1 items-center gap-3 border-t-2 pt-2 pb-1 border-dashed border-gray-600">
-        {/* TODO: animate this so it pulses; animate-pulse isn't good enough. */}
-        <div className={`relative w-4 h-4 rounded-md ${
-          isRunning
-          ? isPaused ? "bg-yellow-400" : "bg-green-400"
-          : "bg-yellow-400"
-        }`}>
-          <div className={`absolute w-4 h-4 rounded-md blur-xs ${
-          isRunning
-          ? isPaused ? "bg-yellow-400" : "bg-green-400"
-          : "bg-yellow-400"
-        }`} />
+
+        {/* Generation Control */}
+        <div className="flex gap-2">
+          <Button
+            variant="default"
+            className="flex-1"
+            onClick={() => !isRunning && setRunningState(true)}
+            disabled={isRunning}
+          >
+            Solve Level
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setRunningState(true);
+              setPauseState(true);
+            }}
+          >
+            Step
+          </Button>
         </div>
-        <div className={`relative font-semibold ${
-          isRunning
-          ? isPaused ? "text-yellow-400" : "text-green-400"
-          : "text-yellow-400"
-        }`}>
-          {/* TODO: animate ellipses */}
-          {
-            isRunning
-            ? isPaused ? "Simulation Paused" : "Running Simulation..."
-            : "Ready to Simulate"
-          }
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => isRunning && setPauseState(!isPaused)}
+          >
+            {isPaused ? "Resume" : "Pause"}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => {
+              if (isPaused) {
+                setRunningState(false);
+                setPauseState(false);
+              }
+            }}
+            disabled={!isPaused}
+          >
+            Reset
+          </Button>
         </div>
-      </div>
-      {/* Stats */}
-      <div>
-        <div className="text-gray-300 text-sm">
-          Step: ?,???,???,???
+
+        {/* Simulation Status */}
+        <div className="flex items-center gap-2 pt-2 border-t">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              isRunning
+                ? isPaused
+                  ? "bg-yellow-500"
+                  : "bg-green-500"
+                : "bg-yellow-500"
+            }`}
+          />
+          <span className="text-sm font-medium">
+            {isRunning
+              ? isPaused
+                ? "Simulation Paused"
+                : "Running Simulation..."
+              : "Ready to Simulate"}
+          </span>
         </div>
-        <div className="text-gray-300 text-sm">
-          Iterations: ?,???,???,???
+
+        {/* Stats */}
+        <div className="space-y-1">
+          <div className="text-sm text-muted-foreground">
+            Step: ?,???,???,???
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Iterations: ?,???,???,???
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
