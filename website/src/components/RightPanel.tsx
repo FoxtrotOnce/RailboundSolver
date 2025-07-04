@@ -57,21 +57,23 @@ export const RightPanel: React.FC = () => {
   return (
     <div className="absolute right-2 bottom-2 z-40 flex flex-col gap-3">
       {/* Tool Buttons Section */}
-      <div className="w-40 bg-gray-800 rounded-xl border-2 border-gray-600 p-2 flex flex-col gap-2 shadow-lg items-center">
-        {toolButtons.map((tool) => (
-          <GamePieceIcon
-            key={tool.id}
-            icon={tool.icon}
-            piece={tool}
-            onClick={() =>
-              selectedTool === tool.id
-                ? setSelectedTool(undefined)
-                : setSelectedTool(tool.id)
-            }
-            selected={selectedTool === tool.id}
-            title={tool.description || `Tool ${tool.id}`}
-          />
-        ))}
+      <div className="flex justify-center">
+        <div className="grid grid-cols-2 grid-rows-2 w-30 bg-gray-800 rounded-xl border-2 border-gray-600 p-2 gap-2 shadow-lg">
+          {toolButtons.map((tool) => (
+            <GamePieceIcon
+              key={tool.id}
+              icon={tool.icon}
+              piece={tool}
+              onClick={() =>
+                selectedTool === tool.id
+                  ? setSelectedTool(undefined)
+                  : setSelectedTool(tool.id)
+              }
+              selected={selectedTool === tool.id}
+              title={tool.description || `Tool ${tool.id}`}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Controls Help Section */}
@@ -96,18 +98,18 @@ export const RightPanel: React.FC = () => {
         {/* Keyboard Shortcuts */}
         <div className="grid grid-cols-2 gap-2">
           <div className="flex gap-1 items-center justify-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
+            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-sm text-white font-bold">
               Q
             </div>
             <span className="text-white">/</span>
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
+            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-sm text-white font-bold">
               E
             </div>
           </div>
           <div className="flex items-center text-white text-sm">Rotate</div>
 
           <div className="flex justify-center items-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
+            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-sm text-white font-bold">
               W
             </div>
           </div>
@@ -116,7 +118,7 @@ export const RightPanel: React.FC = () => {
           </div>
 
           <div className="flex justify-center items-center">
-            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-xs text-white font-bold">
+            <div className="flex w-6 h-6 rounded border-2 border-gray-500 bg-gray-600 items-center justify-center text-sm text-white font-bold">
               R
             </div>
           </div>

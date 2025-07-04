@@ -1,6 +1,8 @@
 import React from "react";
 import { useGuiStore } from "../store";
 
+const accent = "border-violet-400 text-violet-400 accent-violet-400"
+
 export const LeftDisplay: React.FC = () => {
   const { setHyperparams, defaultHyperparams, hyperparameters } = useGuiStore();
   return (
@@ -59,14 +61,14 @@ export const LeftDisplay: React.FC = () => {
             HEATMAP_LIMIT_LIMIT = {hyperparameters.heatmap_limit_limit}
           </div>
           <button
-            className="transition-all absolute cursor-pointer right-0 border-2 rounded border-violet-400 text-violet-400 font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60"
+            className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
             onClick={() =>
               setHyperparams(defaultHyperparams().heatmap_limit_limit)
             }
           >
             Reset
           </button>
-          <div>
+          <div className="text-sm">
             How many times a car can <i>reasonably</i> loop before the generated
             branch is cut.{" "}
             <span className="font-semibold text-red-400">
@@ -75,7 +77,7 @@ export const LeftDisplay: React.FC = () => {
             </span>
           </div>
           <input
-            className="accent-violet-400"
+            className={`relative ${accent} w-full`}
             type="range"
             min="0"
             max="30"
@@ -93,7 +95,7 @@ export const LeftDisplay: React.FC = () => {
             DECOY_HEATMAP_LIMIT = {hyperparameters.decoy_heatmap_limit}
           </div>
           <button
-            className="transition-all absolute cursor-pointer right-0 border-2 rounded border-violet-400 text-violet-400 font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60"
+            className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
             onClick={() =>
               setHyperparams(
                 undefined,
@@ -103,7 +105,7 @@ export const LeftDisplay: React.FC = () => {
           >
             Reset
           </button>
-          <div>
+          <div className="text-sm">
             How many times a decoy can loop before the generated branch is cut.{" "}
             <span className="font-semibold text-red-400">
               Only increase if you know a decoy must loop more than{" "}
@@ -111,7 +113,7 @@ export const LeftDisplay: React.FC = () => {
             </span>
           </div>
           <input
-            className="accent-violet-400"
+            className={accent}
             type="range"
             min="0"
             max="30"
@@ -129,7 +131,7 @@ export const LeftDisplay: React.FC = () => {
             GEN_TYPE = {hyperparameters.gen_type}
           </div>
           <button
-            className="transition-all absolute cursor-pointer right-0 border-2 rounded border-violet-400 text-violet-400 font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60"
+            className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
             onClick={() =>
               setHyperparams(
                 undefined,
@@ -140,7 +142,7 @@ export const LeftDisplay: React.FC = () => {
           >
             Reset
           </button>
-          <div>The tree traversal technique the algorithm uses.</div>
+          <div className="text-sm">The tree traversal technique the algorithm uses.</div>
           <div className="flex flex-row items-center">
             <button
               className="flex cursor-pointer transition-all border-2 rounded w-fit h-fit px-2 border-green-300 text-green-300 font-semibold hover:brightness-80 active:brightness-60"

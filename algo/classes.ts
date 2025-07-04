@@ -39,6 +39,10 @@ export class Track {
     static readonly CAR_ENDING_TRACK_UP = new Track(31)
     static readonly NCAR_ENDING_TRACK_DOWN = new Track(32)
     static readonly NCAR_ENDING_TRACK_UP = new Track(33)
+    static readonly STATION_LEFT = new Track(34)
+    static readonly STATION_RIGHT = new Track(35)
+    static readonly STATION_DOWN = new Track(36)
+    static readonly STATION_UP = new Track(37)
 
     private constructor(readonly value: number) {Track.TRACKS.set(value, this)}
 
@@ -98,6 +102,10 @@ export class Track {
     is_ncar_ending_track(): boolean {
         return ncar_endings.has(this)
     }
+    /** Return if the track is a station. */
+    is_station(): boolean {
+        return stations.has(this)
+    }
     /** Return if there is a placeholder semaphore on the tile. */
     is_placeholder_semaphore(): boolean {
         return normal_tracks.has(this)
@@ -120,6 +128,7 @@ const three_ways = new Set<Track>([
 const tunnels = new Set<Track>([Track.LEFT_FACING_TUNNEL, Track.RIGHT_FACING_TUNNEL, Track.DOWN_FACING_TUNNEL, Track.UP_FACING_TUNNEL])
 const car_endings = new Set<Track>([Track.CAR_ENDING_TRACK_LEFT, Track.CAR_ENDING_TRACK_RIGHT, Track.CAR_ENDING_TRACK_DOWN, Track.CAR_ENDING_TRACK_UP])
 const ncar_endings = new Set<Track>([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT, Track.NCAR_ENDING_TRACK_DOWN, Track.NCAR_ENDING_TRACK_UP])
+const stations = new Set<Track>([Track.STATION_LEFT, Track.STATION_RIGHT, Track.STATION_DOWN, Track.STATION_UP])
 const semaphore_tracks = new Map<Track, Track>([
     [Track.HORIZONTAL_TRACK, Track.SEM_HORIZONTAL_TRACK],
     [Track.VERTICAL_TRACK, Track.SEM_VERTICAL_TRACK],
@@ -441,7 +450,7 @@ export const semaphore_pass = new Map<Track, Direction[]>([
 ])
 /** 
  * directions lists instructions on where to move a car depending on what track it's on, and what direction it's facing.
- * For example, a car on a BOTTOM_RIGHT_TURN and facing UP will move to the RIGHTrack.
+ * For example, a car on a BOTTOM_RIGHT_TURN and facing UP will move to the RIGHT.
  * CRASH indicates that the car will crash, and UNKNOWN indicates
  * the car's movement is not yet determined, but it won't crash.
  */
@@ -449,7 +458,6 @@ export const directions = new Map<Track, Map<Direction, Direction>>([
     [Track.EMPTY, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
     [Track.HORIZONTAL_TRACK, new Map([[Direction.LEFT, Direction.LEFT], [Direction.RIGHT, Direction.RIGHT], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
     [Track.VERTICAL_TRACK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.DOWN], [Direction.UP, Direction.UP]])],
-    [Track.ROADBLOCK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
     [Track.BOTTOM_RIGHT_TURN, new Map([[Direction.LEFT, Direction.DOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.RIGHT]])],
     [Track.BOTTOM_LEFT_TURN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.DOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.LEFT]])],
     [Track.TOP_RIGHT_TURN, new Map([[Direction.LEFT, Direction.UP], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.RIGHT], [Direction.UP, Direction.CRASH]])],
@@ -475,7 +483,13 @@ export const directions = new Map<Track, Map<Direction, Direction>>([
     [Track.NCAR_ENDING_TRACK_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UNKNOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
     [Track.NCAR_ENDING_TRACK_LEFT, new Map([[Direction.LEFT, Direction.UNKNOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
     [Track.NCAR_ENDING_TRACK_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.UNKNOWN], [Direction.UP, Direction.CRASH]])],
-    [Track.NCAR_ENDING_TRACK_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])]
+    [Track.NCAR_ENDING_TRACK_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])],
+    
+    [Track.ROADBLOCK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_LEFT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
 ])
 
 /**  Return every combination of the iterables. */

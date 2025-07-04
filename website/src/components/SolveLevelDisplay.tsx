@@ -50,7 +50,7 @@ export const SolveLevelDisplay: React.FC = () => {
   );
 
   return (
-    <div className="absolute flex flex-col w-58 gap-2 py-2 px-4 top-30 rounded-lg left-2 bg-gray-800 border-2 border-gray-600 overflow-hidden z-30">
+    <div className="absolute flex flex-col w-58 gap-2 py-2 px-4 rounded-lg left-2 bg-gray-800 border-2 border-gray-600 overflow-hidden z-30">
       <div className="flex justify-center font-bold text-green-400 text-lg">
         Level Simulation
       </div>

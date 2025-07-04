@@ -81,7 +81,7 @@ export const useGuiStore = create<GuiState>()(
       // Actions
       setSelectedTool: (tool) => {
         const piece = get().selectedPiece;
-        if (piece === "STATION" || piece === "ROADBLOCK") {
+        if (piece === "ROADBLOCK") {
           set({ selectedTool: undefined }, false, "setSelectedTool");
         } else if (
           piece === "SWITCH_FORK_TRACK" &&

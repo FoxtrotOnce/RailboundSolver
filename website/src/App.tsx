@@ -3,6 +3,7 @@ import {
   GameCanvas,
   RightPanel,
   TopPanel,
+  ParamDisplay,
   LeftDisplay,
   Sidebar,
   SolveLevelDisplay,
@@ -111,12 +112,12 @@ export default function App() {
         }`}
       >
         {/* TOP PANEL - Grid controls and undo/redo */}
-        <div className="relative h-16">
+        {/* <div className="relative h-16">
           <TopPanel />
-        </div>
+        </div> */}
         <div
           ref={canvasRef}
-          className="relative flex m-3 justify-center mt-0 overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
+          className="relative flex items-center m-3 justify-center overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
         >
           <div
             className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
@@ -133,6 +134,7 @@ export default function App() {
           <BottomSelectionPanel />
           <RightPanel />
           <SolveLevelDisplay />
+          <ParamDisplay />
           <GameCanvas />
           {/* TODO: Add selection indicators */}
         </div>

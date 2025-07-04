@@ -15,6 +15,8 @@ export const modColors = [
 
 const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButton = true }) => {
     const { togglePalette, setSelectedModNum, selectedPiece } = useGuiStore();
+    const colorableMods = new Set<string>(["SWITCH", "OPEN_GATE", "CLOSED_GATE", "SWITCH_FORK_TRACK", "TUNNEL"])
+
     return (
         <div className={`transition-all p-1 border-2 rounded-lg bg-gray-800 border-gray-600 ${
             isButton && "hover:bg-gray-700 hover:border-gray-400"
@@ -35,7 +37,7 @@ const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButto
                 }}
                 tabIndex={0}
             >
-                {selectedPiece &&
+                {selectedPiece && colorableMods.has(selectedPiece) &&
                 <div className="absolute inset-0">
                     {piecesById.get(selectedPiece)!.icon}
                 </div>}

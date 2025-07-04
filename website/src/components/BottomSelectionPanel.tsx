@@ -65,13 +65,13 @@ const GAME_PIECES: GamePiece[][] = [
       id: "OPEN_GATE",
       name: "Place Open Gate",
       description: "Place Open Gate",
-      icon: Open_Gate
+      icon: <div className="rotate-270">{Open_Gate}</div>
     },
         {
       id: "CLOSED_GATE",
       name: "Place Closed Gate",
       description: "Place Closed Gate",
-      icon: Closed_Gate
+      icon: <div className="rotate-270">{Closed_Gate}</div>
     },
     {
       id: "SWITCH_FORK_TRACK",

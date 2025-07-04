@@ -9,13 +9,13 @@ import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
 export interface LevelData {
   id: string;
   name?: string;
-  grid: GridTile[][];
+  grid: GridCell[][];
   car_nums: Map<CarType, boolean[]>;
   next_nums: Map<CarType, number>;
   width: number;
   height: number;
-  max_tracks?: number;
-  max_semaphores?: number;
+  max_tracks: number;
+  max_semaphores: number;
   metadata?: Record<string, unknown>;
   createdAt?: number;
   modifiedAt?: number;
@@ -38,7 +38,7 @@ export interface jsonData {
 /**
  * Individual grid cell in the level
  */
-export interface GridTile {
+export interface GridCell {
   car: Car | undefined;
   track: Track;
   mod: Mod;
@@ -208,7 +208,7 @@ interface LevelState {
   /**
    * Get piece at specific grid coordinates
    */
-  getPieceAt: (x: number, y: number) => GridTile | null;
+  getPieceAt: (x: number, y: number) => GridCell | null;
 
   /**
    * Clear entire level (remove all pieces)
@@ -242,7 +242,7 @@ interface LevelState {
 const createEmptyGrid = (
   width: number = 12,
   height: number = 12
-): GridTile[][] => {
+): GridCell[][] => {
   return Array(height)
     .fill(null)
     .map(() =>
@@ -372,7 +372,7 @@ export const useLevelStore = create<LevelState>()(
 
         const grid = levelData.grid;
 
-        const newGrid: GridTile[][] = [];
+        const newGrid: GridCell[][] = [];
         for (let i = 0; i < dims.y; i++) {
           newGrid.push([]);
           for (let j = 0; j < dims.x; j++) {
@@ -563,7 +563,7 @@ export const useLevelStore = create<LevelState>()(
         const { levelData } = get();
         const placing_car = cartype !== undefined;
         const placing_track = track !== undefined;
-        if (!levelData || !levelData.grid) return;
+        if (!levelData || !levelData.grid || (cartype === undefined && track.is_empty() && mod === Mod.EMPTY)) return;
 
         const grid = levelData.grid;
         let car = undefined;
@@ -575,12 +575,11 @@ export const useLevelStore = create<LevelState>()(
         // Make sure the placement is legal
         if (
           // First statement prevents any mod from being placed on anything that isn't a normal track
-          // EXCEPT for stations/tunnels since they ignore this rule.
-          (((mod !== Mod.EMPTY && mod !== Mod.STATION && mod !== Mod.TUNNEL) || placing_car) &&
+          // EXCEPT for tunnels since they ignore this rule.
+          (((mod !== Mod.EMPTY && mod !== Mod.TUNNEL) || placing_car) &&
             !track.is_straight() &&
             !track.is_turn() &&
-            !track.is_3way()) ||
-          (mod === Mod.STATION && !track.is_empty())
+            !track.is_3way())
         ) {
           return;
         }
@@ -606,7 +605,7 @@ export const useLevelStore = create<LevelState>()(
         }
 
         const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex): GridTile => {
+          row.map((cell, colIndex): GridCell => {
             if (rowIndex === y && colIndex === x) {
               return {
                 car: car,
@@ -648,7 +647,7 @@ export const useLevelStore = create<LevelState>()(
         }
 
         const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex): GridTile => {
+          row.map((cell, colIndex): GridCell => {
             if (rowIndex === y && colIndex === x) {
               return {
                 car: undefined,
@@ -696,7 +695,7 @@ export const useLevelStore = create<LevelState>()(
         }
 
         const newGrid = grid.map((row, rowIndex) =>
-          row.map((cell, colIndex): GridTile => {
+          row.map((cell, colIndex): GridCell => {
             if (rowIndex === y && colIndex === x) {
               return {
                 car: undefined,
