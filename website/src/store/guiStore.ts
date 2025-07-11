@@ -4,14 +4,30 @@ import { devtools } from "zustand/middleware";
 // NOTE: THE ROTATE NUMBER SEEM WRONG, it better if it 0:left, 1:up, 2:right, 3:down
 
 // Generation parameters
-interface Hyperparameters {
+export interface Hyperparameters {
   heatmap_limit_limit: number;
   decoy_heatmap_limit: number;
   gen_type: "DFS" | "BFS";
   visualize_rate: number;
 }
+// Website palette
+interface Colors {
+  background: string;
+  base: string;
+  highlight: string;
+  border: string;
+  border_fill: string;
+  button_highlight_text: string;
+  text: string;
+  warning: string;
+  link: string;
+  mods: { currentColor: string, style: string }[]
+}
 
 interface GuiState {
+  // Color Design
+  colors: Colors;
+
   // Tool & piece selection
   selectedTool: string | undefined;
   selectedPiece: string | undefined;
@@ -45,7 +61,7 @@ interface GuiState {
     gen_type?: "DFS" | "BFS",
     visualize_rate?: number
   ) => void;
-  defaultHyperparams: () => Hyperparameters;
+  getDefaultHyperparams: () => Hyperparameters;
   toggleGrid: () => void;
   setGridSize: (size: number) => void;
   toggleToolPanel: () => void;
@@ -66,6 +82,27 @@ export const useGuiStore = create<GuiState>()(
   devtools(
     (set, get) => ({
       // Initial state
+      colors: {
+        background: "bg-gray-900",
+        base: "bg-gray-800",
+        highlight: "bg-gray-600",
+        border: "border-gray-500",
+        border_fill: "bg-gray-500",
+        button_highlight_text: "text-gray-800",
+        text: "text-white",
+        warning: "text-red-400",
+        link: "cursor-pointer text-blue-400 hover:underline",
+        mods: [
+          { currentColor: "text-red-500", style: "bg-red-500" },
+          { currentColor: "text-yellow-400", style: "bg-yellow-400" },
+          { currentColor: "text-green-500", style: "bg-green-500" },
+          { currentColor: "text-blue-500", style: "bg-blue-500" },
+          { currentColor: "text-violet-500", style: "bg-violet-500" },
+          { currentColor: "text-pink-400", style: "bg-pink-400" },
+          { currentColor: "text-gray-200", style: "bg-gray-200" },
+          { currentColor: "text-slate-500", style: "bg-slate-500" },
+        ]
+      },
       selectedTool: undefined,
       selectedPiece: undefined,
       selectedModNum: 0,
@@ -139,7 +176,7 @@ export const useGuiStore = create<GuiState>()(
         }
         set({ hyperparameters: hyperparameters }, false, "setHyperparams");
       },
-      defaultHyperparams: () => {
+      getDefaultHyperparams: () => {
         return createHyperparams();
       },
       setRotation: (rotation) => {

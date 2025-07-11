@@ -2,21 +2,8 @@ import React from "react";
 import { useGuiStore } from "../store";
 import { piecesById } from "./BottomSelectionPanel";
 
-export const modColors = [
-    { currentColor: "text-red-500", style: "bg-red-500 border-red-600" },
-    { currentColor: "text-yellow-400", style: "bg-yellow-400 border-yellow-500" },
-    { currentColor: "text-green-500", style: "bg-green-500 border-green-600" },
-    { currentColor: "text-blue-500", style: "bg-blue-500 border-blue-600" },
-    { currentColor: "text-violet-500", style: "bg-violet-500 border-violet-600" },
-    { currentColor: "text-pink-400", style: "bg-pink-400 border-pink-500" },
-    { currentColor: "text-gray-200", style: "bg-gray-200 border-gray-300" },
-    { currentColor: "text-slate-500", style: "bg-slate-500 border-slate-600" },
-]
-
 const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButton = true }) => {
-    const { togglePalette, setSelectedModNum, selectedPiece } = useGuiStore();
-    const colorableMods = new Set<string>(["SWITCH", "OPEN_GATE", "CLOSED_GATE", "SWITCH_FORK_TRACK", "TUNNEL"])
-
+    const { colors, togglePalette, setSelectedModNum, selectedPiece } = useGuiStore();
     return (
         <div className={`transition-all p-1 border-2 rounded-lg bg-gray-800 border-gray-600 ${
             isButton && "hover:bg-gray-700 hover:border-gray-400"
@@ -25,9 +12,9 @@ const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButto
                 className={`relative inset-0 w-10 h-10 border-2 rounded ${
                     isButton && "cursor-pointer"
                 } ${
-                    modColors[idx].currentColor
+                    colors.mods[idx].currentColor
                 } ${
-                    modColors[idx].style
+                    colors.mods[idx].style
                 }`}
                 onClick={() => {
                     if (isButton) {
@@ -37,7 +24,7 @@ const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButto
                 }}
                 tabIndex={0}
             >
-                {selectedPiece && colorableMods.has(selectedPiece) &&
+                {selectedPiece &&
                 <div className="absolute inset-0">
                     {piecesById.get(selectedPiece)!.icon}
                 </div>}
@@ -47,7 +34,7 @@ const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButto
 }
 
 export const ChangeModNum: React.FC = () => {
-    const { showPalette, selectedModNum } = useGuiStore()    
+    const { colors, showPalette, selectedModNum } = useGuiStore()    
 
     return (
         <div className="absolute z-40 transition-all duration-300">
@@ -55,12 +42,12 @@ export const ChangeModNum: React.FC = () => {
                 <ColorIcon idx={selectedModNum} isButton={false} />
             </div>
             <div className="absolute inset-0 transition-all duration-300" style={{transform: `rotate(${(Number(showPalette) * -90).toString()}deg)`}}>
-                {modColors.map((_, idx) => (
+                {colors.mods.map((_, idx) => (
                     <div
                         className="absolute transition-all duration-300"
                         style={{
-                            left: Math.cos((idx * 2 * Math.PI) / modColors.length) * Number(showPalette) * 100,
-                            top: Math.sin((idx * 2 * Math.PI) / modColors.length) * Number(showPalette) * 100,
+                            left: Math.cos((idx * 2 * Math.PI) / colors.mods.length) * Number(showPalette) * 100,
+                            top: Math.sin((idx * 2 * Math.PI) / colors.mods.length) * Number(showPalette) * 100,
                             transform: `rotate(${(Number(showPalette) * 90).toString()}deg)`,
                         }}
                     >

@@ -1,7 +1,6 @@
 import React from "react";
 import type { GamePiece } from "./GamePieceIcon";
 import { GamePieceIcon } from "./GamePieceIcon";
-import { modColors } from "./ChangeModNum";
 
 /**
  * BottomSelectionPanel Component
@@ -122,7 +121,7 @@ GAME_PIECES.forEach((group) => (
  * Game pieces are now hardcoded in the component.
  */
 export const BottomSelectionPanel: React.FC = () => {
-  const { selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
+  const { colors, selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
     <div className="absolute flex justify-center bottom-2 z-40">
@@ -137,7 +136,7 @@ export const BottomSelectionPanel: React.FC = () => {
               <GamePieceIcon
                 key={piece.id}
                 icon={
-                  <div className={modColors[selectedModNum].currentColor}>
+                  <div className={colors.mods[selectedModNum].currentColor}>
                     {piece.icon}
                   </div>
                 }

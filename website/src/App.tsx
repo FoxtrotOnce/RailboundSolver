@@ -1,13 +1,13 @@
 import {
-  BottomSelectionPanel,
-  GameCanvas,
-  RightPanel,
-  TopPanel,
-  ParamDisplay,
+  // BottomSelectionPanel,
+  // GameCanvas,
+  // RightPanel,
+  // TopPanel,
+  // ParamDisplay,
   LeftDisplay,
-  Sidebar,
-  SolveLevelDisplay,
-  ChangeModNum,
+  // Sidebar,
+  // SolveLevelDisplay,
+  // ChangeModNum,
 } from "./components";
 import { useGuiStore, useLevelStore } from "./store";
 
@@ -50,7 +50,7 @@ import { useEffect, useState, useRef } from "react";
  */
 
 export default function App() {
-  const { rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } =
+  const { colors, rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } =
     useGuiStore();
   const { clearLevel } = useLevelStore();
   const currMousePos = useRef({ x: 0, y: 0 });
@@ -98,47 +98,50 @@ export default function App() {
   }, [rotateCW, rotateCCW, togglePalette, showPalette, clearLevel]);
 
   return (
-    <div className="flex h-screen bg-slate-800 relative overflow-hidden">
-      <div
-        className={`w-100 relative transition-all duration-300 ${
-          showLeftDisplay ? "left-0" : "-left-100"
-        }`}
-      >
-        <LeftDisplay />
-      </div>
-      <div
-        className={`relative flex flex-1 flex-col transition-all duration-300 ${
-          showLeftDisplay ? "ml-0" : "-ml-100"
-        }`}
-      >
-        {/* TOP PANEL - Grid controls and undo/redo */}
-        {/* <div className="relative h-16">
-          <TopPanel />
-        </div> */}
-        <div
-          ref={canvasRef}
-          className="relative flex items-center m-3 justify-center overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
-        >
-          <div
-            className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
-              showPalette ? "scale-100" : "scale-1"
-            }`}
-            style={{
-              left: lastMousePos.x,
-              top: lastMousePos.y,
-            }}
-          >
-            <ChangeModNum />
-          </div>
-          <Sidebar />
-          <BottomSelectionPanel />
-          <RightPanel />
-          <SolveLevelDisplay />
-          <ParamDisplay />
-          <GameCanvas />
-          {/* TODO: Add selection indicators */}
-        </div>
-      </div>
+    // <div className="flex h-screen bg-slate-800 relative overflow-hidden">
+    //   <div
+    //     className={`w-100 relative transition-all duration-300 ${
+    //       showLeftDisplay ? "left-0" : "-left-100"
+    //     }`}
+    //   >
+    //     <LeftDisplay />
+    //   </div>
+    //   <div
+    //     className={`relative flex flex-1 flex-col transition-all duration-300 ${
+    //       showLeftDisplay ? "ml-0" : "-ml-100"
+    //     }`}
+    //   >
+    //     {/* TOP PANEL - Grid controls and undo/redo */}
+    //     {/* <div className="re lative h-16">
+    //       <TopPanel />
+    //     </div> */}
+    //     <div
+    //       ref={canvasRef}
+    //       className="relative flex items-center m-3 justify-center overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
+    //     >
+    //       <div
+    //         className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
+    //           showPalette ? "scale-100" : "scale-1"
+    //         }`}
+    //         style={{
+    //           left: lastMousePos.x,
+    //           top: lastMousePos.y,
+    //         }}
+    //       >
+    //         <ChangeModNum />
+    //       </div>
+    //       <Sidebar />
+    //       <BottomSelectionPanel />
+    //       <RightPanel />
+    //       <SolveLevelDisplay />
+    //       <ParamDisplay />
+    //       <GameCanvas />
+    //       {/* TODO: Add selection indicators */}
+    //     </div>
+    //   </div>
+    // </div>
+    <div className={`relative flex flex-row w-screen h-screen ${colors.background} p-4 font-[Ubuntu] leading-[1.25rem]`}>
+      <LeftDisplay />
     </div>
   );
 }

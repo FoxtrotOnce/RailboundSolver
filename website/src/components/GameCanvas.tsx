@@ -1,4 +1,4 @@
-// import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
 // import CarImg from "../assets/Car 1.svg";
@@ -69,7 +69,8 @@ function FenceConnector({ pos }: { pos: { x: number; y: number } }) {
 
 export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { showGrid, gridSize } = useGuiStore();
-  const { levelData } = useLevelStore();
+  const { setDims, levelData } = useLevelStore();
+  const resizerGrabbed = useRef(-1)
   const { width, height } = levelData;
 
   // const [currentCarPos, setCurrentCarPos] = useState(carPos[0]);
@@ -83,39 +84,136 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   //   }, 500);
   //   return () => clearInterval(interval);
   // }, []);
+  useEffect(() => {
+    const handleMouseUp = (e: MouseEvent) => {
+      resizerGrabbed.current = -1
+    }
+    const handleMouseMove = (e: MouseEvent) => {
+      
+    }
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove)
+    };
+  }, [])
+
+  const ResizeGrabber: React.FC<{
+    idx: number;
+    className: string;
+    d: string;
+  }> = ({ idx, className, d }) => {    
+    const changeDims = () => {
+      if (resizerGrabbed.current === idx) {
+        console.log(d)
+      }
+    }
+
+    return (
+      <path
+        className={className}
+        onMouseDown={() => resizerGrabbed.current = idx}
+        onMouseMove={() => changeDims()}
+        // Don't need to specify onMouseUp because it's handled globally
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1"
+        d={d}
+      />
+    )
+  }
 
   return (
-    <div className="absolute inset-0 flex flex-row items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
-      {/* Grid pattern overlay */}
-      <div
-        className={`grid z-10 ${
-          showGrid ? "border-t border-l border-gray-400" : ""
-        }`}
-        style={{
-          gridTemplateColumns: `repeat(${width}, ${gridSize}px)`,
-          gridTemplateRows: `repeat(${height}, ${gridSize}px)`,
-        }}
+    <div className="absolute inset-0 flex flex-row items-center justify-center bg-gray-900">
+      {/* Grid Resizing Grabbers */}
+      <svg
+        className="absolute text-gray-200 w-126 h-126"
+        viewBox="0 0 100 100"
       >
-        {levelData.grid.map((row, idx) =>
-          row.map((tile, jdx) => (
-            <div
-              key={`${idx}-${jdx}`}
-              className="relative border-b border-r border-gray-400"
-            >
-              <GridTile
-                pos={{ y: idx, x: jdx }}
-                car={tile.car}
-                track={tile.track}
-                mod={tile.mod}
-                mod_num={tile.mod_num}
-              />
-              <FenceConnector pos={{ y: idx, x: jdx }} />
-              {/* {idx === currentCarPos.y && jdx === currentCarPos.x ? (
-                <Car rotate={currentCarPos.rotate} carId="1" />
-              ) : null} */}
-            </div>
-          ))
-        )}
+        {/* Top-Left */}
+        <ResizeGrabber
+          idx={0}
+          className="cursor-nw-resize"
+          d="m1.2 6.2l0 -5l5 0"
+        />
+        {/* Top */}
+        <ResizeGrabber
+          idx={1}
+          className="cursor-n-resize"
+          d="m46 1.2l8 0"
+        />
+        {/* Top-Right */}
+        <ResizeGrabber
+          idx={2}
+          className="cursor-ne-resize"
+          d="m93.8 1.2l5 0l0 5"
+        />
+        {/* Left */}
+        <ResizeGrabber
+          idx={3}
+          className="cursor-w-resize"
+          d="m1.2 46l0 8"
+        />
+        {/* Right */}
+        <ResizeGrabber
+          idx={4}
+          className="cursor-e-resize"
+          d="m98.8 46l0 8"
+        />
+        {/* Bottom-Left */}
+        <ResizeGrabber
+          idx={5}
+          className="cursor-sw-resize"
+          d="m1.2 93.8l0 5l5 0"
+        />
+        {/* Bottom */}
+        <ResizeGrabber
+          idx={6}
+          className="cursor-s-resize"
+          d="m46 98.8l8 0"
+        />
+        {/* Bottom-Right */}
+        <ResizeGrabber
+          idx={7}
+          className="cursor-se-resize"
+          d="m93.8 98.8l5 0l0 -5"
+        />
+      </svg>
+      {/* Grid pattern overlay */}
+      <div className="relative">
+        <div
+          className={`grid z-10 ${
+            showGrid ? "border-t border-l border-gray-400" : ""
+          }`}
+          style={{
+            gridTemplateColumns: `repeat(${width}, ${gridSize}px)`,
+            gridTemplateRows: `repeat(${height}, ${gridSize}px)`,
+          }}
+        >
+          {levelData.grid.map((row, idx) =>
+            row.map((tile, jdx) => (
+              <div
+                key={`${idx}-${jdx}`}
+                className="relative border-b border-r border-gray-400"
+              >
+                <GridTile
+                  pos={{ y: idx, x: jdx }}
+                  car={tile.car}
+                  track={tile.track}
+                  mod={tile.mod}
+                  mod_num={tile.mod_num}
+                />
+                <FenceConnector pos={{ y: idx, x: jdx }} />
+                {/* {idx === currentCarPos.y && jdx === currentCarPos.x ? (
+                  <Car rotate={currentCarPos.rotate} carId="1" />
+                ) : null} */}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
