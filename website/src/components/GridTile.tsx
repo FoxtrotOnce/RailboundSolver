@@ -289,7 +289,7 @@ export const GridTile: React.FC<{
   mod_num?: number;
 }> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { colors, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
+  const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
   const { placePiece, removePiece, removeModorCar, registryFilled, levelData } =
     useLevelStore();
 
@@ -382,7 +382,7 @@ export const GridTile: React.FC<{
         className={`absolute inset-0 ${getRotationClass(
           TrackRotations.get(track)!
         )} ${
-          colors.mods[mod_num].currentColor
+          styles.mods[mod_num].as_text()
         }`}
       >
         {track.is_station()
@@ -396,7 +396,7 @@ export const GridTile: React.FC<{
           mod !== Mod.STATION && mod !== Mod.POST_OFFICE &&
           getRotationClass(TrackRotations.get(track)!)
         } ${
-          colors.mods[mod_num].currentColor
+          styles.mods[mod_num].as_text()
         }`}
       >
         {mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
@@ -420,7 +420,7 @@ export const GridTile: React.FC<{
             ? getRotationClass(TrackRotations.get(selected_track)!)
             : "rotate-0"
         } ${
-          colors.mods[selectedModNum].currentColor
+          styles.mods[selectedModNum].as_text()
         }`}
       >
         {selected_track && isHovered && TrackIcons.get(selected_track)}
@@ -432,7 +432,7 @@ export const GridTile: React.FC<{
           ? getRotationClass(TrackRotations.get(selected_track)!)
           : "rotate-0"
         } ${
-          colors.mods[selectedModNum].currentColor
+          styles.mods[selectedModNum].as_text()
         }`}
       >
         {selected_mod && isHovered && (

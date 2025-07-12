@@ -1,10 +1,11 @@
 import {
-  // BottomSelectionPanel,
-  // GameCanvas,
+  BottomSelectionPanel,
+  GameCanvas,
   // RightPanel,
   // TopPanel,
   // ParamDisplay,
   LeftDisplay,
+  ProgressBar,
   // Sidebar,
   // SolveLevelDisplay,
   // ChangeModNum,
@@ -50,23 +51,17 @@ import { useEffect, useState, useRef } from "react";
  */
 
 export default function App() {
-  const { colors, rotateCW, rotateCCW, showLeftDisplay, showPalette, togglePalette } =
+  const { styles, rotateCW, rotateCCW, showPalette, togglePalette } =
     useGuiStore();
   const { clearLevel } = useLevelStore();
   const currMousePos = useRef({ x: 0, y: 0 });
   // lastMousePos is used to show the location of the palette
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const paletteRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (canvasRef.current !== null) {
-        const rect = canvasRef.current.getBoundingClientRect();
-        currMousePos.current = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        };
-      }
+      currMousePos.current = {x: e.clientX, y: e.clientY}
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -97,6 +92,7 @@ export default function App() {
     };
   }, [rotateCW, rotateCCW, togglePalette, showPalette, clearLevel]);
 
+  // PS: z-0 = Default, z-10 = LeftDisplay?
   return (
     // <div className="flex h-screen bg-slate-800 relative overflow-hidden">
     //   <div
@@ -119,17 +115,6 @@ export default function App() {
     //       ref={canvasRef}
     //       className="relative flex items-center m-3 justify-center overflow-hidden flex-1 rounded-lg border-2 border-gray-600"
     //     >
-    //       <div
-    //         className={`absolute flex items-center justify-center z-80 transition-transform duration-300 ${
-    //           showPalette ? "scale-100" : "scale-1"
-    //         }`}
-    //         style={{
-    //           left: lastMousePos.x,
-    //           top: lastMousePos.y,
-    //         }}
-    //       >
-    //         <ChangeModNum />
-    //       </div>
     //       <Sidebar />
     //       <BottomSelectionPanel />
     //       <RightPanel />
@@ -140,8 +125,42 @@ export default function App() {
     //     </div>
     //   </div>
     // </div>
-    <div className={`relative flex flex-row w-screen h-screen ${colors.background} p-4 font-[Ubuntu] leading-[1.25rem]`}>
+    <div className={`flex flex-row w-screen h-screen ${styles.background.as_bg()} p-4 font-[Ubuntu] leading-[1.25rem]`}>
       <LeftDisplay />
+      <div className={`flex flex-col flex-1 gap-6`}>
+        {/* Top (Progress Bar) */}
+        <div className={`flex flex-row justify-center`}>
+          <ProgressBar />
+        </div>
+        {/* Middle (Grid) */}
+        <div className={`flex flex-row w-full`}>
+          {/* Left (Grid Buttons) */}
+          <div className={`flex flex-row w-full h-full pr-4 justify-end`}>
+
+          </div>
+          {/* Center (Grid) */}
+          <GameCanvas />
+          {/* Right (RightToolPanel) */}
+          <div className={`flex flex-row w-full h-full pl-16 items-center`}>
+
+          </div>
+        </div>
+        {/* Bottom (BottomSelectionPanel) */}
+        <div className={`flex flex-row justify-center`}>
+          <BottomSelectionPanel />
+        </div>
+      </div>
+      {/* <div
+        className={`absolute transition-transform duration-3000 ${
+          showPalette ? "scale-100" : "scale-0"
+        }`}
+        style={{
+          left: lastMousePos.x - 25,
+          top: lastMousePos.y - 25,
+        }}
+      >
+        <ChangeModNum />
+      </div> */}
     </div>
   );
 }

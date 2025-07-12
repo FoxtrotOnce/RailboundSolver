@@ -8,5 +8,6 @@ export { TopPanel } from "./TopPanel";
 export { GameCanvas } from "./GameCanvas";
 export { GridTile } from "./GridTile";
 export { ParamDisplay } from "./ParamDisplay";
+export { ProgressBar } from "./ProgressBar";
 export { SolveLevelDisplay } from "./SolveLevelDisplay";
 export type { GamePiece } from "../components/GamePieceIcon";

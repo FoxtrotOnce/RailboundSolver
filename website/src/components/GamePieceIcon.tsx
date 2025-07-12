@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useGuiStore } from "../store";
 
 /**
  * GamePiece Interface
@@ -39,57 +40,56 @@ export interface GamePiece {
  * Used in both BottomSelectionPanel and RightToolPanel for consistent icon rendering.
  */
 export const GamePieceIcon: React.FC<{
-  piece: GamePiece;
-  icon: React.ReactNode;
-  onClick?: () => void;
-  selected?: boolean;
-  buttonClassName?: string;
-  title?: string;
-}> = ({
-  piece,
-  icon,
-  onClick,
-  selected = false,
-  buttonClassName = "",
-  title,
-}) => {
-  const baseButtonClass =
-    buttonClassName ||
-    `w-12 h-12 rounded border-2 transition-all flex items-center justify-center ${
-      selected
-        ? "bg-blue-600 border-blue-400 text-white"
-        : "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
-    }`;
+  piece: GamePiece
+  onClick: () => void
+}> = ({piece, onClick}) => {
+  const { styles, selectedModNum, selectedPiece, selectedTool } = useGuiStore()
+  const selected = selectedPiece === piece.id || selectedTool === piece.id
+
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const keydown = (event: KeyboardEvent) => {
       if (event.key === piece.hotkey) {
-        if (onClick) onClick();
+        onClick();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClick, piece.hotkey]);
+    window.addEventListener("keydown", keydown)
+    return () => {
+      window.removeEventListener("keydown", keydown)
+    }
+  });
 
   return (
-    <div className="relative">
-      {/* Hotkey icon in corner */}
-      {piece.hotkey && (
-        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
-          {piece.hotkey}
-        </div>
-      )}
+    <div className={`transition-all flex items-center justify-center p-1 rounded-[0.25rem] ${
+      selected && styles.highlight.as_bg()
+    }`}>
       <button
-        type="button"
-        className={baseButtonClass}
+        className={`w-10 h-10 cursor-pointer ${
+          styles.mods[selectedModNum].as_text()
+        }`}
         onClick={onClick}
-        title={title || piece.description || piece.name}
-        tabIndex={0}
       >
-        <span className="w-10 h-10 flex items-center justify-center">
-          {icon}
-        </span>
+        {piece.icon}
       </button>
     </div>
+    // <div className="relative">
+    //   {/* Hotkey icon in corner */}
+    //   {piece.hotkey && (
+    //     <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
+    //       {piece.hotkey}
+    //     </div>
+    //   )}
+    //   <button
+    //     type="button"
+    //     className={baseButtonClass}
+    //     onClick={onClick}
+    //     title={title || piece.description || piece.name}
+    //     tabIndex={0}
+    //   >
+    //     <span className="w-10 h-10 flex items-center justify-center">
+    //       {icon}
+    //     </span>
+    //   </button>
+    // </div>
   );
 };

@@ -10,23 +10,54 @@ export interface Hyperparameters {
   gen_type: "DFS" | "BFS";
   visualize_rate: number;
 }
-// Website palette
-interface Colors {
-  background: string;
-  base: string;
-  highlight: string;
-  border: string;
-  border_fill: string;
-  button_highlight_text: string;
-  text: string;
-  warning: string;
-  link: string;
-  mods: { currentColor: string, style: string }[]
+// Website palette. Colors are provided as properties, and are obtained via Styles.[property].as_[bg/text/border]().
+class Styles {
+  static readonly background = new Styles("gray-900")
+  static readonly base = new Styles("gray-800")
+  static readonly highlight = new Styles("gray-600")
+  static readonly border = new Styles("gray-500")
+  static readonly text = new Styles("white")
+  static readonly warning = new Styles("red-400")
+  static readonly link = new Styles("cursor-pointer text-blue-400 hover:underline", false)
+  static readonly mods = [
+    new Styles("red-500"),
+    new Styles("yellow-400"),
+    new Styles("green-500"),
+    new Styles("blue-500"),
+    new Styles("violet-500"),
+    new Styles("pink-400"),
+    new Styles("gray-200"),
+    new Styles("slate-500"),
+  ]
+
+  private constructor(public value: string, private isStylable=true) {}
+
+  as_bg(): string {
+    if (this.isStylable) {
+      return "bg-".concat(this.value)
+    } else {
+      return this.value
+    }
+  }
+  as_text(): string {
+    if (this.isStylable) {
+      return "text-".concat(this.value)
+    } else {
+      return this.value
+    }
+  }
+  as_border(): string {
+    if (this.isStylable) {
+      return "border-".concat(this.value)
+    } else {
+      return this.value
+    }
+  }
 }
 
 interface GuiState {
   // Color Design
-  colors: Colors;
+  styles: typeof Styles;
 
   // Tool & piece selection
   selectedTool: string | undefined;
@@ -82,27 +113,7 @@ export const useGuiStore = create<GuiState>()(
   devtools(
     (set, get) => ({
       // Initial state
-      colors: {
-        background: "bg-gray-900",
-        base: "bg-gray-800",
-        highlight: "bg-gray-600",
-        border: "border-gray-500",
-        border_fill: "bg-gray-500",
-        button_highlight_text: "text-gray-800",
-        text: "text-white",
-        warning: "text-red-400",
-        link: "cursor-pointer text-blue-400 hover:underline",
-        mods: [
-          { currentColor: "text-red-500", style: "bg-red-500" },
-          { currentColor: "text-yellow-400", style: "bg-yellow-400" },
-          { currentColor: "text-green-500", style: "bg-green-500" },
-          { currentColor: "text-blue-500", style: "bg-blue-500" },
-          { currentColor: "text-violet-500", style: "bg-violet-500" },
-          { currentColor: "text-pink-400", style: "bg-pink-400" },
-          { currentColor: "text-gray-200", style: "bg-gray-200" },
-          { currentColor: "text-slate-500", style: "bg-slate-500" },
-        ]
-      },
+      styles: Styles,
       selectedTool: undefined,
       selectedPiece: undefined,
       selectedModNum: 0,

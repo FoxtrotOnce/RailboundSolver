@@ -121,37 +121,28 @@ GAME_PIECES.forEach((group) => (
  * Game pieces are now hardcoded in the component.
  */
 export const BottomSelectionPanel: React.FC = () => {
-  const { colors, selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
+  const { styles, selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
-    <div className="absolute flex justify-center bottom-2 z-40">
-      <div className="flex gap-4">
-        {/* Render each group of pieces */}
-        {pieces.map((group, idx) => (
-          <div
-            key={idx}
-            className="relative flex items-center gap-1 bg-gray-800 rounded-lg p-2 border-2 border-gray-600"
-          >
-            {group.map((piece) => (
-              <GamePieceIcon
-                key={piece.id}
-                icon={
-                  <div className={colors.mods[selectedModNum].currentColor}>
-                    {piece.icon}
-                  </div>
-                }
-                piece={piece}
-                onClick={() => 
-                  selectedPiece === piece.id ?
-                  setSelectedPiece(undefined) :
-                  setSelectedPiece(piece.id)
-                }
-                selected={selectedPiece === piece.id}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className={`flex flex-row gap-3`}>
+      {pieces.map((group, idx) => (
+        <div
+          key={idx}
+          className={`flex flex-row gap-1.5 p-2 rounded-[0.25rem] border-b-1 ${styles.base.as_bg()} ${styles.border.as_border()}`}
+        >
+          {group.map((piece, jdx) => (
+            <GamePieceIcon
+              key={jdx}
+              piece={piece}
+              onClick={() => 
+                selectedPiece === piece.id
+                ? setSelectedPiece(undefined)
+                : setSelectedPiece(piece.id)
+              }
+            />
+          ))}
+        </div>
+      ))}
     </div>
   );
 };
