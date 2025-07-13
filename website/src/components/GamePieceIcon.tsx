@@ -47,8 +47,12 @@ export const GamePieceIcon: React.FC<{
   const selected = selectedPiece === piece.id || selectedTool === piece.id
 
   useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      if (event.key === piece.hotkey) {
+    const keydown = (e: KeyboardEvent) => {
+      if (e.repeat) return;
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT") return;
+
+      if (e.key === piece.hotkey) {
         onClick();
       }
     };
@@ -57,39 +61,26 @@ export const GamePieceIcon: React.FC<{
     return () => {
       window.removeEventListener("keydown", keydown)
     }
-  });
+  }, [onClick]);
 
   return (
-    <div className={`transition-all flex items-center justify-center p-1 rounded-[0.25rem] ${
-      selected && styles.highlight.as_bg()
+    <div className={`transition-all relative flex items-center justify-center p-1 rounded-[0.25rem] ${
+      selected && styles.highlight.bg
     }`}>
+      {piece.hotkey && (
+        <div className={`absolute flex items-center justify-center w-3.5 h-3.5 -bottom-0.75 -right-0.75 rounded-[0.125rem] ${styles.highlight.bg} font-bold ${styles.text.text} text-[0.6875rem]`}>
+          {piece.hotkey}
+        </div>
+      )}
       <button
         className={`w-10 h-10 cursor-pointer ${
-          styles.mods[selectedModNum].as_text()
+          styles.mods[selectedModNum].text
         }`}
         onClick={onClick}
+        title={piece.description}
       >
         {piece.icon}
       </button>
     </div>
-    // <div className="relative">
-    //   {/* Hotkey icon in corner */}
-    //   {piece.hotkey && (
-    //     <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded border-2 border-gray-500 bg-gray-600 flex items-center justify-center  text-xs text-white font-bold select-none">
-    //       {piece.hotkey}
-    //     </div>
-    //   )}
-    //   <button
-    //     type="button"
-    //     className={baseButtonClass}
-    //     onClick={onClick}
-    //     title={title || piece.description || piece.name}
-    //     tabIndex={0}
-    //   >
-    //     <span className="w-10 h-10 flex items-center justify-center">
-    //       {icon}
-    //     </span>
-    //   </button>
-    // </div>
   );
 };

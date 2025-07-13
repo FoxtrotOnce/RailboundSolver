@@ -12,47 +12,28 @@ export interface Hyperparameters {
 }
 // Website palette. Colors are provided as properties, and are obtained via Styles.[property].as_[bg/text/border]().
 class Styles {
-  static readonly background = new Styles("gray-900")
-  static readonly base = new Styles("gray-800")
-  static readonly highlight = new Styles("gray-600")
-  static readonly border = new Styles("gray-500")
-  static readonly text = new Styles("white")
-  static readonly warning = new Styles("red-400")
-  static readonly link = new Styles("cursor-pointer text-blue-400 hover:underline", false)
+  static readonly background = new Styles("bg-gray-900", "text-gray-900", "border-gray-900")
+  static readonly base = new Styles("bg-gray-800", "text-gray-800", "border-gray-800")
+  static readonly highlight = new Styles("bg-gray-600", "text-gray-600", "border-gray-600")
+  static readonly border = new Styles("bg-gray-500", "text-gray-500", "border-gray-500")
+  static readonly text = new Styles("bg-white", "text-white", "border-white")
+  static readonly text_hover = new Styles("bg-neutral-300", "text-neutral-300", "border-neutral-300")
+  static readonly text_active = new Styles("bg-neutral-400", "text-neutral-400", "border-neutral-400")
+  // warning text being red-400 and bg being red-500 is intentional; text displays better as red-400 than red-500
+  static readonly warning = new Styles("bg-red-500", "text-red-400", "border-red-500")
+  static readonly link = new Styles("", "cursor-pointer text-blue-400 hover:underline", "")
   static readonly mods = [
-    new Styles("red-500"),
-    new Styles("yellow-400"),
-    new Styles("green-500"),
-    new Styles("blue-500"),
-    new Styles("violet-500"),
-    new Styles("pink-400"),
-    new Styles("gray-200"),
-    new Styles("slate-500"),
+    new Styles("bg-red-500", "text-red-500", "border-red-500"),
+    new Styles("bg-yellow-400", "text-yellow-400", "border-yellow-400"),
+    new Styles("bg-green-500", "text-green-500", "border-green-500"),
+    new Styles("bg-blue-500", "text-blue-500", "border-blue-500"),
+    new Styles("bg-violet-500", "text-violet-500", "border-violet-500"),
+    new Styles("bg-pink-400", "text-pink-400", "border-pink-400"),
+    new Styles("bg-gray-200", "text-gray-200", "border-gray-200"),
+    new Styles("bg-slate-500", "text-slate-500", "border-slate-500"),
   ]
 
-  private constructor(public value: string, private isStylable=true) {}
-
-  as_bg(): string {
-    if (this.isStylable) {
-      return "bg-".concat(this.value)
-    } else {
-      return this.value
-    }
-  }
-  as_text(): string {
-    if (this.isStylable) {
-      return "text-".concat(this.value)
-    } else {
-      return this.value
-    }
-  }
-  as_border(): string {
-    if (this.isStylable) {
-      return "border-".concat(this.value)
-    } else {
-      return this.value
-    }
-  }
+  private constructor(public bg: string, public text: string, public border: string) {}
 }
 
 interface GuiState {
@@ -81,6 +62,7 @@ interface GuiState {
   showPiecePanel: boolean;
   showLeftDisplay: boolean;
   showPalette: boolean;
+  showLevelSettings: boolean;
 
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
@@ -99,6 +81,7 @@ interface GuiState {
   togglePiecePanel: () => void;
   toggleLeftDisplay: () => void;
   togglePalette: () => void;
+  displayLevelSettings: (displaySettings: boolean) => void;
   resetGui: () => void;
 }
 
@@ -272,7 +255,13 @@ export const useGuiStore = create<GuiState>()(
           "togglePalette"
         )
       },
-
+      displayLevelSettings: (shouldDisplay) =>  {
+        set(
+          (state) => ({ showLevelSettings: shouldDisplay }),
+          false,
+          "displayLevelSettings"
+        )
+      },
       resetGui: () => {
         set(
           {

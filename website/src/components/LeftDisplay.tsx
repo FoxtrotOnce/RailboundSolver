@@ -63,7 +63,7 @@ const Separator: React.FC = () => {
   const { styles } = useGuiStore();
 
   return (
-    <div className={`flex-shrink-0 ${styles.border.as_bg()} h-0.25`} />
+    <div className={`flex-shrink-0 ${styles.border.bg} h-0.25 rounded-full`} />
   )
 }
 
@@ -93,17 +93,17 @@ const AccordionCard: React.FC<{
     <div className={`flex flex-col justify-center gap-2 p-2`}>
       <div className={`flex flex-row items-center justify-between`}>
         <div className={`flex flex-row items-center gap-2`}>
-          <div className={`${styles.text.as_text()}`}>
+          <div className={`${styles.text.text}`}>
             {icon}
           </div>
-          <span className={`${styles.text.as_text()} font-medium text-[1.5rem] whitespace-nowrap`}>
+          <span className={`${styles.text.text} font-medium text-[1.5rem] whitespace-nowrap`}>
             {title}
           </span>
         </div>
         {/* Collapse/expand button */}
         <div className={`flex flex-row justify-end cursor-pointer w-full py-2`} onClick={() => {setCollapsed(!collapsed)}}>
           <svg
-            className={`transition-all ${styles.text.as_text()} w-5.5 h-4 ${
+            className={`transition-all ${styles.text.text} w-5.5 h-4 ${
               collapsed ? "rotate-0" : "rotate-180"
             }`}
             viewBox="0 0 22 12"
@@ -124,11 +124,12 @@ const ParameterInfo: React.FC<{
   color?: string
 }> = ({info, color}) => {
   const { styles } = useGuiStore()
+  info
 
   return (
     // Note: description text should be text-sm (or whatever rem size) when it gets added
     <div className={`flex flex-row items-center w-4.5 h-4.5 justify-center rounded-full border-1 font-medium text-[0.875rem] select-none ${
-      color ? color : styles.border.as_border()
+      color ? color : styles.border.border
     }`}>
       ?
     </div>
@@ -152,7 +153,7 @@ const Parameter: React.FC<{
         <div className={`flex flex-row items-center gap-4 font-medium text-[0.875rem] select-none`}>
           <ParameterInfo info={description} />
           <button
-            className={`transition-all flex flex-row items-center justify-center px-2 py-0.25 bg-white rounded-[0.25rem] ${styles.base.as_text()} cursor-pointer hover:bg-neutral-300 active:bg-neutral-400`}
+            className={`transition-all flex flex-row items-center justify-center px-2 py-0.25 bg-white rounded-[0.25rem] ${styles.base.text} cursor-pointer hover:${styles.text_hover.bg} active:${styles.text_active.bg}`}
             onClick={() => resetFunc()}
           >
             Reset
@@ -187,7 +188,7 @@ const ParameterSlider: React.FC<{
   }
 
   useEffect(() => {
-    const mouseup = (e: MouseEvent) => {
+    const mouseup = () => {
       selectSlider(false)
       document.body.style.userSelect = ""
     }
@@ -217,7 +218,7 @@ const ParameterSlider: React.FC<{
       removeEventListener("mouseup", mouseup)
       removeEventListener("mousemove", mousemove)
     }
-  })
+  }, [selectSlider, setWidth, sliderRef, trackRef])
 
   useEffect(() => {
     setWidth(value)
@@ -227,13 +228,13 @@ const ParameterSlider: React.FC<{
     <div className={`flex flex-row gap-3.5 items-center font-mono`}>
       {min}
       <div className={`flex flex-row items-center w-full p-0.25 h-1.5 relative`}>
-        <div ref={trackRef} className={`w-full h-full ${styles.border.as_bg()} rounded-full`} />
+        <div ref={trackRef} className={`w-full h-full ${styles.border.bg} rounded-full`} />
         <div ref={sliderRef} className={`absolute flex h-full items-center`} >
-          <div className={`absolute w-full h-full ${styles.text.as_text()} rounded-full bg-white`} />
+          <div className={`absolute w-full h-full ${styles.text.text} rounded-full bg-white`} />
           <div className={`absolute flex items-center justify-center group right-0`} >
-            <div className={`transition-all absolute w-3 h-3 ${styles.text.as_text()} rounded-full bg-white group-hover:w-4 group-hover:h-4 group-active:w-4 group-active:h-4`} />
+            <div className={`transition-all absolute w-3 h-3 ${styles.text.text} rounded-full bg-white group-hover:w-4 group-hover:h-4 group-active:w-4 group-active:h-4`} />
             <div
-              className={`transition-all absolute w-7 h-7 ${styles.text.as_text()} rounded-full bg-white cursor-pointer opacity-20`}
+              className={`transition-all absolute w-7 h-7 ${styles.text.text} rounded-full bg-white cursor-pointer opacity-20`}
               onMouseDown={() => selectSlider(true)}
             />
           </div>
@@ -253,7 +254,7 @@ const CreditsUser: React.FC<{
   const { styles } = useGuiStore();
 
   return (
-    <div className={`flex flex-row w-full gap-1 ${styles.text.as_text()}`}>
+    <div className={`flex flex-row w-full gap-1 ${styles.text.text}`}>
       <div className={`flex flex-row gap-1`}>
         <a className={`cursor-pointer w-fit h-fit`} href={`https://discord.com/users/${discord_uid}`} target="_blank" rel="noopener noreferrer">
           {Icons.discord}
@@ -278,11 +279,10 @@ export const LeftDisplay: React.FC = () => {
     const flexFrame = flexRef.current
     const widthFrame = widthRef.current
     if (flexFrame !== null && widthFrame !== null) {
-      console.log(widthFrame.scrollWidth, widthFrame.offsetWidth, widthFrame.clientWidth)
       if (showLeftDisplay) {
-        flexFrame.style.width = `${(widthFrame.offsetWidth / 16).toString()}rem`
+        flexFrame.style.width = `${widthFrame.offsetWidth}px`
       } else {
-        flexFrame.style.width = "0rem"
+        flexFrame.style.width = "0px"
       }
     }
   }, [showLeftDisplay])
@@ -462,24 +462,24 @@ export const LeftDisplay: React.FC = () => {
     <div ref={flexRef} className={`transition-all relative`}>
       <div ref={widthRef} className={`absolute flex flex-row w-100 h-full right-0`}>
         {/* Menu Button */}
-        <div className={`absolute flex left-12.5 w-full h-12.5 justify-end ${styles.base.as_bg()} border-b-1 ${styles.border.as_border()} rounded-[0.5rem]`}>
+        <div className={`absolute flex left-12.5 w-full h-12.5 justify-end ${styles.base.bg} border-b-1 ${styles.border.border} rounded-[0.5rem]`}>
           <button
             className={`relative flex flex-row items-center justify-center w-12.5 h-12.5 cursor-pointer`}
             title={showLeftDisplay ? "Collapse Sidebar" : "Open Sidebar"}
             onClick={() => toggleLeftDisplay()}
           >
             {/* Menu Icon */}
-            <svg className={`${styles.text.as_text()} w-8 h-6`} viewBox="0 0 32 24">
+            <svg className={`${styles.text.text} w-8 h-6`} viewBox="0 0 32 24">
               <path fill="currentColor" d="M30 0H2a2 2 0 0 0 0 4h28a2 2 0 1 0 0-4ZM30 20H2a2 2 0 1 0 0 4h28a2 2 0 1 0 0-4ZM30 10H2a2 2 0 1 0 0 4h28a2 2 0 1 0 0-4Z"/>
             </svg>
           </button>
         </div>
         {/* Accordion */}
-        <div className={`relative flex flex-col w-full h-full p-4 rounded-[1rem] ${styles.base.as_bg()} border-b-1 ${styles.border.as_border()} ${styles.text.as_text()} ${
+        <div className={`relative flex flex-col w-full h-full p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border} ${styles.text.text} ${
           showLeftDisplay ? "overflow-auto" : "overflow-hidden"
         }`}>
           <AccordionCard title="Controls" icon={Icons.controls}>
-            <div className={`${styles.text.as_text()}`}>
+            <div className={`${styles.text.text}`}>
               <span className="font-bold">Left Click</span> - Place item<br />
               <span className="font-bold">Right Click</span> - Remove item<br />
               <span className="font-bold">Q / E</span> - Rotate item<br />
@@ -489,16 +489,16 @@ export const LeftDisplay: React.FC = () => {
           </AccordionCard>
           <Separator />
           <AccordionCard title="Solve History" icon={Icons.solve_history}>
-            <div className={`${styles.text.as_text()}`}>
+            <div className={`${styles.text.text}`}>
               
             </div>
           </AccordionCard>
           <Separator />
           <AccordionCard title="Parameters" icon={Icons.parameters}>
-            <div className={`flex flex-col ${styles.text.as_text()} gap-2`}>
+            <div className={`flex flex-col ${styles.text.text} gap-2`}>
               <span>
                 These settings affect the solving algorithm. The defaults are ideal for nearly any level, so{" "}
-                <span className={`font-bold ${styles.warning.as_text()}`}>
+                <span className={`font-bold ${styles.warning.text}`}>
                   only change them if you know what you are doing and it is absolutely necessary!
                 </span>
               </span>
@@ -509,7 +509,7 @@ export const LeftDisplay: React.FC = () => {
                     <div>
                       How many times a car can <i>reasonably</i> loop before the generated
                       branch is cut.{" "}
-                      <span className={`font-medium ${styles.warning.as_text()}`}>
+                      <span className={`font-medium ${styles.warning.text}`}>
                         Only increase if you know a car must loop more than{" "}
                         {getDefaultHyperparams().heatmap_limit_limit} times.
                       </span>
@@ -528,7 +528,7 @@ export const LeftDisplay: React.FC = () => {
                   description={
                     <div>
                       How many times a decoy can loop before the generated branch is cut.{" "}
-                      <span className={`font-medium ${styles.warning.as_text()}`}>
+                      <span className={`font-medium ${styles.warning.text}`}>
                         Only increase if you know a decoy must loop more than{" "}
                         {getDefaultHyperparams().decoy_heatmap_limit} times.
                       </span>
@@ -554,7 +554,7 @@ export const LeftDisplay: React.FC = () => {
                   <div className={`flex flex-row gap-8`}>
                     <div className={`flex flex-row gap-1 items-center`}>
                       <button
-                        className={`transition-all flex flex-row items-center justify-center bg-green-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.as_text()} cursor-pointer hover:bg-green-600 active:bg-green-700`}
+                        className={`transition-all flex flex-row items-center justify-center bg-green-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-green-600 active:bg-green-700`}
                         onClick={() => setHyperparams(undefined, undefined, "DFS")}
                       >
                         DFS
@@ -572,7 +572,7 @@ export const LeftDisplay: React.FC = () => {
                     </div>
                     <div className={`flex flex-row gap-1 items-center`}>
                       <button
-                        className={`transition-all flex flex-row items-center justify-center bg-blue-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.as_text()} cursor-pointer hover:bg-blue-600 active:bg-blue-700`}
+                        className={`transition-all flex flex-row items-center justify-center bg-blue-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-blue-600 active:bg-blue-700`}
                         onClick={() => setHyperparams(undefined, undefined, "BFS")}
                       >
                         BFS
@@ -594,17 +594,17 @@ export const LeftDisplay: React.FC = () => {
           </AccordionCard>
           <Separator />
           <AccordionCard title="Contact" icon={Icons.contact}>
-            <div className={`flex flex-col ${styles.text.as_text()} gap-2`}>
+            <div className={`flex flex-col ${styles.text.text} gap-2`}>
               <div>Feel free to join{" "}
                 <a
-                  className={styles.link.value}
+                  className={styles.link.text}
                   href="https://discord.gg/afterburn"
                   target="_blank"
                 >
                   Afterburn's Discord server
                 </a> and send a message in the{" "}
                 <a
-                  className={styles.link.value}
+                  className={styles.link.text}
                   href="https://discord.com/channels/441217491612598272/1142318326136180796"
                   target="_blank"
                 >
@@ -623,7 +623,7 @@ export const LeftDisplay: React.FC = () => {
                     Faulty Results
                   </span>
                 </a>
-                <div className={`w-0.25 ${styles.border.as_bg()}`} />
+                <div className={`w-0.25 ${styles.border.bg}`} />
                 <a
                   className={`transition-all flex flex-row items-center justify-center px-4 py-0.5 bg-red-500 rounded-[0.25rem] cursor-pointer select-none hover:brightness-85 active:brightness-70`}
                 >
@@ -673,7 +673,7 @@ export const LeftDisplay: React.FC = () => {
                 <div className={`flex flex-row px-6`}>
                   <span>
                     RailboundSolver is based on the game <a
-                      className={`italic ${styles.link.value}`}
+                      className={`italic ${styles.link.text}`}
                       href="https://store.steampowered.com/app/1967510/Railbound/"
                       target="_blank">
                     Railbound

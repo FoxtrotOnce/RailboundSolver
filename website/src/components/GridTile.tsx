@@ -382,7 +382,7 @@ export const GridTile: React.FC<{
         className={`absolute inset-0 ${getRotationClass(
           TrackRotations.get(track)!
         )} ${
-          styles.mods[mod_num].as_text()
+          styles.mods[mod_num].text
         }`}
       >
         {track.is_station()
@@ -396,7 +396,7 @@ export const GridTile: React.FC<{
           mod !== Mod.STATION && mod !== Mod.POST_OFFICE &&
           getRotationClass(TrackRotations.get(track)!)
         } ${
-          styles.mods[mod_num].as_text()
+          styles.mods[mod_num].text
         }`}
       >
         {mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
@@ -420,7 +420,7 @@ export const GridTile: React.FC<{
             ? getRotationClass(TrackRotations.get(selected_track)!)
             : "rotate-0"
         } ${
-          styles.mods[selectedModNum].as_text()
+          styles.mods[selectedModNum].text
         }`}
       >
         {selected_track && isHovered && TrackIcons.get(selected_track)}
@@ -432,7 +432,7 @@ export const GridTile: React.FC<{
           ? getRotationClass(TrackRotations.get(selected_track)!)
           : "rotate-0"
         } ${
-          styles.mods[selectedModNum].as_text()
+          styles.mods[selectedModNum].text
         }`}
       >
         {selected_mod && isHovered && (

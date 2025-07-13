@@ -3,7 +3,7 @@ import type { GamePiece } from "./GamePieceIcon";
 import { GamePieceIcon } from "./GamePieceIcon";
 
 /**
- * BottomSelectionPanel Component
+ * BottomPanel Component
  *
  * Displays a horizontal panel at the bottom of the screen with grouped game piece buttons for selection.
  * Uses Zustand store for gamePieces, selectedPiece, and setSelectedPiece.
@@ -15,7 +15,6 @@ import { GamePieceIcon } from "./GamePieceIcon";
 import { useGuiStore } from "../store";
 import {
   Roadblock,
-  Perm_Fork,
   Car_1,
   Ending_Track,
   Tunnel,
@@ -107,6 +106,7 @@ const GAME_PIECES: GamePiece[][] = [
   ],
 ];
 
+// Used in ChangeModNum to display the piece on the palette if applicable
 export let piecesById: Map<string, GamePiece> = new Map()
 
 GAME_PIECES.forEach((group) => (
@@ -116,19 +116,19 @@ GAME_PIECES.forEach((group) => (
 ))
 
 /**
- * BottomSelectionPanel Component (Zustand version)
+ * BottomPanel Component (Zustand version)
  * Uses Zustand store for selectedPiece and setSelectedPiece.
  * Game pieces are now hardcoded in the component.
  */
-export const BottomSelectionPanel: React.FC = () => {
-  const { styles, selectedPiece, setSelectedPiece, selectedModNum } = useGuiStore();
+export const BottomPanel: React.FC = () => {
+  const { styles, selectedPiece, setSelectedPiece } = useGuiStore();
   const pieces = GAME_PIECES;
   return (
     <div className={`flex flex-row gap-3`}>
       {pieces.map((group, idx) => (
         <div
           key={idx}
-          className={`flex flex-row gap-1.5 p-2 rounded-[0.25rem] border-b-1 ${styles.base.as_bg()} ${styles.border.as_border()}`}
+          className={`flex flex-row gap-1.5 p-2 rounded-[0.25rem] border-b-1 ${styles.base.bg} ${styles.border.border}`}
         >
           {group.map((piece, jdx) => (
             <GamePieceIcon

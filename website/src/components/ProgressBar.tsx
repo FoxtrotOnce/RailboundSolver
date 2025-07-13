@@ -5,7 +5,7 @@ export const ProgressBar: React.FC = () => {
   const { styles } = useGuiStore()
 
   return (
-    <div className={`flex flex-col font-bold text-[1.25rem] leading-[1.625rem] ${styles.text.as_text()}`}>
+    <div className={`flex flex-col font-bold text-[1.25rem] leading-[1.625rem] ${styles.text.text}`}>
       <div className={`flex flex-row w-full justify-between`}>
         <div className={`flex flex-col`}>
           <span>Iterations: ??,???,???,???</span>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
 // import CarImg from "../assets/Car 1.svg";
@@ -49,22 +49,22 @@ function FenceConnector({ pos }: { pos: { x: number; y: number } }) {
 
 export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { styles, showGrid, gridSize } = useGuiStore();
-  const { setDims, levelData } = useLevelStore();
+  const { levelData } = useLevelStore();
   const resizerGrabbed = useRef(-1)
   const { width, height } = levelData;
 
   useEffect(() => {
-    const handleMouseUp = (e: MouseEvent) => {
+    const mouseup = () => {
       resizerGrabbed.current = -1
     }
-    const handleMouseMove = (e: MouseEvent) => {
+    const mousemove = () => {
       
     }
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", mouseup);
+    window.addEventListener("mousemove", mousemove)
     return () => {
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", mouseup);
+      window.removeEventListener("mousemove", mousemove)
     };
   }, [])
 
@@ -73,11 +73,11 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
     className: string;
     d: string;
   }> = ({ idx, className, d }) => {    
-    const changeDims = () => {
-      if (resizerGrabbed.current === idx) {
-        console.log(d)
-      }
-    }
+    // const changeDims = () => {
+    //   if (resizerGrabbed.current === idx) {
+    //     console.log(d)
+    //   }
+    // }
 
     return (
       <path
@@ -97,7 +97,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
     <div className={`relative p-4`}>
       {/* Grid Resizing Grabbers */}
       <svg
-        className={`absolute inset-0 ${styles.text.as_text()}`}
+        className={`absolute inset-0 ${styles.text.text}`}
         viewBox="0 0 100 100"
       >
         {/* Top-Left */}
@@ -152,7 +152,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
       {/* Grid pattern overlay */}
       <div
         className={`relative grid ${
-          showGrid && `border-t border-l ${styles.text.as_border()}`
+          showGrid && `border-t-1 border-l-1 ${styles.text.border}`
         }`}
         style={{
           gridTemplateColumns: `repeat(${width}, ${gridSize}px)`,
@@ -163,7 +163,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           row.map((tile, jdx) => (
             <div
               key={`${idx}-${jdx}`}
-              className={`relative border-b border-r ${styles.text.as_border()}`}
+              className={`relative border-b-1 border-r-1 ${styles.text.border}`}
             >
               <GridTile
                 pos={{ y: idx, x: jdx }}
