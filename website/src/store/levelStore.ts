@@ -8,7 +8,7 @@ import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
  */
 export interface LevelData {
   id: string;
-  name?: string;
+  name: string;
   grid: GridCell[][];
   car_nums: Map<CarType, boolean[]>;
   next_nums: Map<CarType, number>;
@@ -144,7 +144,7 @@ interface LevelState {
   /**
    * Load level data
    */
-  loadLevel: (levelData: LevelData | jsonData, name?: string) => void;
+  loadLevel: (levelData: LevelData | jsonData, name: string) => void;
 
   /**
    * Save current level state to undo stack
@@ -260,7 +260,7 @@ const createEmptyGrid = (
  */
 const createDefaultLevel = (): LevelData => ({
   id: `level_${Date.now()}`,
-  name: "New Level",
+  name: "Unnamed Level",
   grid: createEmptyGrid(12, 12),
   car_nums: new Map<CarType, boolean[]>([
     [CarType.NORMAL, Array(4).fill(false)],
@@ -415,7 +415,7 @@ export const useLevelStore = create<LevelState>()(
         console.log(`Board dims updated to (${dims.y}, ${dims.x})`);
       },
 
-      loadLevel: (levelData, name?) => {
+      loadLevel: (levelData, name) => {
         let loadedData: LevelData;
         if (!("id" in levelData)) {
           // If the levelData is type jsonData it needs to be converted
@@ -449,6 +449,8 @@ export const useLevelStore = create<LevelState>()(
         }
         if (name !== undefined) {
           loadedData.name = name;
+        } else {
+          loadedData.name = "Unnamed Level"
         }
         set(
           {

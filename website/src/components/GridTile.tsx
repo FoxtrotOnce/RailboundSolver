@@ -287,7 +287,8 @@ export const GridTile: React.FC<{
   track?: Track;
   mod?: Mod;
   mod_num?: number;
-}> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0 }) => {
+  disabled?: boolean
+}> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
   const { placePiece, removePiece, removeModorCar, registryFilled, levelData } =
@@ -372,10 +373,10 @@ export const GridTile: React.FC<{
   return (
     <div
       className={`select-none size-full ${isHovered ? "bg-gray-700/50" : ""}`}
-      onContextMenu={onRightClick}
-      onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onContextMenu={() => {if (!disabled) {onRightClick}}}
+      onClick={() => {if (!disabled) {onClick()}}}
+      onMouseEnter={() => {if (!disabled) {setIsHovered(true)}}}
+      onMouseLeave={() => {if (!disabled) {setIsHovered(false)}}}
     >
       {/* Track */}
       <div

@@ -22,6 +22,8 @@ type solved_data = {
     mods: M[][]
     tracks_left: number
     semaphores_left: number
+    time_elapsed: number,
+    iterations: number
 } | undefined
 type visualize_type = (input: {board: T[][], mods: M[][], cars: C[]}) => void
 
@@ -828,7 +830,9 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
         board: best_board,
         mods: best_mods,
         tracks_left: lowest_tracks_remaining,
-        semaphores_left: semaphores_remaining
+        semaphores_left: semaphores_remaining,
+        time_elapsed: finalTime,
+        iterations: iterations
     }
     best_board = undefined
     best_mods = undefined

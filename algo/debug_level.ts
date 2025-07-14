@@ -2,6 +2,11 @@ import {solve_level} from './main'
 import lvls from '../levels.json'
 import {Track, Mod, Car} from './classes'
 
+for (const lvl in lvls) {
+    console.log(lvls[lvl as keyof typeof lvls].semaphores)
+}
+throw Error
+
 const start_time: number = Date.now()
 
 type lvl_type = (typeof lvls)[keyof typeof lvls]
@@ -33,6 +38,5 @@ function visualize(input: {
 }
 const lvl_name = "1-15A"
 console.log(lvl_name)
-solve_level(lvls[lvl_name], visualize)
-
-console.log(`Total Time: ${(Date.now() - start_time) / 10e2}s`)
+const solved_data = solve_level(lvls[lvl_name], visualize)
+console.log(`Finished in: ${solved_data!.time_elapsed}s`)

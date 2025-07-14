@@ -171,6 +171,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
                 track={tile.track}
                 mod={tile.mod}
                 mod_num={tile.mod_num}
+                disabled={false}
               />
               <FenceConnector pos={{ y: idx, x: jdx }} />
             </div>

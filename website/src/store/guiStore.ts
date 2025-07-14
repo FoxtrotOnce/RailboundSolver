@@ -19,7 +19,7 @@ class Styles {
   static readonly text = new Styles("bg-white", "text-white", "border-white")
   static readonly text_hover = new Styles("bg-neutral-300", "text-neutral-300", "border-neutral-300")
   static readonly text_active = new Styles("bg-neutral-400", "text-neutral-400", "border-neutral-400")
-  // warning text being red-400 and bg being red-500 is intentional; text displays better as red-400 than red-500
+  static readonly caution = new Styles("bg-yellow-400", "text-yellow-400", "border-yellow-400")
   static readonly warning = new Styles("bg-red-500", "text-red-400", "border-red-500")
   static readonly link = new Styles("", "cursor-pointer text-blue-400 hover:underline", "")
   static readonly mods = [
