@@ -2,22 +2,27 @@ import React, { useState, useRef, useEffect } from "react";
 import lvls from "../../../levels.json";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
+import type { LevelData } from "../store/levelStore";
+import { keyframes } from "framer-motion";
+import { create } from "zustand";
 
 type LevelType = (typeof lvls)[keyof typeof lvls];
 
-// Organize levels by world
-const worlds = new Map<string, Map<string, LevelType>>();
+// Organize levels by world, and fetch levels via their id.
+const worldsRaw = new Map<string, Record<string, LevelData>>();
 for (const key in lvls) {
+  const { convertJsonLevel } = useLevelStore.getState()
   const lvlName = key as keyof typeof lvls;
   const world: string = lvlName.slice(0, lvlName.indexOf("-"));
   const data: LevelType = lvls[lvlName];
+  const jsonData = convertJsonLevel(data, lvlName)
 
-  if (!worlds.has(world)) {
-    worlds.set(world, new Map());
+  if (!worldsRaw.has(world)) {
+    worldsRaw.set(world, {});
   }
-  worlds.get(world)!.set(lvlName, data);
+  worldsRaw.set(world, {...worldsRaw.get(world)!, [jsonData.id.toString()]: jsonData})
 }
-worlds.set("Custom", new Map())
+worldsRaw.set("Custom", {})
 
 const Icons = {
   settings:
@@ -30,8 +35,8 @@ const Icons = {
       <path fill="currentColor" d="M4.414 22.086 12 14.5 4.414 6.914a1.414 1.414 0 0 1 2-2L14 12.5l7.586-7.586a1.414 1.414 0 1 1 2 2L16 14.5l7.586 7.586a1.414 1.414 0 0 1-2 2L14 16.5l-7.586 7.586a1.414 1.414 0 0 1-2-2Z"/>
     </svg>,
   delete:
-    <svg className={`w-6.5 h-6.5`} viewBox="0 0 26 26">
-      <path fill="currentColor" d="M14.25 2.5h-2.5a.75.75 0 0 0-.75.75.75.75 0 0 1-.75.75h-4a1.25 1.25 0 1 0 0 2.5h13.5a1.25 1.25 0 1 0 0-2.5h-4a.75.75 0 0 1-.75-.75.75.75 0 0 0-.75-.75ZM20 22.5v-12a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2l2-3a1 1 0 0 1-1-1v-8a1 1 0 1 1 2 0v8a1 1 0 0 1-1 1l-2 3h10l-2-3a1 1 0 0 1-1-1v-8a1 1 0 1 1 2 0v8a1 1 0 0 1-1 1l2 3a2 2 0 0 0 2-2Z"/>
+    <svg className={`w-5 h-5`} viewBox="0 0 20 20">
+      <path fill="currentColor" d="M11.136 0H8.864a.682.682 0 0 0-.682.682.682.682 0 0 1-.682.682H3.864a1.136 1.136 0 1 0 0 2.272h12.272a1.136 1.136 0 0 0 0-2.272H12.5a.682.682 0 0 1-.682-.682.682.682 0 0 0-.682-.682ZM16.364 18.182V7.272a1.818 1.818 0 0 0-1.819-1.817h-9.09a1.818 1.818 0 0 0-1.819 1.818v10.909c0 1.004.814 1.818 1.819 1.818l1.818-2.727a.91.91 0 0 1-.91-.91V9.092a.91.91 0 0 1 1.819 0v7.273a.91.91 0 0 1-.91.909L5.456 20h9.09l-1.818-2.727a.91.91 0 0 1-.909-.91V9.092a.91.91 0 1 1 1.818 0v7.273a.91.91 0 0 1-.909.909L14.545 20a1.818 1.818 0 0 0 1.819-1.818Z"/>
     </svg>,
   caution:
     <svg className={`w-5 h-4.5`} viewBox="0 0 20 18">
@@ -41,6 +46,16 @@ const Icons = {
   warning:
     <svg className={`w-4.5 h-4.75`} viewBox="0 0 18 19">
       <path fill="currentColor" fill-rule="evenodd" d="M18 9.5a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-8.105 4.346c.27-.224.406-.541.406-.952 0-.41-.135-.728-.406-.952A1.338 1.338 0 0 0 9 11.606c-.336 0-.64.112-.91.336-.261.224-.392.541-.392.952 0 .41.13.728.392.952.27.224.574.336.91.336.336 0 .635-.112.896-.336Zm.224-7.042c0 .756-.028 1.46-.084 2.114-.056.653-.13 1.316-.224 1.988H8.215a52.235 52.235 0 0 1-.238-1.988 24.833 24.833 0 0 1-.084-2.114V4.298h2.226v2.506Z" clip-rule="evenodd"/>
+    </svg>,
+  newLevel:
+    <svg className={`w-5 h-5`} viewBox="0 0 20 20">
+      <path fill="currentColor" fill-rule="evenodd" d="M10 20c5.523 0 10-4.477 10-10S15.523 0 10 0 0 4.477 0 10s4.477 10 10 10Zm1.364-11.364v-4.09H8.636v4.09h-4.09v2.728h4.09v4.09h2.728v-4.09h4.09V8.636h-4.09Z" clip-rule="evenodd"/>
+    </svg>,
+  duplicate:
+    <svg className={`w-5 h-5`} viewBox="0 0 20 20">
+      <path fill="currentColor" d="M17.006 18.182V20H6.63v-1.818h10.375Zm1.176-1.176V6.63c0-.65-.527-1.176-1.176-1.176H6.63c-.65 0-1.176.527-1.176 1.176v10.375c0 .65.527 1.176 1.176 1.176V20l-.154-.004A2.995 2.995 0 0 1 3.64 17.16l-.004-.154V6.63a2.995 2.995 0 0 1 2.841-2.99l.154-.005h10.375l.154.004A2.995 2.995 0 0 1 20 6.631v10.375l-.004.154a2.994 2.994 0 0 1-2.836 2.836l-.154.004v-1.818c.65 0 1.176-.527 1.176-1.176Z"/>
+      <path fill="currentColor" d="M12.728 8.636v2.728h2.726v1.818h-2.726V15.91h-1.819V13.182H8.182v-1.818h2.727V8.636h1.819Z"/>
+      <path fill="currentColor" fill-rule="evenodd" d="M5.455 16.363h-2.46l-.154-.004a2.995 2.995 0 0 1-2.837-2.836L0 13.37V2.995A2.995 2.995 0 0 1 2.84.004L2.996 0H13.37l.154.004a2.995 2.995 0 0 1 2.84 2.991v2.46h-1.817v-2.46c0-.65-.527-1.177-1.177-1.177H2.995c-.65 0-1.177.527-1.177 1.177V13.37c0 .65.527 1.177 1.177 1.177h2.46v1.817Zm9.09-5v1.82h.91v-1.82h-.91Zm-3.636 3.183h1.819v1.363h-1.819v-1.363Z" clip-rule="evenodd"/>
     </svg>
 }
 
@@ -53,14 +68,41 @@ const EntryBox: React.FC<{
   max?: number
 }> = ({title, value, setData, cautionThreshold=999, max=100}) => {
   const { styles } = useGuiStore()
+  const { levelData } = useLevelStore()
   const [status, setStatus] = useState<"valid" | "caution" | "warning">("valid")
   const [isFocused, setFocus] = useState(false)
   const [text, setText] = useState(value)
-  const nums = new Set<string>(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
   useEffect(() => {
     setText(value)
-  }, [value])
+    onBlur(value)
+  }, [levelData.id])
+
+  const onBlur = (text: string | number) => {
+    setFocus(false)
+
+    if (typeof value === "string") {
+      if ((text as string).length <= max) {
+        setStatus("valid")
+        setData(text)
+      } else {
+        setStatus("warning")
+      }
+    } else {
+      const count = Number(text)
+      // The number is valid if it is only made of numbers (0-9) and is between 0-max.
+      if (/^[0-9]+$/.test(text.toString()) && 0 <= count && count <= max) {
+        if (count >= cautionThreshold) {
+          setStatus("caution")
+        } else {
+          setStatus("valid")
+        }
+        setData(count)
+      } else {
+        setStatus("warning")
+      }
+    }
+  }
 
   return (
     <div className={`flex flex-col px-2 py-1 w-full ${styles.text.text}`}>
@@ -79,28 +121,7 @@ const EntryBox: React.FC<{
               e.currentTarget.blur()
             }
           }}
-          onBlur={(e) => {
-            setFocus(false)
-            const input = e.currentTarget.value
-            if (typeof value === "string") {
-              if (input.length <= max) {
-                setStatus("valid")
-              } else {
-                setStatus("warning")
-              }
-            } else {
-              const count = Number(e.currentTarget.value)
-              if (/^[0-9]+$/.test(input) && 0 <= count && count <= max) {
-                if (count >= cautionThreshold) {
-                  setStatus("caution")
-                } else {
-                  setStatus("valid")
-                }
-              } else {
-                setStatus("warning")
-              }
-            }
-          }}
+          onBlur={() => onBlur(text)}
         />
         {status === "warning" ?
         <div className={`${styles.warning.text}`}>
@@ -127,12 +148,18 @@ const EntryBox: React.FC<{
   )
 }
 
+// Selection Buttons for world selection and level selection
 const SelectionButton: React.FC<{
   name: string
   selected: boolean
   onClick: () => void
 }> = ({name, selected, onClick}) => {
   const { styles } = useGuiStore()
+  // const testref = useRef<HTMLButtonElement | null>(null)
+
+  // useEffect(() => {
+  //   console.log(testref.current?.scrollHeight)
+  // }, [])
 
   return (
     <button
@@ -143,15 +170,53 @@ const SelectionButton: React.FC<{
       }`}
       onClick={onClick}
     >
-      {name}
+      <div className="truncate">
+        {name || <span className="invisible">&nbsp;</span>}
+      </div>
     </button>
+  )
+}
+
+const StatisticSlider: React.FC<{
+  name: string
+  used: number
+  max: number
+}> = ({name, used, max}) => {
+  const { styles } = useGuiStore()
+
+  return (
+    <div className={`flex flex-col gap-0.5`}>
+      <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
+        <span>{name}</span>
+        <span>{used}/{max}</span>
+      </div>
+      <div className={`w-full h-4 p-0.5 rounded-[0.25rem] border-2 ${styles.text.border} bg-black`}>
+        <div className={`h-full ${styles.mods[2].bg}`} style={{width: `${used / max * 100}%`}}/>
+      </div>
+    </div>
   )
 }
 
 export const LevelSettings: React.FC = () => {
   const { styles, displayLevelSettings } = useGuiStore()
   const [selectedWorld, setSelectedWorld] = useState('11')
-  const { levelData, setLevelName, setTracks, setSemaphores, loadLevel } = useLevelStore()
+  const { levelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel } = useLevelStore()
+  const gridRef = useRef<HTMLDivElement | null>(null)
+  const [ bottomH, setBottomH ] = useState(0)  
+  const [ worlds, setWorlds ] = useState(worldsRaw)
+
+  // Use bottomH to set the height for the parent div to be the same as the grid, so world and level selection overflow at the same height.
+  useEffect(() => {
+    if (gridRef.current !== null) {
+      setBottomH(gridRef.current.scrollHeight)
+    }
+  }, [gridRef, setBottomH])
+
+  useEffect(() => {
+    const updatedWorlds = new Map(worlds)
+    updatedWorlds.set("Custom", Object.fromEntries(Object.entries(savedLevels).map(([id, level]) => [id, level])))
+    setWorlds(updatedWorlds)
+  }, [savedLevels, levelData])
 
   return (
     <div className={`relative flex flex-col gap-2 p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border}`}>
@@ -165,14 +230,14 @@ export const LevelSettings: React.FC = () => {
           {Icons.close}
         </button>
       </div>
-      <div className={`flex flex-col gap-4`}>
-        {/* Entries */}
+      <div className={`flex flex-col gap-0.5`}>
+        {/* Inputs */}
         <div className={`flex flex-col w-full px-2 py-1`}>
           <EntryBox
             title="Name"
             value={levelData.name}
             setData={(input) => setLevelName(input as string)}
-            max={50}
+            max={100}
           />
           <div className={`flex flex-row w-full justify-between`}>
             <EntryBox
@@ -191,74 +256,142 @@ export const LevelSettings: React.FC = () => {
             />
           </div>
         </div>
-        <div className={`flex flex-row gap-2`}>
+        {/* Selection + Grid Viewer + Statistics */}
+        <div className={`flex flex-row gap-2`} style={{height: `${bottomH}px`}}>
           {/* World Selection */}
-          <div className={`flex flex-col gap-0.75 pl-4 ml-7 overflow-y-auto h-96`} dir="rtl">
-            <SelectionButton name="Custom" selected={selectedWorld === "Custom"} onClick={() => setSelectedWorld("Custom")} />
-            {[...worlds.entries()].map(([worldKey]) => (
-              <SelectionButton name={`World ${worldKey}`} selected={selectedWorld === worldKey} onClick={() => setSelectedWorld(worldKey)} />
-            ))}
+          <div className={`flex flex-col gap-0.75`}>
+            <span className={`pl-4 ml-7 text-center font-medium text-[0.875rem] ${styles.text.text}`}>Worlds</span>
+            <div className={`flex flex-col gap-0.75 pl-4 ml-7 overflow-y-auto grow-0`} dir="rtl">
+              <SelectionButton name="Custom" selected={selectedWorld === "Custom"} onClick={() => setSelectedWorld("Custom")} />
+              {[...worlds.entries()].map(([worldKey]) => (
+                worldKey !== "Custom" &&
+                <SelectionButton name={`World ${worldKey}`} selected={selectedWorld === worldKey} onClick={() => setSelectedWorld(worldKey)} />
+              ))}
+            </div>
           </div>
-          {/* Grid */}
-          <div className={`flex flex-col items-center gap-1`}>
-            <div className={`relative ${styles.background.bg} rounded-[0.25rem] p-3`}>
-              <div className={`group flex items-center justify-center w-90 h-90`}>
-                <div
-                  className={`grid border-t-1 border-l-1 ${styles.highlight.border}`}
-                  style={{
-                    gridTemplateColumns: `repeat(${levelData.width}, 30px)`,
-                    gridTemplateRows: `repeat(${levelData.height}, 30px)`,
-                  }}
-                >
-                  {levelData.grid.map((row, idx) =>
-                    row.map((tile, jdx) => (
-                      <div
-                        key={`${idx}-${jdx}`}
-                        className={`relative border-b-1 border-r-1 ${styles.highlight.border}`}
-                      >
-                        <GridTile
-                          pos={{ y: idx, x: jdx }}
-                          car={tile.car}
-                          track={tile.track}
-                          mod={tile.mod}
-                          mod_num={tile.mod_num}
-                          disabled={true}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className={`transition-all w-full h-full duration-300 absolute flex flex-col gap-2 items-center justify-center opacity-0 group-hover:opacity-100`}>
-                  <div className={`absolute w-full h-full bg-black opacity-50 rounded-[0.25rem]`} />
-                  <button
-                    className={`cursor-pointer w-fit px-2.5 py-2 rounded-[0.25rem] text-[1.5rem] font-bold ${styles.background.text} ${styles.text.bg} z-1`}
+          <div className={`flex flex-row`}>
+            {/* Grid */}
+            <div ref={gridRef} className={`flex flex-col items-center gap-0.75`}>
+              <span className={`flex text-center font-medium text-[0.875rem] w-96 ${styles.text.text}`}>
+                <span className={`w-full truncate`}>
+                  Currently Selected:{" "}
+                  <i>{levelData.name}</i>
+                </span>
+              </span>
+              <div className={`relative ${styles.background.bg} rounded-[0.25rem] rounded-br-[0rem] p-3`}>
+                <div className={`flex items-center justify-center w-90 h-90`}>
+                  <div
+                    className={`grid border-t-1 border-l-1 ${styles.highlight.border}`}
+                    style={{
+                      gridTemplateColumns: `repeat(${levelData.width}, 30px)`,
+                      gridTemplateRows: `repeat(${levelData.height}, 30px)`,
+                    }}
                   >
-                    Select
-                  </button>
-                  <button
-                    className={`cursor-pointer w-fit px-2.5 py-2 rounded-[0.25rem] text-[1.5rem] font-bold ${styles.background.text} bg-green-500 z-1`}
-                  >
-                    View Solution
-                  </button>
+                    {levelData.grid.map((row, idx) =>
+                      row.map((tile, jdx) => (
+                        <div
+                          key={`${idx}-${jdx}`}
+                          className={`relative border-b-1 border-r-1 ${styles.highlight.border}`}
+                        >
+                          <GridTile
+                            pos={{ y: idx, x: jdx }}
+                            car={tile.car}
+                            track={tile.track}
+                            mod={tile.mod}
+                            mod_num={tile.mod_num}
+                            disabled={true}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <span className={`${styles.text_active.text}`}>Last Modified: 2025-07-12 17:18</span>
-          </div>
-          {/* Level Selection */}
-          <div className={`flex flex-col gap-0.75 w-48 overflow-y-auto h-96`}>
-            {[...worlds.get(selectedWorld)!.entries()].map(([levelKey]) => (
-              <div className={`group flex flex-row gap-1 mr-3`}>
-                <div className={`w-37.5`}>
-                  <SelectionButton name={levelKey} selected={levelData.name === levelKey} onClick={() => loadLevel(worlds.get(selectedWorld)!.get(levelKey)!, levelKey)} />
-                </div>
-                <div className={`text-red-500 hover:brightness-90 active:brightness-80 opacity-0 ${
-                  selectedWorld === "Custom" && "cursor-pointer group-hover:opacity-100"
-                }`}>
-                  {Icons.delete}
+            {/* Level Selection + Statistics */}
+            <div className={`flex flex-col ${styles.background.bg} h-full`}>
+              {/* Level Selection */}
+              <div className={`flex w-50 flex-col gap-0.75 pb-1.5 rounded-bl-[0.25rem] ${styles.base.bg} h-full overflow-hidden`}>
+                <span className={`text-center font-medium text-[0.875rem] ${styles.text.text}`}>Levels</span>
+                <div className={`flex flex-col gap-0.75 px-2 overflow-y-auto h-full`}>
+                  {Object.entries(worlds.get(selectedWorld)!).map(([levelKey]) => {
+                    const level = worlds.get(selectedWorld)![levelKey]
+                    return <SelectionButton
+                      name={level.name}
+                      selected={levelData.id === level.id}
+                      onClick={() => loadLevel(level)
+                    }/>
+                  })}
                 </div>
               </div>
-            ))}
+              {/* Dashboard */}
+              <div className={`${styles.base.bg}`}>
+                <div className={`flex flex-col w-50 gap-1.5 pl-2 pr-4 pt-2 pb-2.5 rounded-tr-[0.25rem] rounded-br-[0.25rem] ${styles.background.bg}`}>
+                  <div className={`flex flex-row gap-3 items-center`}>
+                    <div className={`w-full h-0.25 ${styles.border.bg}`}/>
+                    <span className={`font-medium text-[0.875rem] ${styles.text.text}`}>Dashboard</span>
+                    <div className={`w-full h-0.25 ${styles.border.bg}`}/>
+                  </div>
+                  {/* Actions */}
+                  <div className={`flex flex-row justify-between`}>
+                    <div className={`flex flex-row gap-2 ${styles.text.text}`}>
+                      <button
+                        className={`transition-all cursor-pointer hover:brightness-85 active:brightness-70`}
+                        onClick={() => {
+                          setSelectedWorld("Custom")
+                          const newLevel = createDefaultLevel()
+                          savedLevels[newLevel.id] = newLevel
+                          loadLevel(newLevel)
+                        }}
+                      >
+                        {Icons.newLevel}
+                      </button>
+                      <button
+                        className={`transition-all cursor-pointer hover:brightness-85 active:brightness-70`}
+                        onClick={() => {
+                          const newLevel = {...levelData}
+                          newLevel.id = createDefaultLevel().id
+                          savedLevels[newLevel.id] = newLevel
+                          loadLevel(newLevel)
+                        }}
+                      >
+                        {Icons.duplicate}
+                      </button>
+                    </div>
+                    <button
+                      className={`transition-all text-red-500 cursor-pointer hover:brightness-85 active:brightness-70`}
+                      onClick={() => {
+                        if (!(levelData.id in savedLevels)) {
+                          console.log("Level is custom and therefore cannot be deleted.")
+                          return
+                        }
+                        delete savedLevels[levelData.id]
+                        const levels = Object.values(savedLevels)
+                        if (levels.length === 0) {
+                          setSelectedWorld("1")
+                          loadLevel(Object.values(worlds.get("1")!)[0])
+                        } else {
+                          loadLevel(Object.values(savedLevels)[0])
+                        }
+                      }}
+                    >
+                      {Icons.delete}
+                    </button>
+                  </div>
+                  {/* Statistics */}
+                  <StatisticSlider name="Tracks Used" used={16} max={16} />
+                  <StatisticSlider name="Semaphores Used" used={1} max={2} />
+                  <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
+                    <span>Iterations:</span>
+                    <span>{"45,327,981,605"}</span>
+                  </div>
+                  <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
+                    <span>Time Elapsed:</span>
+                    <span>{"13:48:29.756"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

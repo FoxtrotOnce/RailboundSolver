@@ -315,7 +315,7 @@ export const GridTile: React.FC<{
     e.preventDefault();
     if (track !== Track.EMPTY && (mod !== Mod.EMPTY || car !== undefined)) {
       removeModorCar(pos.x, pos.y);
-    } else {
+    } else if (track !== Track.EMPTY) {
       removePiece(pos.x, pos.y);
     }
   }
@@ -373,7 +373,7 @@ export const GridTile: React.FC<{
   return (
     <div
       className={`select-none size-full ${isHovered ? "bg-gray-700/50" : ""}`}
-      onContextMenu={() => {if (!disabled) {onRightClick}}}
+      onContextMenu={(e) => {if (!disabled) {onRightClick(e)}}}
       onClick={() => {if (!disabled) {onClick()}}}
       onMouseEnter={() => {if (!disabled) {setIsHovered(true)}}}
       onMouseLeave={() => {if (!disabled) {setIsHovered(false)}}}

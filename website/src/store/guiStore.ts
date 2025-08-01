@@ -89,7 +89,7 @@ const createHyperparams = (): Hyperparameters => ({
   heatmap_limit_limit: 9,
   decoy_heatmap_limit: 15,
   gen_type: "DFS",
-  visualize_rate: 10000,
+  visualize_rate: 100,
 });
 
 export const useGuiStore = create<GuiState>()(

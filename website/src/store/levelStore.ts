@@ -7,7 +7,7 @@ import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
  * Represents the actual game level with all placed pieces
  */
 export interface LevelData {
-  id: string;
+  id: number;
   name: string;
   grid: GridCell[][];
   car_nums: Map<CarType, boolean[]>;
@@ -16,7 +16,6 @@ export interface LevelData {
   height: number;
   max_tracks: number;
   max_semaphores: number;
-  metadata?: Record<string, unknown>;
   createdAt?: number;
   modifiedAt?: number;
 }
@@ -43,16 +42,6 @@ export interface GridCell {
   track: Track;
   mod: Mod;
   mod_num: number;
-}
-
-/**
- * State snapshot for undo/redo functionality
- * Contains only level-related state that can be undone
- */
-export interface LevelStateSnapshot {
-  levelData: LevelData;
-  timestamp: number;
-  action?: string; // Optional description of what action created this snapshot
 }
 
 /**
@@ -86,9 +75,10 @@ interface LevelState {
   levelData: LevelData;
 
   /**
-   * Current level file path (if loaded from file)
+   * List of the user's saved levels by id.
+   * Shown under "Custom" in Level Settings.
    */
-  levelFilePath: string | null;
+  savedLevels: Record<number, LevelData>;
 
   // =================
   // UNDO/REDO STATE
@@ -98,13 +88,13 @@ interface LevelState {
    * Stack of previous level states for undo functionality
    * Each entry represents a complete level state snapshot
    */
-  undoStack: LevelStateSnapshot[];
+  undoStack: LevelData[];
 
   /**
    * Stack of forward level states for redo functionality
    * Gets populated when undo is performed
    */
-  redoStack: LevelStateSnapshot[];
+  redoStack: LevelData[];
 
   /**
    * Maximum number of undo states to keep in memory
@@ -116,15 +106,14 @@ interface LevelState {
   // =================
 
   /**
-   * Create a new empty level
+   * Creates a new default level.
    */
-  createNewLevel: (
-    width?: number,
-    height?: number,
-    max_tracks?: number,
-    max_semaphores?: number,
-    car_rot?: number
-  ) => void;
+  createDefaultLevel: () => LevelData
+
+  /**
+   * Returns a copied version of levelData.
+   */
+  copyLevel: () => LevelData
 
   /**
    * Set the dims for the level
@@ -144,7 +133,17 @@ interface LevelState {
   /**
    * Load level data
    */
-  loadLevel: (levelData: LevelData | jsonData, name: string) => void;
+  loadLevel: (levelData: LevelData) => void;
+
+  /**
+   * Save level data (Only applicable to custom levels)
+   */
+  saveLevel: () => void;
+
+  /**
+   * Converts JSON level data to LevelData and returns it.
+   */
+  convertJsonLevel: (levelData: jsonData, name?: string) => LevelData;
 
   /**
    * Save current level state to undo stack
@@ -183,7 +182,7 @@ interface LevelState {
   /**
    * Remove piece at specific grid coordinates
    */
-  removePiece: (x: number, y: number) => void;
+  removePiece: (x: number, y: number, save?: boolean) => void;
 
   /**
    * Remove mod/car at specific grid coordinates
@@ -206,19 +205,9 @@ interface LevelState {
   registryFilled: (type: CarType) => boolean;
 
   /**
-   * Get piece at specific grid coordinates
-   */
-  getPieceAt: (x: number, y: number) => GridCell | null;
-
-  /**
    * Clear entire level (remove all pieces)
    */
   clearLevel: () => void;
-
-  /**
-   * Set level metadata
-   */
-  setLevelMetadata: (metadata: Record<string, unknown>) => void;
 
   /**
    * Set level name
@@ -229,11 +218,6 @@ interface LevelState {
    * Mark level as dirty/clean
    */
   setDirty: (dirty: boolean) => void;
-
-  /**
-   * Reset all level state to defaults
-   */
-  resetLevel: () => void;
 }
 
 /**
@@ -259,7 +243,7 @@ const createEmptyGrid = (
  * Create default level data
  */
 const createDefaultLevel = (): LevelData => ({
-  id: `level_${Date.now()}`,
+  id: Math.random(),
   name: "Unnamed Level",
   grid: createEmptyGrid(12, 12),
   car_nums: new Map<CarType, boolean[]>([
@@ -276,10 +260,11 @@ const createDefaultLevel = (): LevelData => ({
   height: 12,
   max_tracks: 0,
   max_semaphores: 0,
-  metadata: {},
   createdAt: Date.now(),
   modifiedAt: Date.now(),
 });
+
+const defaultLevel = createDefaultLevel()
 
 /**
  * Create the Level Zustand store with devtools support
@@ -291,49 +276,38 @@ export const useLevelStore = create<LevelState>()(
       // INITIAL STATE
       // =================
 
-      levelData: createDefaultLevel(),
-      levelFilePath: null,
+      levelData: defaultLevel,
+      savedLevels: {[defaultLevel.id]: defaultLevel} as Record<number, LevelData>,
       undoStack: [],
       redoStack: [],
 
-      maxUndoStates: 50,
+      maxUndoStates: 200,
 
       // =================
       // ACTIONS
       // =================
 
-      createNewLevel: (
-        width = 12,
-        height = 12,
-        max_tracks?: number,
-        max_semaphores?: number
-      ) => {
-        const newLevel: LevelData = {
-          ...createDefaultLevel(),
-          name: "Untitled Level",
-          grid: createEmptyGrid(width, height),
-          width: width,
-          height: height,
-          max_tracks: max_tracks ?? 0,
-          max_semaphores: max_semaphores ?? 0,
-        };
+      createDefaultLevel: () => {
+        return createDefaultLevel()
+      },
 
-        set(
-          {
-            levelData: newLevel,
-            levelFilePath: null,
-            undoStack: [],
-            redoStack: [],
-          },
-          false,
-          "createNewLevel"
-        );
-
-        console.log(`📄 New level created: ${width}x${height}`);
+      copyLevel: () => {
+        const { levelData } = get()
+        const copied_car_nums = new Map<CarType, boolean[]>()
+        for (const [type, list_in_use] of levelData.car_nums.entries()) {
+          copied_car_nums.set(type, [...list_in_use])
+        }
+        const copied_level: LevelData = {
+          ...levelData,
+          car_nums: copied_car_nums,
+          next_nums: new Map(levelData.next_nums)
+        }
+        return copied_level
       },
 
       setTracks: (max_tracks) => {
-        const { levelData } = get();
+        const { levelData, saveLevel, saveToUndoStack } = get();
+        saveToUndoStack()
         set(
           {
             levelData: {
@@ -347,10 +321,12 @@ export const useLevelStore = create<LevelState>()(
         );
 
         console.log(`Max tracks updated to ${max_tracks}`);
+        saveLevel()
       },
 
       setSemaphores: (max_semaphores) => {
-        const { levelData } = get();
+        const { levelData, saveLevel, saveToUndoStack } = get();
+        saveToUndoStack()
         set(
           {
             levelData: {
@@ -364,6 +340,7 @@ export const useLevelStore = create<LevelState>()(
         );
 
         console.log(`Max semaphores updated to ${max_semaphores}`);
+        saveLevel()
       },
 
       setDims: (dims) => {
@@ -392,8 +369,8 @@ export const useLevelStore = create<LevelState>()(
         for (let i = 0; i < levelData.height; i++) {
           for (let j = 0; j < levelData.width; j++) {
             if (i >= dims.y || j >= dims.x) {
-              console.log(`removing ${i} ${j}`);
-              get().removePiece(j, i);
+              // Don't save since then each savedLevel needs to be copied. Saving is performed in GameCanvas.tsx.
+              get().removePiece(j, i, false);
             }
           }
         }
@@ -411,142 +388,121 @@ export const useLevelStore = create<LevelState>()(
           false,
           "placePiece"
         );
-
-        console.log(`Board dims updated to (${dims.y}, ${dims.x})`);
+        // Setting dims doesn't immediately save the level, since it's handled manually.
+        // * The level is only saved after the user finishes dragging the resize grabbers in GameCanvas.tsx.
       },
 
-      loadLevel: (levelData, name) => {
-        let loadedData: LevelData;
-        if (!("id" in levelData)) {
-          // If the levelData is type jsonData it needs to be converted
-          loadedData = createDefaultLevel();
-          loadedData.height = levelData.board.length;
-          loadedData.width = levelData.board[0].length;
-          loadedData.max_tracks = levelData.tracks;
-          loadedData.max_semaphores = levelData.semaphores;
-          for (let i = 0; i < loadedData.height; i++) {
-            for (let j = 0; j < loadedData.width; j++) {
-              loadedData.grid[i][j] = {
-                car: undefined,
-                track: Track.get(levelData.board[i][j]),
-                mod: Mod.get(levelData.mods[i][j]),
-                mod_num: levelData.mod_nums[i][j],
-              };
-            }
-          }
-          for (const raw_car of levelData.cars) {
-            const car = Car.from_json(raw_car);
-            console.log(car);
-            console.log(raw_car);
-            loadedData.grid[car.pos[0]][car.pos[1]].car = car;
-            for (let i = 0; i <= car.num; i++) {
-              loadedData.car_nums.get(car.type)![i] = true;
-            }
-            loadedData.next_nums.set(car.type, car.num + 1);
-          }
-        } else {
-          loadedData = levelData;
-        }
-        if (name !== undefined) {
-          loadedData.name = name;
-        } else {
-          loadedData.name = "Unnamed Level"
-        }
+      loadLevel: (loadData) => {
         set(
           {
-            levelData: { ...loadedData, modifiedAt: Date.now() },
+            levelData: { ...loadData, modifiedAt: Date.now() },
             undoStack: [],
             redoStack: [],
           },
           false,
           "loadLevel"
         );
-        get().setDims({ y: loadedData.height, x: loadedData.width });
-        console.log(`📂 Level loaded: ${get().levelData.name || "Untitled"}`);
+        get().setDims({ y: loadData.height, x: loadData.width });
+        console.log(`📂 Level loaded: ${get().levelData.name}`);
       },
 
-      saveToUndoStack: (actionDescription) => {
-        const { levelData, undoStack, maxUndoStates } = get();
+      saveLevel: () => {
+        const { levelData, savedLevels } = get()
+        if (levelData.id.toString() in savedLevels) {
+          set((state) => ({ savedLevels: {
+            ...state.savedLevels,
+            [state.levelData.id]: state.levelData
+          } }))
+        } else {
+          console.log("Level is not custom and therefore cannot be saved")
+        }
+      },
+
+      convertJsonLevel: (levelData, name="Unnamed Level") => {
+        const loadedData = createDefaultLevel();
+        loadedData.height = levelData.board.length;
+        loadedData.width = levelData.board[0].length;
+        loadedData.max_tracks = levelData.tracks;
+        loadedData.max_semaphores = levelData.semaphores;
+        for (let i = 0; i < loadedData.height; i++) {
+          for (let j = 0; j < loadedData.width; j++) {
+            loadedData.grid[i][j] = {
+              car: undefined,
+              track: Track.get(levelData.board[i][j]),
+              mod: Mod.get(levelData.mods[i][j]),
+              mod_num: levelData.mod_nums[i][j],
+            };
+          }
+        }
+        for (const raw_car of levelData.cars) {
+          const car = Car.from_json(raw_car);
+          loadedData.grid[car.pos[0]][car.pos[1]].car = car;
+          for (let i = 0; i <= car.num; i++) {
+            loadedData.car_nums.get(car.type)![i] = true;
+          }
+          loadedData.next_nums.set(car.type, car.num + 1);
+        }
+        loadedData.name = name
+        return loadedData
+      },
+
+      saveToUndoStack: () => {
+        const { levelData, undoStack, maxUndoStates, copyLevel } = get();
         if (!levelData) return;
 
-        const snapshot: LevelStateSnapshot = {
-          levelData: JSON.parse(JSON.stringify(levelData)), // Deep clone
-          timestamp: Date.now(),
-          action: actionDescription,
-        };
-
-        // Limit undo stack size
-        const newUndoStack = [...undoStack, snapshot];
-        if (newUndoStack.length > maxUndoStates) {
-          newUndoStack.shift(); // Remove oldest entry
+        undoStack.push(copyLevel())
+        if (undoStack.length > maxUndoStates) {
+          undoStack.shift()
         }
 
+        // Don't have to use set for undoStack since it isn't used for rendering, but redoStack needs to be set to an empty array.
         set(
           {
-            undoStack: newUndoStack,
-            redoStack: [], // Clear redo stack when new action is performed
+            redoStack: []
           },
           false,
           "saveToUndoStack"
-        );
+        )
       },
 
       undo: () => {
-        const { undoStack, redoStack, levelData } = get();
+        const { undoStack, redoStack, saveLevel, copyLevel } = get();
         if (undoStack.length === 0) {
-          console.log("⚠️ Nothing to undo");
-          return;
+          return
         }
 
-        const previousState = undoStack[undoStack.length - 1];
-        const newUndoStack = undoStack.slice(0, -1);
-
-        // Save current state to redo stack
-        const currentSnapshot: LevelStateSnapshot = {
-          levelData: levelData ? JSON.parse(JSON.stringify(levelData)) : null,
-          timestamp: Date.now(),
-        };
+        const newData = undoStack.pop()!
+        redoStack.push(copyLevel())
 
         set(
           {
-            levelData: previousState.levelData,
-            undoStack: newUndoStack,
-            redoStack: [...redoStack, currentSnapshot],
+            levelData: newData,
           },
           false,
           "undo"
         );
 
-        console.log(`↶ Undo: ${previousState.action || "action"}`);
+        saveLevel()
       },
 
       redo: () => {
-        const { redoStack, undoStack, levelData } = get();
+        const { redoStack, undoStack, saveLevel, copyLevel } = get();
         if (redoStack.length === 0) {
-          console.log("⚠️ Nothing to redo");
-          return;
+          return
         }
 
-        const nextState = redoStack[redoStack.length - 1];
-        const newRedoStack = redoStack.slice(0, -1);
-
-        // Save current state to undo stack
-        const currentSnapshot: LevelStateSnapshot = {
-          levelData: levelData ? JSON.parse(JSON.stringify(levelData)) : null,
-          timestamp: Date.now(),
-        };
+        const newData = redoStack.pop()!
+        undoStack.push(copyLevel())
 
         set(
           {
-            levelData: nextState.levelData,
-            undoStack: [...undoStack, currentSnapshot],
-            redoStack: newRedoStack,
+            levelData: newData,
           },
           false,
           "redo"
         );
 
-        console.log(`↷ Redo: ${nextState.action || "action"}`);
+        saveLevel()
       },
 
       clearHistory: () => {
@@ -562,7 +518,7 @@ export const useLevelStore = create<LevelState>()(
         mod_num = 0,
         car_rot = 0
       ) => {
-        const { levelData } = get();
+        const { levelData, saveLevel, saveToUndoStack } = get();
         const placing_car = cartype !== undefined;
         const placing_track = track !== undefined;
         if (!levelData || !levelData.grid || (cartype === undefined && track.is_empty() && mod === Mod.EMPTY)) return;
@@ -585,12 +541,9 @@ export const useLevelStore = create<LevelState>()(
         ) {
           return;
         }
-        // Save state before making changes
-        get().saveToUndoStack(
-          `Place ${track}/${mod}/${mod_num} at (${x}, ${y})`
-        );
+        saveToUndoStack()
         if (placing_track) {
-          get().removePiece(x, y);
+          get().removePiece(x, y, false);
         }
         if (placing_car && !get().registryFilled(cartype)) {
           let dir: Direction;
@@ -631,17 +584,19 @@ export const useLevelStore = create<LevelState>()(
           false,
           "placePiece"
         );
+        saveLevel()
       },
 
-      removePiece: (x, y) => {
-        const { levelData } = get();
+      removePiece: (x, y, save=true) => {
+        const { levelData, saveLevel, saveToUndoStack } = get();
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
 
-        // Save state before making changes
-        get().saveToUndoStack(`Remove piece at (${x}, ${y})`);
+        if (save) {
+          saveToUndoStack()
+        }
 
         const car = levelData.grid[y][x].car;
         if (car !== undefined) {
@@ -673,23 +628,25 @@ export const useLevelStore = create<LevelState>()(
           false,
           "removePiece"
         );
+        if (save) {
+          saveLevel()
+        }
       },
 
       removeModorCar: (x, y) => {
-        const { levelData } = get();
+        const { levelData, saveLevel, saveToUndoStack } = get();
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
         if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
+        saveToUndoStack()
 
         // Remove the entire tile instead if it's a tunnel
         if (grid[y][x].mod === Mod.TUNNEL) {
-          get().removePiece(x, y)
+          get().removePiece(x, y, false)
+          saveLevel()
           return
         }
-
-        // Save state before making changes
-        get().saveToUndoStack(`Remove mod at (${x}, ${y})`);
 
         const car = levelData.grid[y][x].car;
         if (car !== undefined) {
@@ -721,6 +678,7 @@ export const useLevelStore = create<LevelState>()(
           false,
           "removeModorCar"
         );
+        saveLevel()
       },
 
       registerCar: (type) => {
@@ -778,81 +736,44 @@ export const useLevelStore = create<LevelState>()(
         );
       },
 
-      getPieceAt: (x, y) => {
-        const { levelData } = get();
-        if (!levelData || !levelData.grid) return null;
-
-        const grid = levelData.grid;
-        if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length)
-          return null;
-
-        return grid[y][x];
-      },
-
       clearLevel: () => {
-        // Save state before making changes
-        get().saveToUndoStack("Clear level");
         set(
           {
             levelData: createDefaultLevel(),
-            levelFilePath: null,
             undoStack: [],
             redoStack: [],
           },
           false,
           "clearLevel"
         );
-      },
-
-      setLevelMetadata: (metadata) => {
-        const { levelData } = get();
-        if (!levelData) return;
-
-        set(
-          {
-            levelData: {
-              ...levelData,
-              metadata,
-              modifiedAt: Date.now(),
-            },
-          },
-          false,
-          "setLevelMetadata"
-        );
+        get().saveLevel()
       },
 
       setLevelName: (name) => {
-        const { levelData } = get();
+        const { levelData, saveLevel } = get();
         if (!levelData) return;
+
+        if (name === '') {
+          name = "Unnamed Level"
+        }
 
         set(
           {
             levelData: {
               ...levelData,
-              name,
+              name: name,
               modifiedAt: Date.now(),
             },
           },
           false,
           "setLevelName"
         );
-      },
-
-      resetLevel: () => {
-        set(
-          {
-            levelData: createDefaultLevel(),
-            levelFilePath: null,
-            undoStack: [],
-            redoStack: [],
-          },
-          false,
-          "resetLevel"
-        );
+        console.log(`Level name updated to "${name}"`)
+        saveLevel()
       },
     }),
     {
-      name: "level-store", // Name for  DevTools
+      name: "level-store", // Name for DevTools
     }
   )
 );
