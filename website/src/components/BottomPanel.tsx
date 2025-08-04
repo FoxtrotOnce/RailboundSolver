@@ -16,9 +16,9 @@ import { useGuiStore } from "../store";
 import {
   Roadblock,
   Car_1,
-  Ending_Track,
+  Normal_Ending,
   Tunnel,
-  Station,
+  Station_1,
   Switch,
   Swapping_Track,
   Open_Gate,
@@ -37,7 +37,7 @@ const GAME_PIECES: GamePiece[][] = [
       id: "END_TRACK",
       name: "End Track",
       description: "End Track",
-      icon: Ending_Track
+      icon: Normal_Ending
     },
     {
       id: "NORMAL",
@@ -49,7 +49,7 @@ const GAME_PIECES: GamePiece[][] = [
       id: "STATION",
       name: "Place Station",
       description: "Place Station",
-      icon: Station
+      icon: Station_1
     }
   ],
   [

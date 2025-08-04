@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Track, Mod, Car, Direction, CarType } from "../../../algo/classes";
 
 import {
-  Ending_Track,
+  Normal_Ending,
+  Numeral_Ending,
   Perm_StraightTrack,
   Perm_Turn,
   Perm_Fork,
@@ -14,7 +15,16 @@ import {
   Closed_Gate,
   Swapping_Track,
   Swapping_Track2,
-  Station,
+  Station_1,
+  Station_2,
+  Station_3,
+  Station_4,
+  Ticket_Overlay,
+  Post_Office_1,
+  Post_Office_2,
+  Post_Office_3,
+  Post_Office_4,
+  Mail_Overlay,
   Switch_Rail,
   Car_1,
   Car_2,
@@ -26,9 +36,9 @@ import {
   Car_IIII,
   Decoy
 } from "../assets/svgs"
-// TODO: add post office
 import { useGuiStore, useLevelStore } from "../store";
 import type { GridCell } from "../store/levelStore";
+import { animate } from "framer-motion";
 
 const fork_2_tracks = new Set<Track>([
   Track.BOTTOM_RIGHT_TOP_3WAY,
@@ -41,10 +51,10 @@ const TrackIcons = new Map<Track, React.ReactNode>([
   [Track.EMPTY, <></>],
   [Track.HORIZONTAL_TRACK, Perm_StraightTrack],
   [Track.VERTICAL_TRACK, Perm_StraightTrack],
-  [Track.CAR_ENDING_TRACK_LEFT, Ending_Track],
-  [Track.CAR_ENDING_TRACK_RIGHT, Ending_Track],
-  [Track.CAR_ENDING_TRACK_DOWN, Ending_Track],
-  [Track.CAR_ENDING_TRACK_UP, Ending_Track],
+  [Track.CAR_ENDING_TRACK_LEFT, Normal_Ending],
+  [Track.CAR_ENDING_TRACK_RIGHT, Normal_Ending],
+  [Track.CAR_ENDING_TRACK_DOWN, Normal_Ending],
+  [Track.CAR_ENDING_TRACK_UP, Normal_Ending],
   [Track.ROADBLOCK, Roadblock],
   [Track.BOTTOM_RIGHT_TURN, Perm_Turn],
   [Track.BOTTOM_LEFT_TURN, Perm_Turn],
@@ -63,10 +73,10 @@ const TrackIcons = new Map<Track, React.ReactNode>([
   [Track.RIGHT_FACING_TUNNEL, Tunnel],
   [Track.DOWN_FACING_TUNNEL, Tunnel],
   [Track.UP_FACING_TUNNEL, Tunnel],
-  [Track.NCAR_ENDING_TRACK_LEFT, Ending_Track],
-  [Track.NCAR_ENDING_TRACK_RIGHT, Ending_Track],
-  [Track.NCAR_ENDING_TRACK_DOWN, Ending_Track],
-  [Track.NCAR_ENDING_TRACK_UP, Ending_Track],
+  [Track.NCAR_ENDING_TRACK_LEFT, Numeral_Ending],
+  [Track.NCAR_ENDING_TRACK_RIGHT, Numeral_Ending],
+  [Track.NCAR_ENDING_TRACK_DOWN, Numeral_Ending],
+  [Track.NCAR_ENDING_TRACK_UP, Numeral_Ending],
   // Station's icons depends on the grid and can be either a station or a post office, so it is obtained via function instead.
 ]);
 const TrackRotations = new Map<Track, number>([
@@ -290,15 +300,20 @@ export const GridTile: React.FC<{
   disabled?: boolean
 }> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [animationFlag, setFlag] = useState(false);
   const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
-  const { placePiece, removePiece, removeModorCar, registryFilled, levelData } =
-    useLevelStore();
+  const { placePiece, removePiece, removeModorCar, registryFilled, levelData } = useLevelStore();
 
   const {
     track: selected_track,
     mod: selected_mod,
     cartype: selected_cartype,
   } = getTypeFromInfo(selectedTool, selectedPiece, rotation);
+
+  // NOTE: Animation is delayed when hovering over tiles because the animation doesn't trigger on the cursor until 800ms after it's loaded.
+  useEffect(() => {
+    setTimeout(() => setFlag(!animationFlag), 800)
+  }, [animationFlag])
 
   function onClick() {
     placePiece(
@@ -321,6 +336,7 @@ export const GridTile: React.FC<{
   }
   function getStationIcon(track: Track, pos: { x: number, y: number }) {
     const grid = levelData.grid
+    let stationIcon: React.ReactNode
     let modTile: GridCell
     if (track === Track.STATION_LEFT) {
       modTile = grid[pos.y][pos.x - 1]
@@ -332,16 +348,34 @@ export const GridTile: React.FC<{
       modTile = grid[pos.y - 1][pos.x]
     }
     if (modTile.mod === Mod.STATION) {
-      return Station
+      if (modTile.mod_num === 0) {
+        stationIcon = Station_1
+      } else if (modTile.mod_num === 1) {
+        stationIcon = Station_2
+      } else if (modTile.mod_num === 2) {
+        stationIcon = Station_3
+      } else {
+        stationIcon = Station_4
+      }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
     } else {
-      // return Post_Office
+      if (modTile.mod_num === 0) {
+        stationIcon = Post_Office_1
+      } else if (modTile.mod_num === 1) {
+        stationIcon = Post_Office_2
+      } else if (modTile.mod_num === 2) {
+        stationIcon = Post_Office_3
+      } else {
+        stationIcon = Post_Office_4
+      }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
     }
+    return stationIcon
   }
   function tryDisplayOOBstation(mod: Mod, pos: { x: number, y: number }) {
     let stationPos: { x: number, y: number } | undefined
     const grid = levelData.grid
     // TODO: add post office here
-    const stationIcon = mod === Mod.STATION && Station
     const adjPoses = [{ x: -1, y: 0 }, { x: 1, y: 0}, { x: 0, y: 1 }, { x: 0, y: -1 }]
 
     for (const offsetPos of adjPoses) {
@@ -355,6 +389,31 @@ export const GridTile: React.FC<{
     }
     if (stationPos !== undefined) {
       // Render station outside of the border
+      let stationIcon: React.ReactNode
+      const mod_num = grid[pos.y][pos.x].mod_num
+      if (mod === Mod.STATION) {
+        if (mod_num === 0) {
+          stationIcon = Station_1
+        } else if (mod_num === 1) {
+          stationIcon = Station_2
+        } else if (mod_num === 2) {
+          stationIcon = Station_3
+        } else {
+          stationIcon = Station_4
+        }
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+      } else {
+        if (mod_num === 0) {
+          stationIcon = Post_Office_1
+        } else if (mod_num === 1) {
+          stationIcon = Post_Office_2
+        } else if (mod_num === 2) {
+          stationIcon = Post_Office_3
+        } else {
+          stationIcon = Post_Office_4
+        }
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+      }
       if (stationPos.x === -1) {
         return <div className={StationStyles.get(270)}>{stationIcon}</div>
       } else if (stationPos.x === 1) {
@@ -372,7 +431,7 @@ export const GridTile: React.FC<{
 
   return (
     <div
-      className={`select-none size-full ${isHovered ? "bg-gray-700/50" : ""}`}
+      className={`select-none size-full`}
       onContextMenu={(e) => {if (!disabled) {onRightClick(e)}}}
       onClick={() => {if (!disabled) {onClick()}}}
       onMouseEnter={() => {if (!disabled) {setIsHovered(true)}}}
@@ -466,6 +525,87 @@ export const GridTile: React.FC<{
             levelData.next_nums.get(selected_cartype)!
           ]}
       </div>
+      {/* Hovered Corner Cursor */}
+      {isHovered &&
+      <svg
+        className={`absolute -inset-2 text-yellow-200 pointer-events-none z-1`}
+        viewBox={`0 0 48 48`}
+      >
+        {/* Outlines */}
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='#000'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='3'
+          d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='#000'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='3'
+          d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='#000'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='3'
+          d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='#000'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='3'
+          d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
+        />
+        {/* Brackets */}
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='currentColor'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='2'
+          d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='currentColor'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='2'
+          d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='currentColor'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='2'
+          d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
+        />
+        <path
+          className='transition-all duration-1400'
+          fill='none'
+          stroke='currentColor'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          strokeWidth='2'
+          d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
+        />
+      </svg>}
     </div>
   );
 };

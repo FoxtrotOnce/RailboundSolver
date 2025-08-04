@@ -379,8 +379,8 @@ export const LevelSettings: React.FC = () => {
                     </button>
                   </div>
                   {/* Statistics */}
-                  <StatisticSlider name="Tracks Used" used={16} max={16} />
-                  <StatisticSlider name="Semaphores Used" used={1} max={2} />
+                  <StatisticSlider name="Tracks Used" used={levelData.max_tracks} max={levelData.max_tracks} />
+                  <StatisticSlider name="Semaphores Used" used={Math.floor(levelData.max_semaphores / 2)} max={levelData.max_semaphores} />
                   <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
                     <span>Iterations:</span>
                     <span>{"45,327,981,605"}</span>

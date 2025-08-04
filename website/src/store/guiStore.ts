@@ -1,5 +1,19 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import {
+  Normal_Ending,
+  Numeral_Ending,
+  Car_1,
+  Car_I,
+  Station_1,
+  Station_2,
+  Station_3,
+  Station_4,
+  Post_Office_1,
+  Post_Office_2,
+  Post_Office_3,
+  Post_Office_4,
+} from "../assets/svgs"
 
 // NOTE: THE ROTATE NUMBER SEEM WRONG, it better if it 0:left, 1:up, 2:right, 3:down
 
@@ -63,6 +77,7 @@ interface GuiState {
   showLeftDisplay: boolean;
   showPalette: boolean;
   showLevelSettings: boolean;
+  carRelatedModIcons: Map<string, React.ReactNode[]>
 
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
@@ -108,6 +123,11 @@ export const useGuiStore = create<GuiState>()(
       showPiecePanel: true,
       showLeftDisplay: true,
       showPalette: false,
+      carRelatedModIcons: new Map<string, React.ReactNode[]>([
+          ["END_TRACK", [Normal_Ending, Normal_Ending, Normal_Ending, Normal_Ending, Numeral_Ending, Numeral_Ending, Numeral_Ending, Numeral_Ending]],
+          ["NORMAL", [Car_1, Car_1, Car_1, Car_1, Car_I, Car_I, Car_I, Car_I]],  // Cars are placed via registry, not by piece, so displaying each car num is misleading.
+          ["STATION", [Station_1, Station_2, Station_3, Station_4, Post_Office_1, Post_Office_2, Post_Office_3, Post_Office_4]]
+      ]),
 
       // Actions
       setSelectedTool: (tool) => {

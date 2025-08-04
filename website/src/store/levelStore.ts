@@ -227,8 +227,7 @@ const createEmptyGrid = (
   width: number = 12,
   height: number = 12
 ): GridCell[][] => {
-  return Array(height)
-    .fill(null)
+  return Array.from({length: height})
     .map(() =>
       Array(width).fill({
         car: undefined,
@@ -344,7 +343,7 @@ export const useLevelStore = create<LevelState>()(
       },
 
       setDims: (dims) => {
-        const { levelData } = get();
+        const { levelData, removePiece } = get();
         if (!levelData || !levelData.grid) return;
 
         const grid = levelData.grid;
@@ -370,7 +369,7 @@ export const useLevelStore = create<LevelState>()(
           for (let j = 0; j < levelData.width; j++) {
             if (i >= dims.y || j >= dims.x) {
               // Don't save since then each savedLevel needs to be copied. Saving is performed in GameCanvas.tsx.
-              get().removePiece(j, i, false);
+              removePiece(j, i, false);
             }
           }
         }
@@ -737,16 +736,24 @@ export const useLevelStore = create<LevelState>()(
       },
 
       clearLevel: () => {
+        const { saveToUndoStack, saveLevel, levelData } = get()
+        saveToUndoStack()
+        const defaultParams = createDefaultLevel()
+        levelData.car_nums = defaultParams.car_nums
+        levelData.next_nums = defaultParams.next_nums
+        levelData.grid = createEmptyGrid(levelData.width, levelData.height)
+        
         set(
           {
-            levelData: createDefaultLevel(),
-            undoStack: [],
-            redoStack: [],
+            levelData: {
+              ...levelData,
+              modifiedAt: Date.now()
+            }
           },
           false,
           "clearLevel"
-        );
-        get().saveLevel()
+        )
+        saveLevel()
       },
 
       setLevelName: (name) => {

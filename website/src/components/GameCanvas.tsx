@@ -4,7 +4,6 @@ import { useGuiStore, useLevelStore } from "../store";
 // import CarImg from "../assets/Car 1.svg";
 // import { motion } from "motion/react";
 import { Track } from "../../../algo/classes";
-import { resize } from "framer-motion";
 
 /**
  * Renders connector segments for a fence (ROADBLOCK) tile based on its neighboring tiles.
@@ -110,7 +109,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
 
     return (
       <path
-        className={`${resizerParams[idx].hover_cursor} ${
+        className={`pointer-events-auto ${resizerParams[idx].hover_cursor} ${
           resizerGrabbed === idx
           ? 'text-blue-400'
           : isHovered ? 'text-blue-300' : styles.text.text
@@ -135,53 +134,6 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   
   return (
     <div className={`relative flex justify-center items-center p-4 overflow-`} style={{ width: gridSize * 12 + 4 * 8, height: gridSize * 12 + 4 * 8}}>
-      {/* Grid Resizing Grabbers */}
-      {/* NOTE - Grabbers are located on the top-most div, and are moved to the position of the grid in their d's. */}
-      <svg
-        className={`absolute inset-0`}
-        viewBox={`-${grid_x} -${grid_y} ${gridSize * 12 + 4 * 8} ${gridSize * 12 + 4 * 8}`}
-      >
-        {/* Top-Left */}
-        <ResizeGrabber
-          idx={0}
-          d={`m-8 16l0 -24l24 0`}
-        />
-        {/* Top */}
-        <ResizeGrabber
-          idx={1}
-          d={`m${gridSize * width / 2 - 14} -8l28 0`}
-        />
-        {/* Top-Right */}
-        <ResizeGrabber
-          idx={2}
-          d={`m${gridSize * width - 16} -8l24 0l0 24`}
-        />
-        {/* Left */}
-        <ResizeGrabber
-          idx={3}
-          d={`m-8 ${gridSize * height / 2 - 14}l0 28`}
-        />
-        {/* Right */}
-        <ResizeGrabber
-          idx={5}
-          d={`m${gridSize * width + 8} ${gridSize * height / 2 - 14}l0 28`}
-        />
-        {/* Bottom-Left */}
-        <ResizeGrabber
-          idx={6}
-          d={`m-8 ${gridSize * height - 16}l0 24l24 0`}
-        />
-        {/* Bottom */}
-        <ResizeGrabber
-          idx={7}
-          d={`m${gridSize * width / 2 - 14} ${gridSize * height + 8}l28 0`}
-        />
-        {/* Bottom-Right */}
-        <ResizeGrabber
-          idx={8}
-          d={`m${gridSize * width - 16} ${gridSize * height + 8}l24 0l0 -24`}
-        />
-      </svg>
       {/* Extended grid overlay */}
       <div className={`absolute flex justify-center items-center w-full h-full pointer-events-none mask-x-from-90% mask-x-to-97% mask-y-from-90% mask-y-to-97%`}>
         <div
@@ -227,6 +179,53 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           ))
         )}
       </div>
+      {/* Grid Resizing Grabbers */}
+      {/* NOTE - Grabbers are located on the top-most div, and are moved to the position of the grid in their d's. */}
+      <svg
+        className={`absolute inset-0 pointer-events-none`}
+        viewBox={`-${grid_x} -${grid_y} ${gridSize * 12 + 4 * 8} ${gridSize * 12 + 4 * 8}`}
+      >
+        {/* Top-Left */}
+        <ResizeGrabber
+          idx={0}
+          d={`m-8 16l0 -24l24 0`}
+        />
+        {/* Top */}
+        <ResizeGrabber
+          idx={1}
+          d={`m${gridSize * width / 2 - 14} -8l28 0`}
+        />
+        {/* Top-Right */}
+        <ResizeGrabber
+          idx={2}
+          d={`m${gridSize * width - 16} -8l24 0l0 24`}
+        />
+        {/* Left */}
+        <ResizeGrabber
+          idx={3}
+          d={`m-8 ${gridSize * height / 2 - 14}l0 28`}
+        />
+        {/* Right */}
+        <ResizeGrabber
+          idx={5}
+          d={`m${gridSize * width + 8} ${gridSize * height / 2 - 14}l0 28`}
+        />
+        {/* Bottom-Left */}
+        <ResizeGrabber
+          idx={6}
+          d={`m-8 ${gridSize * height - 16}l0 24l24 0`}
+        />
+        {/* Bottom */}
+        <ResizeGrabber
+          idx={7}
+          d={`m${gridSize * width / 2 - 14} ${gridSize * height + 8}l28 0`}
+        />
+        {/* Bottom-Right */}
+        <ResizeGrabber
+          idx={8}
+          d={`m${gridSize * width - 16} ${gridSize * height + 8}l24 0l0 -24`}
+        />
+      </svg>
     </div>
   );
 };

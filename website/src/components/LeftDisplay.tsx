@@ -63,7 +63,7 @@ const Separator: React.FC = () => {
   const { styles } = useGuiStore();
 
   return (
-    <div className={`flex-shrink-0 ${styles.border.bg} h-0.25 rounded-full`} />
+    <div className={`flex-shrink-0 ${styles.border.border} border-t-1 h-0.25 rounded-full`} />
   )
 }
 
@@ -90,7 +90,7 @@ const AccordionCard: React.FC<{
   }, [collapsed])
 
   return (
-    <div className={`flex flex-col justify-center gap-2 p-2`}>
+    <div className={`flex flex-col justify-center p-2`}>
       <div className={`flex flex-row items-center justify-between`}>
         <div className={`flex flex-row items-center gap-2`}>
           <div className={`${styles.text.text}`}>
@@ -113,7 +113,10 @@ const AccordionCard: React.FC<{
         </div>
       </div>
       <div ref={ref} className={`transition-all overflow-hidden`}>
-        {children}
+        {/* pt-2 is used here instead of gap-2 on the very first div so that the padding doesn't appear when the container's height is 0. */}
+        <div className={`pt-2`}>
+          {children}
+        </div>
       </div>
     </div>
   )
@@ -124,14 +127,18 @@ const ParameterInfo: React.FC<{
   color?: string
 }> = ({info, color}) => {
   const { styles } = useGuiStore()
-  info
 
   return (
     // Note: description text should be text-sm (or whatever rem size) when it gets added
-    <div className={`flex flex-row items-center w-4.5 h-4.5 justify-center rounded-full border-1 font-medium text-[0.875rem] select-none ${
+    <div className={`group flex items-center w-4.5 h-4.5 justify-center rounded-full border-1 font-medium text-[0.875rem] select-none ${
       color ? color : styles.border.border
     }`}>
       ?
+      <div className={`transition-all absolute flex flex-col items-center -translate-y-1/2 mb-8 pointer-events-none opacity-0 group-hover:opacity-100 z-1`}>
+        <div className={`${styles.base.bg} ${styles.highlight.border} w-100 px-4 py-3 border-1 rounded-[0.25rem] text-sm z-1`}>
+          {info}
+        </div>
+      </div>
     </div>
   )
 }
@@ -146,7 +153,7 @@ const Parameter: React.FC<{
 
   return (
     <div className={`flex flex-col gap-1.5`}>
-      <div className={`flex flex-row text-[1.25rem] justify-between`}>
+      <div className={`flex flex-row text-[1.125rem] justify-between`}>
         <div className={`font-mono`}>
           {`${param.toString().toUpperCase()} = ${hyperparameters[param]}`}
         </div>
@@ -171,7 +178,7 @@ const ParameterSlider: React.FC<{
   max: number;
 }> = ({param, min, max}) => {
   const { styles, setHyperparams, hyperparameters } = useGuiStore()
-  const [ sliderSelected, selectSlider ] = useState(false);
+  const sliderSelected = useRef(false);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const sliderRef = useRef<HTMLDivElement | null>(null);
   const value = hyperparameters[param]
@@ -189,13 +196,13 @@ const ParameterSlider: React.FC<{
 
   useEffect(() => {
     const mouseup = () => {
-      selectSlider(false)
+      sliderSelected.current = false
       document.body.style.userSelect = ""
     }
     const mousemove = (e: MouseEvent) => {
       const slider = sliderRef.current
       const track = trackRef.current
-      if (sliderSelected && slider !== null && track !== null) {
+      if (sliderSelected.current && slider !== null && track !== null) {
         document.body.style.userSelect = "none"
         const sliderRect = slider.getBoundingClientRect()
         const trackWidth = track.scrollWidth
@@ -210,18 +217,15 @@ const ParameterSlider: React.FC<{
         }
       }
     }
-    
+
+    setWidth(value)
 
     window.addEventListener("mouseup", mouseup)
     window.addEventListener("mousemove", mousemove)
     return () => {
-      removeEventListener("mouseup", mouseup)
-      removeEventListener("mousemove", mousemove)
+      window.removeEventListener("mouseup", mouseup)
+      window.removeEventListener("mousemove", mousemove)
     }
-  }, [selectSlider, setWidth, sliderRef, trackRef])
-
-  useEffect(() => {
-    setWidth(value)
   }, [value])
 
   return (
@@ -235,7 +239,7 @@ const ParameterSlider: React.FC<{
             <div className={`transition-all absolute w-3 h-3 ${styles.text.text} rounded-full bg-white group-hover:w-4 group-hover:h-4 group-active:w-4 group-active:h-4`} />
             <div
               className={`transition-all absolute w-7 h-7 ${styles.text.text} rounded-full bg-white cursor-pointer opacity-20`}
-              onMouseDown={() => selectSlider(true)}
+              onMouseDown={() => sliderSelected.current = true}
             />
           </div>
         </div>
@@ -249,7 +253,7 @@ const CreditsUser: React.FC<{
   name: string;
   details: string;
   github_name: string;
-  discord_uid: number;
+  discord_uid: string;
 }> = ({name, details, github_name, discord_uid}) => {
   const { styles } = useGuiStore();
 
@@ -324,141 +328,6 @@ export const LeftDisplay: React.FC = () => {
     //                 The solution for the level will be displayed once the solver is finished!
     //             </div>
     //         </div> */}
-    //   <div className="flex flex-col h-fit p-3 bg-gray-800 border-2 rounded-lg border-gray-600 gap-2">
-    //     <div className="flex justify-center font-bold text-xl">
-    //       Hyperparameters
-    //     </div>
-    //     <div className="text-sm">
-    //       These settings affect the solving algorithm. The defaults are ideal
-    //       for nearly any level, so
-    //       <span className="font-semibold text-red-400">
-    //         {" "}
-    //         only change them if you know what you are doing and it is absolutely
-    //         necessary!
-    //       </span>
-    //     </div>
-    //     {/* HEATMAP_LIMIT_LIMIT */}
-    //     <div className="relative flex flex-col gap-2 border-t-2 border-dashed border-gray-600 pt-2">
-    //       <div className="font-mono text-lg">
-    //         HEATMAP_LIMIT_LIMIT = {hyperparameters.heatmap_limit_limit}
-    //       </div>
-    //       <button
-    //         className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
-    //         onClick={() =>
-    //           setHyperparams(getDefaultHyperparams().heatmap_limit_limit)
-    //         }
-    //       >
-    //         Reset
-    //       </button>
-    //       <div className="text-sm">
-    //         How many times a car can <i>reasonably</i> loop before the generated
-    //         branch is cut.{" "}
-    //         <span className="font-semibold text-red-400">
-    //           Only increase if you know a car must loop more than{" "}
-    //           {getDefaultHyperparams().heatmap_limit_limit} times.
-    //         </span>
-    //       </div>
-    //       <input
-    //         className={`relative ${accent} w-full`}
-    //         type="range"
-    //         min="0"
-    //         max="30"
-    //         step="1"
-    //         value={hyperparameters.heatmap_limit_limit}
-    //         onChange={(e) => {
-    //           const val = Number(e.target.value);
-    //           setHyperparams(val);
-    //         }}
-    //       />
-    //     </div>
-    //     {/* DECOY_HEATMAP_LIMIT */}
-    //     <div className="relative flex flex-col gap-2 border-t-2 border-dashed border-gray-600 pt-2">
-    //       <div className="font-mono text-lg">
-    //         DECOY_HEATMAP_LIMIT = {hyperparameters.decoy_heatmap_limit}
-    //       </div>
-    //       <button
-    //         className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
-    //         onClick={() =>
-    //           setHyperparams(
-    //             undefined,
-    //             getDefaultHyperparams().decoy_heatmap_limit
-    //           )
-    //         }
-    //       >
-    //         Reset
-    //       </button>
-    //       <div className="text-sm">
-    //         How many times a decoy can loop before the generated branch is cut.{" "}
-    //         <span className="font-semibold text-red-400">
-    //           Only increase if you know a decoy must loop more than{" "}
-    //           {getDefaultHyperparams().decoy_heatmap_limit} times.
-    //         </span>
-    //       </div>
-    //       <input
-    //         className={accent}
-    //         type="range"
-    //         min="0"
-    //         max="30"
-    //         step="1"
-    //         value={hyperparameters.decoy_heatmap_limit}
-    //         onChange={(e) => {
-    //           const val = Number(e.target.value);
-    //           setHyperparams(undefined, val);
-    //         }}
-    //       />
-    //     </div>
-    //     {/* GEN_TYPE */}
-    //     <div className="relative flex flex-col gap-2 border-t-2 border-dashed border-gray-600 pt-2">
-    //       <div className="font-mono text-lg">
-    //         GEN_TYPE = {hyperparameters.gen_type}
-    //       </div>
-    //       <button
-    //         className={`transition-all absolute cursor-pointer right-0 border-2 rounded ${accent} font-semibold whitespace-nowrap px-3 hover:brightness-80 active:brightness-60`}
-    //         onClick={() =>
-    //           setHyperparams(
-    //             undefined,
-    //             undefined,
-    //             getDefaultHyperparams().gen_type
-    //           )
-    //         }
-    //       >
-    //         Reset
-    //       </button>
-    //       <div className="text-sm">The tree traversal technique the algorithm uses.</div>
-    //       <div className="flex flex-row items-center">
-    //         <button
-    //           className="flex cursor-pointer transition-all border-2 rounded w-fit h-fit px-2 border-green-300 text-green-300 font-semibold hover:brightness-80 active:brightness-60"
-    //           onClick={() => setHyperparams(undefined, undefined, "DFS")}
-    //         >
-    //           DFS
-    //         </button>
-    //         <div className="ml-2 text-sm">
-    //           <span className="text-green-300 font-semibold">
-    //             Depth-First Search;
-    //           </span>{" "}
-    //           the algorithm tries configurations with more tracks first, often
-    //           finding a solution before BFS because not <b>all</b> low-track
-    //           configurations are tried.
-    //         </div>
-    //       </div>
-    //       <div className="flex flex-row items-center">
-    //         <button
-    //           className="flex cursor-pointer transition-all border-2 rounded w-fit h-fit px-2 border-blue-300 text-blue-300 font-semibold hover:brightness-80 active:brightness-60"
-    //           onClick={() => setHyperparams(undefined, undefined, "BFS")}
-    //         >
-    //           BFS
-    //         </button>
-    //         <div className="ml-2 text-sm">
-    //           <span className="text-blue-300 font-semibold">
-    //             Breadth-First Search;
-    //           </span>{" "}
-    //           the algorithm tries configurations with the least tracks until a
-    //           solution is found.
-    //         </div>
-    //       </div>
-    //     </div>
-    //   </div>
-    // </div>
     <div ref={flexRef} className={`transition-all relative`}>
       <div ref={widthRef} className={`absolute flex flex-row w-100 h-full right-0`}>
         {/* Menu Button */}
@@ -475,214 +344,216 @@ export const LeftDisplay: React.FC = () => {
           </button>
         </div>
         {/* Accordion */}
-        <div className={`relative flex flex-col w-full h-full p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border} ${styles.text.text} ${
-          showLeftDisplay ? "overflow-auto" : "overflow-hidden"
-        }`}>
-          <AccordionCard title="Controls" icon={Icons.controls}>
-            <div className={`${styles.text.text}`}>
-              <span className="font-bold">Left Click</span> - Place item<br />
-              <span className="font-bold">Right Click</span> - Remove item<br />
-              <span className="font-bold">Q / E</span> - Rotate item<br />
-              <span className="font-bold">W</span> - Modify item color/type<br />
-              <span className="font-bold">R</span> - Clear grid
-            </div>
-          </AccordionCard>
-          <Separator />
-          <AccordionCard title="Solve History" icon={Icons.solve_history}>
-            <div className={`${styles.text.text}`}>
-              
-            </div>
-          </AccordionCard>
-          <Separator />
-          <AccordionCard title="Parameters" icon={Icons.parameters}>
-            <div className={`flex flex-col ${styles.text.text} gap-2`}>
-              <span>
-                These settings affect the solving algorithm. The defaults are ideal for nearly any level, so{" "}
-                <span className={`font-bold ${styles.warning.text}`}>
-                  only change them if you know what you are doing and it is absolutely necessary!
+        <div className={`relative overflow-visible`}>
+          <div className={`flex flex-col w-full h-full p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border} ${styles.text.text} ${
+            showLeftDisplay ? "overflow-y-auto" : "overflow-hidden"
+          }`}>
+            <AccordionCard title="Controls" icon={Icons.controls}>
+              <div className={`${styles.text.text}`}>
+                <span className="font-bold">Left Click</span> - Place item<br />
+                <span className="font-bold">Right Click</span> - Remove item<br />
+                <span className="font-bold">Q / E</span> - Rotate item<br />
+                <span className="font-bold">W</span> - Modify item color/type<br />
+                <span className="font-bold">R</span> - Clear grid
+              </div>
+            </AccordionCard>
+            <Separator />
+            <AccordionCard title="Solve History" icon={Icons.solve_history}>
+              <div className={`${styles.text.text}`}>
+                
+              </div>
+            </AccordionCard>
+            <Separator />
+            <AccordionCard title="Parameters" icon={Icons.parameters}>
+              <div className={`flex flex-col ${styles.text.text} gap-2`}>
+                <span>
+                  These settings affect the solving algorithm. The defaults are ideal for nearly any level, so{" "}
+                  <span className={`font-bold ${styles.warning.text}`}>
+                    only change them if you know what you are doing and it is absolutely necessary!
+                  </span>
                 </span>
-              </span>
-              <div className={`flex flex-col gap-4`}>
-                <Parameter
-                  param={"heatmap_limit_limit"}
-                  description={
-                    <div>
-                      How many times a car can <i>reasonably</i> loop before the generated
-                      branch is cut.{" "}
-                      <span className={`font-medium ${styles.warning.text}`}>
-                        Only increase if you know a car must loop more than{" "}
-                        {getDefaultHyperparams().heatmap_limit_limit} times.
-                      </span>
-                    </div>
-                  }
-                  resetFunc={() => setHyperparams(getDefaultHyperparams().heatmap_limit_limit)}
-                >
-                  <ParameterSlider
+                <div className={`flex flex-col gap-4`}>
+                  <Parameter
                     param={"heatmap_limit_limit"}
-                    min={0}
-                    max={30}
-                  />
-                </Parameter>
-                <Parameter
-                  param={"decoy_heatmap_limit"}
-                  description={
-                    <div>
-                      How many times a decoy can loop before the generated branch is cut.{" "}
-                      <span className={`font-medium ${styles.warning.text}`}>
-                        Only increase if you know a decoy must loop more than{" "}
-                        {getDefaultHyperparams().decoy_heatmap_limit} times.
-                      </span>
-                    </div>
-                  }
-                  resetFunc={() => setHyperparams(undefined, getDefaultHyperparams().decoy_heatmap_limit)}
-                >
-                  <ParameterSlider
+                    description={
+                      <div>
+                        How many times a car can <i>reasonably</i> loop before the generated
+                        branch is cut.{" "}
+                        <span className={`font-medium ${styles.warning.text}`}>
+                          Only increase if you know a car must loop more than{" "}
+                          {getDefaultHyperparams().heatmap_limit_limit} times.
+                        </span>
+                      </div>
+                    }
+                    resetFunc={() => setHyperparams(getDefaultHyperparams().heatmap_limit_limit)}
+                  >
+                    <ParameterSlider
+                      param={"heatmap_limit_limit"}
+                      min={0}
+                      max={30}
+                    />
+                  </Parameter>
+                  <Parameter
                     param={"decoy_heatmap_limit"}
-                    min={0}
-                    max={30}
-                  />
-                </Parameter>
-                <Parameter
-                  param={"gen_type"}
-                  description={
-                    <div>
-                      The generation method the algorithm uses.
-                    </div>
-                  }
-                  resetFunc={() => setHyperparams(undefined, undefined, getDefaultHyperparams().gen_type)}
-                >
-                  <div className={`flex flex-row gap-8`}>
-                    <div className={`flex flex-row gap-1 items-center`}>
-                      <button
-                        className={`transition-all flex flex-row items-center justify-center bg-green-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-green-600 active:bg-green-700`}
-                        onClick={() => setHyperparams(undefined, undefined, "DFS")}
-                      >
-                        DFS
-                      </button>
-                      <ParameterInfo info={
-                        <span>
-                          <span className="text-green-300 font-semibold">
-                            Depth-First Search;
+                    description={
+                      <div>
+                        How many times a decoy can loop before the generated branch is cut.{" "}
+                        <span className={`font-medium ${styles.warning.text}`}>
+                          Only increase if you know a decoy must loop more than{" "}
+                          {getDefaultHyperparams().decoy_heatmap_limit} times.
+                        </span>
+                      </div>
+                    }
+                    resetFunc={() => setHyperparams(undefined, getDefaultHyperparams().decoy_heatmap_limit)}
+                  >
+                    <ParameterSlider
+                      param={"decoy_heatmap_limit"}
+                      min={0}
+                      max={30}
+                    />
+                  </Parameter>
+                  <Parameter
+                    param={"gen_type"}
+                    description={
+                      <div>
+                        The generation method the algorithm uses.
+                      </div>
+                    }
+                    resetFunc={() => setHyperparams(undefined, undefined, getDefaultHyperparams().gen_type)}
+                  >
+                    <div className={`flex flex-row gap-8 justify-center`}>
+                      <div className={`flex flex-row gap-1 items-center`}>
+                        <button
+                          className={`transition-all flex flex-row items-center justify-center bg-green-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-green-600 active:bg-green-700`}
+                          onClick={() => setHyperparams(undefined, undefined, "DFS")}
+                        >
+                          DFS
+                        </button>
+                        <ParameterInfo info={
+                          <span className={`text-green-400`}>
+                            <span className="text-green-300 font-semibold">
+                              Depth-First Search;
+                            </span>{" "}
+                            the algorithm tries configurations with more tracks first, often
+                            finding a solution before BFS because not <u>all</u> low-track
+                            configurations are tried.
                           </span>
-                          the algorithm tries configurations with more tracks first, often
-                          finding a solution before BFS because not <b>all</b> low-track
-                          configurations are tried.
-                        </span>
-                      } color="border-green-500 text-green-500" />
+                        } color="border-green-500 text-green-500" />
+                      </div>
+                      <div className={`flex flex-row gap-1 items-center`}>
+                        <button
+                          className={`transition-all flex flex-row items-center justify-center bg-blue-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-blue-600 active:bg-blue-700`}
+                          onClick={() => setHyperparams(undefined, undefined, "BFS")}
+                        >
+                          BFS
+                        </button>
+                        <ParameterInfo info={
+                          <span className={`text-blue-400`}>
+                            <span className="text-blue-300 font-semibold">
+                              Breadth-First Search;
+                            </span>{" "}
+                            the algorithm tries configurations with the least tracks until a
+                            solution is found.
+                          </span>
+                        } color="border-blue-500 text-blue-500" />
+                      </div>
                     </div>
-                    <div className={`flex flex-row gap-1 items-center`}>
-                      <button
-                        className={`transition-all flex flex-row items-center justify-center bg-blue-500 px-4 py-0.5 rounded-[0.25rem] font-medium ${styles.base.text} cursor-pointer hover:bg-blue-600 active:bg-blue-700`}
-                        onClick={() => setHyperparams(undefined, undefined, "BFS")}
-                      >
-                        BFS
-                      </button>
-                      <ParameterInfo info={
-                        <span>
-                          <span className="text-blue-300 font-semibold">
-                            Breadth-First Search;
-                          </span>{" "}
-                          the algorithm tries configurations with the least tracks until a
-                          solution is found.
-                        </span>
-                      } color="border-blue-500 text-blue-500" />
-                    </div>
-                  </div>
-                </Parameter>
-              </div>
-            </div>
-          </AccordionCard>
-          <Separator />
-          <AccordionCard title="Contact" icon={Icons.contact}>
-            <div className={`flex flex-col ${styles.text.text} gap-2`}>
-              <div>Feel free to join{" "}
-                <a
-                  className={styles.link.text}
-                  href="https://discord.gg/afterburn"
-                  target="_blank"
-                >
-                  Afterburn's Discord server
-                </a> and send a message or suggestion in the{" "}
-                <a
-                  className={styles.link.text}
-                  href="https://discord.com/channels/441217491612598272/1142318326136180796"
-                  target="_blank"
-                >
-                  RailboundSolver thread.
-                </a>
-              </div>
-              <div>
-                If you think the solver gave faulty results on your level configuration, or there's an issue with the website, report it below.
-              </div>
-              <div className={`flex flex-row justify-center gap-3`}>
-                <a
-                  className={`transition-all flex flex-row items-center justify-center px-4 py-0.5 bg-red-500 rounded-[0.25rem] cursor-pointer select-none hover:brightness-85 active:brightness-70`}
-                >
-                  <span className={`font-medium whitespace-nowrap`}>
-                    { /* TBA */ }
-                    Faulty Results
-                  </span>
-                </a>
-                <div className={`w-0.25 ${styles.border.bg}`} />
-                <a
-                  className={`transition-all flex flex-row items-center justify-center px-4 py-0.5 bg-red-500 rounded-[0.25rem] cursor-pointer select-none hover:brightness-85 active:brightness-70`}
-                >
-                  <span className={`font-medium whitespace-nowrap`}>
-                    { /* TBA */ }
-                    Website Issue
-                  </span>
-                </a>
-              </div>
-            </div>
-          </AccordionCard>
-          <Separator />
-          <AccordionCard title="Credits" icon={Icons.credits}>
-            <div className={`flex flex-col gap-3`}>
-              <div className={`flex flex-col gap-1`}>
-                <span className={`font-medium`}>Lead Developer</span>
-                <CreditsUser
-                  name="FoxtrotOnce"
-                  details="Wrote solving algorithm, designed website and graphics"
-                  discord_uid={522924451302604814}
-                  github_name="FoxtrotOnce"
-                />
-              </div>
-              <div className={`flex flex-col gap-1`}>
-                <span className={`font-medium`}>Contributors</span>
-                <CreditsUser
-                  name="Th1ngNg0"
-                  details="Assisted with website front-end"
-                  discord_uid={335602055441940481}
-                  github_name="Th1nhNg0"
-                />
-                <CreditsUser
-                  name="theheadofabroom"
-                  details="Provided coding advice for the solving algorithm"
-                  discord_uid={770633042909462530}
-                  github_name="alistair-broomhead"
-                />
-                <CreditsUser
-                  name="Nakuya"
-                  details="Provided advice on website design"
-                  discord_uid={237608444201271297}
-                  github_name="nack098"
-                />
-              </div>
-              <div className={`flex flex-col gap-1`}>
-                <span className={`font-medium`}>Acknowledgements</span>
-                <div className={`flex flex-row px-6`}>
-                  <span>
-                    RailboundSolver is based on the game <a
-                      className={`italic ${styles.link.text}`}
-                      href="https://store.steampowered.com/app/1967510/Railbound/"
-                      target="_blank">
-                    Railbound
-                  </a> by Afterburn. All rights to the original game belong to Afterburn.
-                  </span>
+                  </Parameter>
                 </div>
               </div>
-            </div>
-          </AccordionCard>
+            </AccordionCard>
+            <Separator />
+            <AccordionCard title="Contact" icon={Icons.contact}>
+              <div className={`flex flex-col ${styles.text.text} gap-2`}>
+                <div>Feel free to join{" "}
+                  <a
+                    className={styles.link.text}
+                    href="https://discord.gg/afterburn"
+                    target="_blank"
+                  >
+                    Afterburn's Discord server
+                  </a> and send a message or suggestion in the{" "}
+                  <a
+                    className={styles.link.text}
+                    href="https://discord.com/channels/441217491612598272/1142318326136180796"
+                    target="_blank"
+                  >
+                    RailboundSolver thread.
+                  </a>
+                </div>
+                <div>
+                  If you think the solver gave faulty results on your level configuration, or there's an issue with the website, report it below.
+                </div>
+                <div className={`flex flex-row justify-center gap-3`}>
+                  <a
+                    className={`transition-all flex flex-row items-center justify-center px-4 py-0.5 bg-red-500 rounded-[0.25rem] cursor-pointer select-none hover:brightness-85 active:brightness-70`}
+                  >
+                    <span className={`font-medium whitespace-nowrap`}>
+                      { /* TBA */ }
+                      Faulty Results
+                    </span>
+                  </a>
+                  <div className={`w-0.25 ${styles.border.bg}`} />
+                  <a
+                    className={`transition-all flex flex-row items-center justify-center px-4 py-0.5 bg-red-500 rounded-[0.25rem] cursor-pointer select-none hover:brightness-85 active:brightness-70`}
+                  >
+                    <span className={`font-medium whitespace-nowrap`}>
+                      { /* TBA */ }
+                      Website Issue
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </AccordionCard>
+            <Separator />
+            <AccordionCard title="Credits" icon={Icons.credits}>
+              <div className={`flex flex-col gap-3`}>
+                <div className={`flex flex-col gap-1`}>
+                  <span className={`font-medium`}>Lead Developer</span>
+                  <CreditsUser
+                    name="FoxtrotOnce"
+                    details="Wrote solving algorithm, designed website and graphics"
+                    discord_uid="522924451302604814"
+                    github_name="FoxtrotOnce"
+                  />
+                </div>
+                <div className={`flex flex-col gap-1`}>
+                  <span className={`font-medium`}>Contributors</span>
+                  <CreditsUser
+                    name="Th1ngNg0"
+                    details="Assisted with website front-end"
+                    discord_uid="335602055441940481"
+                    github_name="Th1nhNg0"
+                  />
+                  <CreditsUser
+                    name="theheadofabroom"
+                    details="Provided coding advice for the solving algorithm"
+                    discord_uid="770633042909462530"
+                    github_name="alistair-broomhead"
+                  />
+                  <CreditsUser
+                    name="Nakuya"
+                    details="Provided advice on website design"
+                    discord_uid="237608444201271297"
+                    github_name="nack098"
+                  />
+                </div>
+                <div className={`flex flex-col gap-1`}>
+                  <span className={`font-medium`}>Acknowledgements</span>
+                  <div className={`flex flex-row px-6`}>
+                    <span>
+                      RailboundSolver is based on the game <a
+                        className={`italic ${styles.link.text}`}
+                        href="https://store.steampowered.com/app/1967510/Railbound/"
+                        target="_blank">
+                      Railbound
+                    </a> by Afterburn. All rights to the original game belong to Afterburn.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </AccordionCard>
+          </div>
         </div>
       </div>
     </div>

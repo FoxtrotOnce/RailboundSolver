@@ -3,8 +3,7 @@ import { useGuiStore } from "../store";
 import { piecesById } from "./BottomPanel";
 
 const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButton = true }) => {
-  const { styles, togglePalette, setSelectedModNum, selectedPiece } = useGuiStore();
-  const colorableMods = new Set<string>(["SWITCH", "OPEN_GATE", "CLOSED_GATE", "SWITCH_FORK_TRACK", "TUNNEL"])
+  const { styles, togglePalette, setSelectedModNum, selectedPiece, carRelatedModIcons } = useGuiStore();
 
   return (
     <button
@@ -21,14 +20,19 @@ const ColorIcon: React.FC<{ idx: number; isButton?: boolean }> = ({ idx, isButto
     >
       <div
         className={`flex items-center justify-center w-full h-full rounded-[0.25rem] ${
-          styles.mods[idx].bg
+          (selectedPiece && carRelatedModIcons.has(selectedPiece))
+          ? (idx < 4 ? "bg-[#D6592C]" : "bg-[#2C59D6]")
+          : styles.mods[idx].bg
         } ${
           styles.mods[idx].text
         }`}
       >
-        {selectedPiece && colorableMods.has(selectedPiece) &&
+        {selectedPiece && 
         <div className="w-full h-full">
-          {piecesById.get(selectedPiece)!.icon}
+          {carRelatedModIcons.has(selectedPiece)
+          ? carRelatedModIcons.get(selectedPiece)![idx]
+          : piecesById.get(selectedPiece)!.icon
+          }
         </div>}
       </div>
     </button>

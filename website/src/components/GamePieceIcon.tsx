@@ -43,7 +43,7 @@ export const GamePieceIcon: React.FC<{
   piece: GamePiece
   onClick: () => void
 }> = ({piece, onClick}) => {
-  const { styles, selectedModNum, selectedPiece, selectedTool } = useGuiStore()
+  const { styles, selectedModNum, selectedPiece, selectedTool, carRelatedModIcons } = useGuiStore()
   const selected = selectedPiece === piece.id || selectedTool === piece.id
 
   useEffect(() => {
@@ -79,7 +79,10 @@ export const GamePieceIcon: React.FC<{
         onClick={onClick}
         title={piece.description}
       >
-        {piece.icon}
+        {carRelatedModIcons.has(piece.id)
+        ? carRelatedModIcons.get(piece.id)![selectedModNum]
+        : piece.icon
+        }
       </button>
     </div>
   );
