@@ -52,12 +52,11 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { levelData, setDims, saveLevel, saveToUndoStack } = useLevelStore();
   const [ resizerGrabbed, setResizerGrabbed ] = useState(-1)
   const [ resizeStartPos, setResizeStartPos ] = useState({x: 0, y: 0})
+  const [animationFlag, setFlag] = useState(false);
+  const [tileHovering, setTileHovering] = useState({y: -1, x: -1});
   const gridRef = useRef<HTMLDivElement | null>(null)
   const { width, height } = levelData;
   const [ savedDims, setSavedDims ] = useState({width: 0, height: 0})
-  // ext_width and ext_height are for the extended grid in the background behind the grid. It's 12 or 13 depending on the grid, so it covers the whole div.
-  const ext_width = width % 2 == 0 ? 12 : 13
-  const ext_height = height % 2 == 0 ? 12 : 13
   // grid_x and grid_y are the relative position of the editing grid compared to its parent, so the grabbers can be situated around it.
   const grid_x = (12 - width) * gridSize / 2 + 4 * 4
   const grid_y = (12 - height) * gridSize / 2 + 4 * 4
@@ -75,6 +74,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
 
   useEffect(() => {
     const mouseup = () => {
+      document.body.style.cursor = 'auto'
       setResizerGrabbed(-1)
       // If the dims were actually changed, save the level
       if (savedDims.width !== width || savedDims.height !== height) {
@@ -84,12 +84,14 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
     const mousemove = (e: MouseEvent) => {
       if (resizerGrabbed !== -1) {
         const params = resizerParams[resizerGrabbed]
-        document.body.style.cursor = params.cursor
         const newX = Math.max(1, Math.min(12, savedDims.width + Math.round(params.xMult * (e.clientX - resizeStartPos.x) / gridSize * 2)))
         const newY = Math.max(1, Math.min(12, savedDims.height + Math.round(params.yMult * (e.clientY - resizeStartPos.y) / gridSize * 2)))
-        setDims({x: newX, y: newY})
-      } else {
-        document.body.style.cursor = 'auto'
+        // Only call setDims if the dimensions are actually being changed.
+        if (newX !== width || newY !== height) {
+          setDims({x: newX, y: newY})
+          // Tile hovering (for the square cursor) has to be reset since sometimes onMouseLeave doesn't trigger on the divs deleted by setDims.
+          setTileHovering({y: -1, x: -1})
+        }
       }
     }
 
@@ -99,7 +101,12 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
       window.removeEventListener("mouseup", mouseup);
       window.removeEventListener("mousemove", mousemove);
     };
-  }, [resizeStartPos, resizerGrabbed])
+  }, [resizeStartPos, resizerGrabbed, width, height])
+
+    // NOTE: Animation is delayed when hovering over tiles because the animation doesn't trigger on the cursor until 800ms after it's loaded.
+    useEffect(() => {
+      setTimeout(() => setFlag(!animationFlag), 800)
+    }, [animationFlag])
 
   const ResizeGrabber: React.FC<{
     idx: number;
@@ -115,6 +122,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           : isHovered ? 'text-blue-300' : styles.text.text
         }`}
         onMouseDown={(e) => {
+          document.body.style.cursor = resizerParams[idx].cursor
           setResizerGrabbed(idx)
           setResizeStartPos({x: e.clientX, y: e.clientY})
           setSavedDims({width: width, height: height})
@@ -135,20 +143,14 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   return (
     <div className={`relative flex justify-center items-center p-4 overflow-`} style={{ width: gridSize * 12 + 4 * 8, height: gridSize * 12 + 4 * 8}}>
       {/* Extended grid overlay */}
-      <div className={`absolute flex justify-center items-center w-full h-full pointer-events-none mask-x-from-90% mask-x-to-97% mask-y-from-90% mask-y-to-97%`}>
-        <div
-          className={`grid w-fit h-fit border-t-1 border-l-1 opacity-5 ${styles.text.border}`}
-          style={{
-            gridTemplateColumns: `repeat(${ext_width}, ${gridSize}px)`,
-            gridTemplateRows: `repeat(${ext_height}, ${gridSize}px)`
-          }}
-        >
-          {/* Note - I tried using (X+1)+(Y+1) divs for each line instead of X*Y divs as a grid, but lines are sized inconsistently between view sizes (eg. 100%, 125%) */}
-          {Array.from({length: ext_width * ext_height}).map(() => 
-            <div className={`border-b-1 border-r-1 ${styles.text.border}`} />
-          )}
-        </div>
-      </div>
+      <div
+        className={`absolute flex w-full h-full pointer-events-none mask-x-from-90% mask-x-to-97% mask-y-from-90% mask-y-to-97% opacity-5`}
+        style={{
+          backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
+          backgroundSize: `${gridSize}px ${gridSize}px`,
+          backgroundPosition: `${16 + width * gridSize / 2}px ${16 + height * gridSize / 2}px`
+        }}
+      />
       {/* Grid */}
       <div
         ref={gridRef}
@@ -160,11 +162,99 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           gridTemplateRows: `repeat(${height}, ${gridSize}px)`,
         }}
       >
+        {/* Square Hover Cursor */}
+        <svg
+          className={`absolute text-yellow-200 pointer-events-none z-1 ${(tileHovering.x === -1 || resizerGrabbed !== -1) ? `opacity-0` : `opacity-100`}`}
+          style={{
+            width: `${gridSize + 16}px`,
+            height: `${gridSize + 16}px`,
+            left: `${-8 + tileHovering.x * gridSize}px`,
+            top: `${-8 + tileHovering.y * gridSize}px`
+          }}
+          viewBox={`0 0 48 48`}
+        >
+          {/* Outlines */}
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='#000'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='3'
+            d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='#000'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='3'
+            d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='#000'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='3'
+            d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='#000'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='3'
+            d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
+          />
+          {/* Brackets */}
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='currentColor'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='2'
+            d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='currentColor'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='2'
+            d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='currentColor'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='2'
+            d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
+          />
+          <path
+            className='transition-all duration-1400'
+            fill='none'
+            stroke='currentColor'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+            strokeWidth='2'
+            d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
+          />
+        </svg>
         {levelData.grid.map((row, idx) =>
           row.map((tile, jdx) => (
             <div
               key={`${idx}-${jdx}`}
               className={`relative border-b-1 border-r-1 ${styles.text.border}`}
+              onMouseEnter={() => setTileHovering({y: idx, x: jdx})}
+              onMouseLeave={() => setTileHovering({y: -1, x: -1})}
             >
               <GridTile
                 pos={{ y: idx, x: jdx }}

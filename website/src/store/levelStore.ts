@@ -517,7 +517,7 @@ export const useLevelStore = create<LevelState>()(
         mod_num = 0,
         car_rot = 0
       ) => {
-        const { levelData, saveLevel, saveToUndoStack } = get();
+        const { levelData, saveLevel, saveToUndoStack, removePiece, registryFilled, registerCar } = get();
         const placing_car = cartype !== undefined;
         const placing_track = track !== undefined;
         if (!levelData || !levelData.grid || (cartype === undefined && track.is_empty() && mod === Mod.EMPTY)) return;
@@ -532,8 +532,8 @@ export const useLevelStore = create<LevelState>()(
         // Make sure the placement is legal
         if (
           // First statement prevents any mod from being placed on anything that isn't a normal track
-          // EXCEPT for tunnels since they ignore this rule.
-          (((mod !== Mod.EMPTY && mod !== Mod.TUNNEL) || placing_car) &&
+          // EXCEPT for tunnels and stations since they ignore this rule.
+          (((mod !== Mod.EMPTY && mod !== Mod.TUNNEL && mod !== Mod.STATION && mod !== Mod.POST_OFFICE) || placing_car) &&
             !track.is_straight() &&
             !track.is_turn() &&
             !track.is_3way())
@@ -542,9 +542,9 @@ export const useLevelStore = create<LevelState>()(
         }
         saveToUndoStack()
         if (placing_track) {
-          get().removePiece(x, y, false);
+          removePiece(x, y, false);
         }
-        if (placing_car && !get().registryFilled(cartype)) {
+        if (placing_car && !registryFilled(cartype)) {
           let dir: Direction;
           if (car_rot === 0) {
             dir = Direction.RIGHT;
@@ -555,7 +555,7 @@ export const useLevelStore = create<LevelState>()(
           } else {
             dir = Direction.DOWN;
           }
-          car = new Car([y, x], dir, get().registerCar(cartype), cartype);
+          car = new Car([y, x], dir, registerCar(cartype), cartype);
         }
 
         const newGrid = grid.map((row, rowIndex) =>

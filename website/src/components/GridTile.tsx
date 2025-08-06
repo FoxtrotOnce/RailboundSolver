@@ -38,7 +38,6 @@ import {
 } from "../assets/svgs"
 import { useGuiStore, useLevelStore } from "../store";
 import type { GridCell } from "../store/levelStore";
-import { animate } from "framer-motion";
 
 const fork_2_tracks = new Set<Track>([
   Track.BOTTOM_RIGHT_TOP_3WAY,
@@ -162,7 +161,8 @@ interface return_types {
 function getTypeFromInfo(
   toolId: string | undefined,
   pieceId: string | undefined,
-  rotation: number
+  rotation: number,
+  modNum: number
 ): return_types {
   const to_return: return_types = {
     track: undefined,
@@ -210,21 +210,47 @@ function getTypeFromInfo(
     }
   }
   if (pieceId === "END_TRACK") {
-    if (rotation === 0) {
-      to_return.track = Track.CAR_ENDING_TRACK_RIGHT;
-    } else if (rotation === 1) {
-      to_return.track = Track.CAR_ENDING_TRACK_UP;
-    } else if (rotation === 2) {
-      to_return.track = Track.CAR_ENDING_TRACK_LEFT;
+    if (modNum < 4) {
+      if (rotation === 0) {
+        to_return.track = Track.CAR_ENDING_TRACK_RIGHT;
+      } else if (rotation === 1) {
+        to_return.track = Track.CAR_ENDING_TRACK_UP;
+      } else if (rotation === 2) {
+        to_return.track = Track.CAR_ENDING_TRACK_LEFT;
+      } else {
+        to_return.track = Track.CAR_ENDING_TRACK_DOWN;
+      }
     } else {
-      to_return.track = Track.CAR_ENDING_TRACK_DOWN;
+      if (rotation === 0) {
+        to_return.track = Track.NCAR_ENDING_TRACK_RIGHT;
+      } else if (rotation === 1) {
+        to_return.track = Track.NCAR_ENDING_TRACK_UP;
+      } else if (rotation === 2) {
+        to_return.track = Track.NCAR_ENDING_TRACK_LEFT;
+      } else {
+        to_return.track = Track.NCAR_ENDING_TRACK_DOWN;
+      }
     }
   }
   if (pieceId === "ROADBLOCK") {
     to_return.track = Track.ROADBLOCK;
   }
   if (pieceId === "STATION") {
-    to_return.mod = Mod.STATION;
+    if (modNum < 4) {
+      to_return.mod = Mod.STATION;
+    } else {
+      to_return.mod = Mod.POST_OFFICE
+    }
+    // The grid handles making the station appear as a station/post office, not the Track class.
+    if (rotation === 0) {
+      to_return.track = Track.STATION_RIGHT;
+    } else if (rotation === 1) {
+      to_return.track = Track.STATION_UP;
+    } else if (rotation === 2) {
+      to_return.track = Track.STATION_LEFT;
+    } else {
+      to_return.track = Track.STATION_DOWN;
+    }
   }
   if (pieceId === "SWITCH") {
     to_return.mod = Mod.SWITCH;
@@ -254,7 +280,11 @@ function getTypeFromInfo(
     to_return.mod = Mod.SWITCH_RAIL;
   }
   if (pieceId === "NORMAL") {
-    to_return.cartype = CarType.NORMAL;
+    if (modNum < 4) {
+      to_return.cartype = CarType.NORMAL;
+    } else {
+      to_return.cartype = CarType.NUMERAL
+    }
   }
   if (pieceId === "DECOY") {
     to_return.cartype = CarType.DECOY;
@@ -300,7 +330,6 @@ export const GridTile: React.FC<{
   disabled?: boolean
 }> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [animationFlag, setFlag] = useState(false);
   const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
   const { placePiece, removePiece, removeModorCar, registryFilled, levelData } = useLevelStore();
 
@@ -308,12 +337,7 @@ export const GridTile: React.FC<{
     track: selected_track,
     mod: selected_mod,
     cartype: selected_cartype,
-  } = getTypeFromInfo(selectedTool, selectedPiece, rotation);
-
-  // NOTE: Animation is delayed when hovering over tiles because the animation doesn't trigger on the cursor until 800ms after it's loaded.
-  useEffect(() => {
-    setTimeout(() => setFlag(!animationFlag), 800)
-  }, [animationFlag])
+  } = getTypeFromInfo(selectedTool, selectedPiece, rotation, selectedModNum);
 
   function onClick() {
     placePiece(
@@ -322,7 +346,7 @@ export const GridTile: React.FC<{
       selected_cartype,
       selected_track,
       selected_mod,
-      selectedModNum,
+      selected_mod === Mod.POST_OFFICE ? selectedModNum - 4 : selectedModNum,
       rotation
     );
   }
@@ -371,6 +395,29 @@ export const GridTile: React.FC<{
       stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
     }
     return stationIcon
+  }
+  function getStation() {
+    if (selected_mod === Mod.STATION) {
+      if (selectedModNum === 0) {
+        return Station_1
+      } else if (selectedModNum === 1) {
+        return Station_2
+      } else if (selectedModNum === 2) {
+        return Station_3
+      } else {
+        return Station_4
+      }
+    } else {
+      if (selectedModNum === 0) {
+        return Post_Office_1
+      } else if (selectedModNum === 1) {
+        return Post_Office_2
+      } else if (selectedModNum === 2) {
+        return Post_Office_3
+      } else {
+        return Post_Office_4
+      }
+    }
   }
   function tryDisplayOOBstation(mod: Mod, pos: { x: number, y: number }) {
     let stationPos: { x: number, y: number } | undefined
@@ -477,13 +524,16 @@ export const GridTile: React.FC<{
       <div
         className={`absolute inset-0 opacity-60 pointer-events:none ${
           selected_track
-            ? getRotationClass(TrackRotations.get(selected_track)!)
-            : "rotate-0"
+          ? getRotationClass(TrackRotations.get(selected_track)!)
+          : "rotate-0"
         } ${
           styles.mods[selectedModNum].text
         }`}
       >
-        {selected_track && isHovered && TrackIcons.get(selected_track)}
+        {selected_track && isHovered && (selected_track.is_station()
+          ? getStation()
+          : TrackIcons.get(selected_track))
+        }
       </div>
       {/* Hover Mod */}
       <div
@@ -525,87 +575,6 @@ export const GridTile: React.FC<{
             levelData.next_nums.get(selected_cartype)!
           ]}
       </div>
-      {/* Hovered Corner Cursor */}
-      {isHovered &&
-      <svg
-        className={`absolute -inset-2 text-yellow-200 pointer-events-none z-1`}
-        viewBox={`0 0 48 48`}
-      >
-        {/* Outlines */}
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='#000'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='3'
-          d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='#000'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='3'
-          d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='#000'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='3'
-          d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='#000'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='3'
-          d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
-        />
-        {/* Brackets */}
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='2'
-          d={animationFlag ? 'm5 10l0 -5l5 0' : 'm8 13l0 -5l5 0'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='2'
-          d={animationFlag ? 'm38 5l5 0l0 5' : 'm35 8l5 0l0 5'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='2'
-          d={animationFlag ? 'm5 38l0 5l5 0' : 'm8 35l0 5l5 0'}
-        />
-        <path
-          className='transition-all duration-1400'
-          fill='none'
-          stroke='currentColor'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-          strokeWidth='2'
-          d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
-        />
-      </svg>}
     </div>
   );
 };
