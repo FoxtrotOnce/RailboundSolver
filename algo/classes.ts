@@ -207,6 +207,15 @@ export class Mod {
     is_gate_or_sem(): boolean {
         return this === Mod.CLOSED_GATE || this === Mod.SEMAPHORE
     }
+
+    /** 
+     * Return if the mod is a STATION or POST_OFFICE.
+     * 
+     * Used for rendering in /website/src/components/GridTile.tsx.
+     */
+    is_station(): boolean {
+        return this === Mod.STATION || this === Mod.POST_OFFICE
+    }
 }
 
 /** 
@@ -216,6 +225,8 @@ export class Mod {
  * UNKNOWN indicates that the direction is not determined, but it won't crash.
  */
 export class Direction {
+    private static DIRECTIONS = new Map<number, Direction>()
+
     static readonly CRASH = new Direction(-2)
     static readonly UNKNOWN = new Direction(-1)
     static readonly LEFT = new Direction(0)
@@ -223,10 +234,15 @@ export class Direction {
     static readonly DOWN = new Direction(2)
     static readonly UP = new Direction(3)
 
-    private constructor(readonly value: number) {}
+    private constructor(readonly value: number) {Direction.DIRECTIONS.set(value, this)}
 
+    /** Return the Direction corresponding to the value. */
+    static get(value: number): Direction {
+        return this.DIRECTIONS.get(value)!
+    }
+
+    /** Return the direction matching the given vector. */
     static from_vector(vector: readonly [number, number]): Direction {
-        /** Return the direction matching the given vector. */
         if (vector[0] === 0 && vector[1] === -1) {
             return this.LEFT
         }
@@ -241,8 +257,8 @@ export class Direction {
         }
         throw new Error(`The given vector did not match any direction. Vector: ${vector}`)
     }
+    /** Return the vector matching the given direction. */
     to_vector(): readonly [number, number] {
-        /** Return the vector matching the given direction. */
         if (this === Direction.LEFT) {
             return [0, -1]
         }
@@ -257,8 +273,8 @@ export class Direction {
         }
         throw new TypeError(`The given Direction does not map to a vector. Direction: ${this.value}`)
     }
+    /** Return the reversed version of the direction. */
     reverse(): Direction {
-        /** Return the reversed version of the direction. */
         if (this === Direction.LEFT) {
             return Direction.RIGHT
         }
@@ -273,8 +289,8 @@ export class Direction {
         }
         throw new TypeError(`The given Direction cannot be reversed. Direction: ${this}`)
     }
+    /** Add the Direction's vector to the given vector. */
     add_vector(vector: readonly [number, number]): readonly [number, number] {
-        /** Add the Direction's vector to the given vector. */
         const dir_vector = this.to_vector()
         return [vector[0] + dir_vector[0], vector[1] + dir_vector[1]]
     }

@@ -5,18 +5,25 @@ import {
     CarType as CT,
     Car as C,
     copy_arr, zeros, deque,
-    product, semaphore_pass, directions
+    product, semaphore_pass, directions,
+    Car
 } from './classes'
 import lvls from '../levels.json'
+import type { GridCell } from '../website/src/store/levelStore'
 
-// HYPERPARAMETERS (INTEGRATE WITH UI)
-const HEATMAP_LIMIT_LIMIT = 9
-const DECOY_HEATMAP_LIMIT = 15
-const GEN_TYPE: 'DFS' | 'BFS' = 'DFS'
-/** How many iterations before the next visualization data is given. */
-const VISUALIZE_RATE = 1000
-
-type lvl_type = (typeof lvls)[keyof typeof lvls]
+// The values given here are defaults if solve_level is not called in ../website/src/store/levelStore.ts.
+// Otherwise, the defaults are given in ../website/src/store/guiStore.ts.
+let HEATMAP_LIMIT_LIMIT = 9
+let DECOY_HEATMAP_LIMIT = 15
+let GEN_TYPE: 'DFS' | 'BFS' = 'DFS'
+// VISUALIZE_RATE is how many milliseconds before the next visualization callback.
+let VISUALIZE_RATE = 100
+type json_level_type = (typeof lvls)[keyof typeof lvls]
+type render_level_type = {
+    grid: GridCell[][],
+    max_tracks: number,
+    max_semaphores: number
+}
 type solved_data = {
     board: T[][]
     mods: M[][]
@@ -25,25 +32,27 @@ type solved_data = {
     time_elapsed: number,
     iterations: number
 } | undefined
-type visualize_type = (input: {board: T[][], mods: M[][], cars: C[]}) => void
+type visualize_type = (input: {board: T[][], mods: M[][], cars: C[], iterations: number, time_elapsed: number}) => void
 
 
 
 function tail_call_gen(args: args_type, visualize: visualize_type): void {
-    /** iteration count of the last call to visualize */
-    let last_update: number = 0
+    /** when the last callback was performed. */
+    let last_update: number = Date.now()
     if (GEN_TYPE === "DFS") {
         let argslist: args_type[] = [args]
 
         while (argslist.length > 0) {
             const arg: args_type = argslist.pop()!
-            if (iterations - last_update >= VISUALIZE_RATE) {
+            if (Date.now() - last_update >= VISUALIZE_RATE) {
                 visualize({
                     board: arg.board_to_use,
                     mods: arg.mods_to_use,
-                    cars: arg.cars_to_use
+                    cars: arg.cars_to_use,
+                    iterations: iterations,
+                    time_elapsed: (Date.now() - start_time) / 10e2
                 })
-                last_update = Math.floor(iterations / VISUALIZE_RATE) * VISUALIZE_RATE
+                last_update = Date.now()
             }
             const args: args_type[] = [...generate_tracks(arg)]
             argslist.push(...args.reverse())
@@ -58,13 +67,15 @@ function tail_call_gen(args: args_type, visualize: visualize_type): void {
         for (const queue of argslist.values()) {
             while (queue.length > 0) {
                 const arg: args_type = queue.popleft()!
-                if (iterations - last_update >= VISUALIZE_RATE) {
+                if (Date.now() - last_update >= VISUALIZE_RATE) {
                     visualize({
                         board: arg.board_to_use,
                         mods: arg.mods_to_use,
-                        cars: arg.cars_to_use
+                        cars: arg.cars_to_use,
+                        iterations: iterations,
+                        time_elapsed: (Date.now() - start_time) / 10e2
                     })
-                    last_update = Math.floor(iterations / VISUALIZE_RATE) * VISUALIZE_RATE
+                    last_update = Date.now()
                 }
                 for (const args of generate_tracks(arg)) {
                     if (lowest_tracks_remaining !== -1) {
@@ -655,6 +666,7 @@ function* generate_tracks({
     }
 }
 
+var start_time: number
 var board: T[][]
 var mods: M[][]
 var mod_nums: number[][]
@@ -683,15 +695,46 @@ var swapping_track_poses: Map<number, (readonly [number, number])[]>
 var station_poses: Map<M, Map<number, (readonly [number, number])[]>>
 var board_solve_time: number
 
-export function solve_level(data: lvl_type, visualize: visualize_type): solved_data {
-    // if (lvl_name !== "1-11A") {continue}
-    // console.log(lvl_name)
-    board = T.convert_to_tracks(data.board)
-    mods = M.convert_to_mods(data.mods)
-    mod_nums = data.mod_nums
-    all_cars = data.cars.map(C.from_json)
-    max_tracks = data.tracks
-    max_semaphores = data.semaphores
+export function solve_level(data: json_level_type | render_level_type, visualize: visualize_type): solved_data {
+    if ('grid' in data) {
+        // type of data is render_level_type
+        const grid = data.grid
+        board = []
+        mods = []
+        mod_nums = []
+        all_cars = []
+        max_tracks = data.max_tracks
+        max_semaphores = data.max_semaphores
+
+        for (let i = 0; i < grid.length; i++) {
+            board.push([])
+            mods.push([])
+            mod_nums.push([])
+            for (let j = 0; j < grid[0].length; j++) {
+                // Tracks and mods have to be reserialized since postMessage gives plain objects, not the actual classes.
+                board[i].push(T.get(grid[i][j].track.value))
+                mods[i].push(M.get(grid[i][j].mod.value))
+                mod_nums[i].push(grid[i][j].mod_num)
+                if (grid[i][j].car !== undefined) {
+                    const car = grid[i][j].car!
+                    all_cars.push(new Car(
+                        [car.pos[0], car.pos[1]],
+                        D.get(car.direction.value),
+                        car.num,
+                        CT.get(car.type.name)
+                    ))
+                }
+            }
+        }
+    } else {
+        // type of data is json_level_type
+        board = T.convert_to_tracks(data.board)
+        mods = M.convert_to_mods(data.mods)
+        mod_nums = data.mod_nums
+        all_cars = data.cars.map(C.from_json)
+        max_tracks = data.tracks
+        max_semaphores = data.semaphores
+    }
     cars = []
     decoys = []
     ncars = []
@@ -764,7 +807,7 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
     T.print_values(board)
     console.log('Generating...')
     board_solve_time = Date.now()
-    const start_time: number = Date.now()
+    start_time = Date.now()
 
     // Check if any of the non-decoy cars are placed so that they will immediately crash into the border.
     let cancel_generation: boolean = false
@@ -773,7 +816,8 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
             cancel_generation = true
             break
         }
-    } if (!cancel_generation) {
+    }
+    if (!cancel_generation) {
         const cars_to_use: C[] = [...all_cars]
         const board_to_use: T[][] = copy_arr(board)
         const mods_to_use: M[][] = copy_arr(mods)
@@ -800,10 +844,10 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
     console.log(`Iterations Processed: ${iterations.toLocaleString()}`)
     console.log(`Tracks Remaining: ${lowest_tracks_remaining}`)
     if (lowest_tracks_remaining > 0) {
-        console.log('thinh you can do whatever you want here. put an alert that a track was saved, or do nothing, etc.')
+        console.log('lowest_tracks_remaining > 0')
     }
     if (best_board === undefined || best_mods === undefined) {
-        console.log('thinh you can do whatever you want here. put an alert that the board failed, etc.')
+        console.log('board failed')
         console.log("------------------------------")
         return undefined
     }
@@ -814,9 +858,9 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
     }
     T.print_values(best_board)
     if (max_semaphores > 0) {
-        console.log('thinh you can do whatever you want here. list how many semaphores there are left, etc.')
+        console.log('max_semaphores > 0')
     }
-    console.log("thinh feel free to delete this, or do whatever. it is only used for printing semaphore positions.")
+    // console.log("thinh feel free to delete this, or do whatever. it is only used for printing semaphore positions.")
     for (let i = 0; i < best_mods.length; i++) {
         for (let j = 0; j < best_mods[0].length; j++) {
             const mod = best_mods[i][j]
@@ -837,4 +881,34 @@ export function solve_level(data: lvl_type, visualize: visualize_type): solved_d
     best_board = undefined
     best_mods = undefined
     return return_data
+}
+
+function visualize(input: {board: T[][], mods: M[][], cars: C[]}): void {
+    self.postMessage({
+        done: false,
+        visualize_data: input
+    })
+}
+
+type msgType = {
+    level: render_level_type,
+    parameters: {
+        heatmap_limit_limit: number,
+        decoy_heatmap_limit: number,
+        gen_type: 'DFS' | 'BFS',
+        visualize_rate: number
+    }
+}
+// solve function to be run as a worker in ../website/src/store/levelStore.ts
+self.onmessage = (e: MessageEvent<msgType>) => {
+    HEATMAP_LIMIT_LIMIT = e.data.parameters.heatmap_limit_limit
+    DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
+    GEN_TYPE = e.data.parameters.gen_type
+    VISUALIZE_RATE = e.data.parameters.visualize_rate
+
+    const solution = solve_level(e.data.level, visualize)
+    self.postMessage({
+        done: true,
+        solution: solution
+    })
 }

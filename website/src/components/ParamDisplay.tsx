@@ -4,8 +4,8 @@ import { useLevelStore } from "../store";
 
 // TODO: make into a single leftpanel with solveleveldisplay like how the rightpanel is
 export const ParamDisplay: React.FC = () => {
-    const { setTracks, setSemaphores, levelData } = useLevelStore()
-    const { max_tracks, max_semaphores } = levelData
+    const { setTracks, setSemaphores, permLevelData } = useLevelStore()
+    const { max_tracks, max_semaphores } = permLevelData
 
     return (
         <div className="absolute flex flex-col bottom-2 left-2 p-3 w-54 bg-gray-800 border-2 rounded-lg border-gray-600 gap-2 z-40">

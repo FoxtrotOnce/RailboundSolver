@@ -472,7 +472,7 @@ export const LeftDisplay: React.FC = () => {
                     target="_blank"
                   >
                     Afterburn's Discord server
-                  </a> and send a message or suggestion in the{" "}
+                  </a> and send a message, a suggestion, or feedback in the{" "}
                   <a
                     className={styles.link.text}
                     href="https://discord.com/channels/441217491612598272/1142318326136180796"

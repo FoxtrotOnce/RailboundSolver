@@ -1,0 +1,2 @@
+The .svg files inside of this folder are provided so that the original svg files are available if needed.
+./svgs.tsx does NOT directly use the .svg files in this folder, it instead uses converted in-line versions of the svgs.

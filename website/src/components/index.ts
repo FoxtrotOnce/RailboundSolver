@@ -7,7 +7,6 @@ export { GameCanvas } from "./GameCanvas";
 export { GridTile } from "./GridTile";
 export { ParamDisplay } from "./ParamDisplay";
 export { ProgressBar } from "./ProgressBar";
-export { SolveLevelDisplay } from "./SolveLevelDisplay";
 export { GridButtons } from "./GridButtons";
 export { LevelSettings } from "./LevelSettings";
 export type { GamePiece } from "../components/GamePieceIcon";

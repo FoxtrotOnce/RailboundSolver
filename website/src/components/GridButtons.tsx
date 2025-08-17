@@ -48,6 +48,7 @@ const GridButton: React.FC<{
   const [hovering, setHovering] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
+  const isButton = typeof onClick === 'function'
 
   useEffect(() => {
     const container = containerRef.current
@@ -62,16 +63,17 @@ const GridButton: React.FC<{
   }, [hovering])
 
   return (
-    <button
+    <div
       className={`transition-all flex flex-row p-1.5 rounded-[0.25rem] items-center select-none font-bold text-[1.5rem] whitespace-nowrap ${style} ${
         onClick !== undefined && "cursor-pointer"
       }`}
       onClick={onClick}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
+      tabIndex={isButton ? 0 : -1}
     >
       <div ref={containerRef} className={`transition-all flex items-center justify-end h-full overflow-hidden`}>
-        {/* pr-2 is used here instead of gap (on the button) so that the gap won't appear when the container's width is 0. */}
+        {/* pr-2 is used here instead of gap (on the first div) so that the gap won't appear when the container's width is 0. */}
         <div ref={contentRef} className={`relative pr-2`}>
           {content}
         </div>
@@ -79,13 +81,13 @@ const GridButton: React.FC<{
       <div className={`w-8 h-8`}>
         {icon}
       </div>
-    </button>
+    </div>
   )
 }
 
 export const GridButtons: React.FC = () => {
   const { styles, setHyperparams, hyperparameters, displayLevelSettings } = useGuiStore()
-  const { clearLevel } = useLevelStore()
+  const { clearLevel, solveLevel } = useLevelStore()
 
   return (
     <div className={`flex flex-col gap-3 rounded-[0.375rem] w-full items-end`}>
@@ -128,7 +130,7 @@ export const GridButtons: React.FC = () => {
         content={<span>Solve</span>}
         icon={Icons.start}
         style={`${styles.background.text} bg-green-500`}
-        onClick={() => null}
+        onClick={() => solveLevel()}
       />
       <GridButton
         content={<span>Pause</span>}

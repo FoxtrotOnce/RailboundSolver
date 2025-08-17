@@ -3,8 +3,6 @@ import lvls from "../../../levels.json";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
 import type { LevelData } from "../store/levelStore";
-import { keyframes } from "framer-motion";
-import { create } from "zustand";
 
 type LevelType = (typeof lvls)[keyof typeof lvls];
 
@@ -68,7 +66,7 @@ const EntryBox: React.FC<{
   max?: number
 }> = ({title, value, setData, cautionThreshold=999, max=100}) => {
   const { styles } = useGuiStore()
-  const { levelData } = useLevelStore()
+  const { permLevelData } = useLevelStore()
   const [status, setStatus] = useState<"valid" | "caution" | "warning">("valid")
   const [isFocused, setFocus] = useState(false)
   const [text, setText] = useState(value)
@@ -76,7 +74,7 @@ const EntryBox: React.FC<{
   useEffect(() => {
     setText(value)
     onBlur(value)
-  }, [levelData.id])
+  }, [permLevelData.id])
 
   const onBlur = (text: string | number) => {
     setFocus(false)
@@ -200,7 +198,7 @@ const StatisticSlider: React.FC<{
 export const LevelSettings: React.FC = () => {
   const { styles, displayLevelSettings } = useGuiStore()
   const [selectedWorld, setSelectedWorld] = useState('11')
-  const { levelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel } = useLevelStore()
+  const { permLevelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel } = useLevelStore()
   const gridRef = useRef<HTMLDivElement | null>(null)
   const [ bottomH, setBottomH ] = useState(0)  
   const [ worlds, setWorlds ] = useState(worldsRaw)
@@ -212,11 +210,12 @@ export const LevelSettings: React.FC = () => {
     }
   }, [gridRef, setBottomH])
 
+  // Trigger a re-render when savedLevels are changed by setting updatedWorlds to a new variable (a copy of itself with the changes)
   useEffect(() => {
     const updatedWorlds = new Map(worlds)
     updatedWorlds.set("Custom", Object.fromEntries(Object.entries(savedLevels).map(([id, level]) => [id, level])))
     setWorlds(updatedWorlds)
-  }, [savedLevels, levelData])
+  }, [savedLevels, permLevelData])
 
   return (
     <div className={`relative flex flex-col gap-2 p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border}`}>
@@ -235,21 +234,21 @@ export const LevelSettings: React.FC = () => {
         <div className={`flex flex-col w-full px-2 py-1`}>
           <EntryBox
             title="Name"
-            value={levelData.name}
+            value={permLevelData.name}
             setData={(input) => setLevelName(input as string)}
             max={100}
           />
           <div className={`flex flex-row w-full justify-between`}>
             <EntryBox
               title="Max Tracks"
-              value={levelData.max_tracks}
+              value={permLevelData.max_tracks}
               setData={(input) => setTracks(input as number)}
               cautionThreshold={16}
               max={142}
             />
             <EntryBox
               title="Max Semaphores"
-              value={levelData.max_semaphores}
+              value={permLevelData.max_semaphores}
               setData={(input) => setSemaphores(input as number)}
               cautionThreshold={2}
               max={12}
@@ -271,23 +270,23 @@ export const LevelSettings: React.FC = () => {
           </div>
           <div className={`flex flex-row`}>
             {/* Grid */}
-            <div ref={gridRef} className={`flex flex-col items-center gap-0.75`}>
+            <div ref={gridRef} className={`flex flex-col items-center gap-0.75 h-fit`}>
               <span className={`flex text-center font-medium text-[0.875rem] w-96 ${styles.text.text}`}>
                 <span className={`w-full truncate`}>
                   Currently Selected:{" "}
-                  <i>{levelData.name}</i>
+                  <i>{permLevelData.name}</i>
                 </span>
               </span>
-              <div className={`relative ${styles.background.bg} rounded-[0.25rem] rounded-br-[0rem] p-3`}>
+              <div className={`relative ${styles.background.bg} rounded-[0.25rem] rounded-br-[0rem] p-3 overflow-hidden`}>
                 <div className={`flex items-center justify-center w-90 h-90`}>
                   <div
                     className={`grid border-t-1 border-l-1 ${styles.highlight.border}`}
                     style={{
-                      gridTemplateColumns: `repeat(${levelData.width}, 30px)`,
-                      gridTemplateRows: `repeat(${levelData.height}, 30px)`,
+                      gridTemplateColumns: `repeat(${permLevelData.grid[0].length}, 30px)`,
+                      gridTemplateRows: `repeat(${permLevelData.grid.length}, 30px)`,
                     }}
                   >
-                    {levelData.grid.map((row, idx) =>
+                    {permLevelData.grid.map((row, idx) =>
                       row.map((tile, jdx) => (
                         <div
                           key={`${idx}-${jdx}`}
@@ -318,7 +317,7 @@ export const LevelSettings: React.FC = () => {
                     const level = worlds.get(selectedWorld)![levelKey]
                     return <SelectionButton
                       name={level.name}
-                      selected={levelData.id === level.id}
+                      selected={permLevelData.id === level.id}
                       onClick={() => loadLevel(level)
                     }/>
                   })}
@@ -349,7 +348,7 @@ export const LevelSettings: React.FC = () => {
                       <button
                         className={`transition-all cursor-pointer hover:brightness-85 active:brightness-70`}
                         onClick={() => {
-                          const newLevel = {...levelData}
+                          const newLevel = {...permLevelData}
                           newLevel.id = createDefaultLevel().id
                           savedLevels[newLevel.id] = newLevel
                           loadLevel(newLevel)
@@ -361,11 +360,11 @@ export const LevelSettings: React.FC = () => {
                     <button
                       className={`transition-all text-red-500 cursor-pointer hover:brightness-85 active:brightness-70`}
                       onClick={() => {
-                        if (!(levelData.id in savedLevels)) {
+                        if (!(permLevelData.id in savedLevels)) {
                           console.log("Level is custom and therefore cannot be deleted.")
                           return
                         }
-                        delete savedLevels[levelData.id]
+                        delete savedLevels[permLevelData.id]
                         const levels = Object.values(savedLevels)
                         if (levels.length === 0) {
                           setSelectedWorld("1")
@@ -379,8 +378,8 @@ export const LevelSettings: React.FC = () => {
                     </button>
                   </div>
                   {/* Statistics */}
-                  <StatisticSlider name="Tracks Used" used={levelData.max_tracks} max={levelData.max_tracks} />
-                  <StatisticSlider name="Semaphores Used" used={Math.floor(levelData.max_semaphores / 2)} max={levelData.max_semaphores} />
+                  <StatisticSlider name="Tracks Used" used={permLevelData.max_tracks} max={permLevelData.max_tracks} />
+                  <StatisticSlider name="Semaphores Used" used={Math.floor(permLevelData.max_semaphores / 2)} max={permLevelData.max_semaphores} />
                   <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
                     <span>Iterations:</span>
                     <span>{"45,327,981,605"}</span>

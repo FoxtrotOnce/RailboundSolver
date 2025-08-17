@@ -1,76 +1,31 @@
 import React, { useEffect, useRef, useState } from "react";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
-// import CarImg from "../assets/Car 1.svg";
-// import { motion } from "motion/react";
-import { Track } from "../../../algo/classes";
 
-/**
- * Renders connector segments for a fence (ROADBLOCK) tile based on its neighboring tiles.
- *
- * This component checks the adjacent tiles (top, bottom, left, right) in the level grid.
- * If a neighboring tile is also a ROADBLOCK, it renders a connector segment in that direction.
- * The connectors are styled divs positioned absolutely within the parent tile.
- *
- * @param pos - The position of the current tile in the grid, with `x` and `y` coordinates.
- * @returns A set of connector divs if the current tile is a ROADBLOCK; otherwise, returns null.
- */
-function FenceConnector({ pos }: { pos: { x: number; y: number } }) {
-  const { levelData } = useLevelStore();
-  const isConnectTop =
-    levelData.grid[pos.y - 1]?.[pos.x]?.track === Track.ROADBLOCK;
-  const isConnectBottom =
-    levelData.grid[pos.y + 1]?.[pos.x]?.track === Track.ROADBLOCK;
-  const isConnectLeft =
-    levelData.grid[pos.y]?.[pos.x - 1]?.track === Track.ROADBLOCK;
-  const isConnectRight =
-    levelData.grid[pos.y]?.[pos.x + 1]?.track === Track.ROADBLOCK;
-
-  // if current title is not ROADBLOCK
-  if (levelData.grid[pos.y]?.[pos.x]?.track !== Track.ROADBLOCK) return null;
-
-  return (
-    <div>
-      {isConnectTop && (
-        <div className="w-2 h-1/2 bg-[#CB8263] top-0 left-1/2 absolute -translate-x-1/2 border-l-[0.5px] border-r-[0.5px]"></div>
-      )}
-      {isConnectBottom && (
-        <div className="w-2 h-1/2 bg-[#CB8263] bottom-0 left-1/2 absolute -translate-x-1/2 border-l-[0.5px] border-r-[0.5px]"></div>
-      )}
-      {isConnectLeft && (
-        <div className="w-1/2 h-2 bg-[#CB8263] left-0 absolute -translate-y-1/2 top-1/2 border-t-[0.5px] border-b-[0.5px]"></div>
-      )}
-      {isConnectRight && (
-        <div className="w-1/2 h-2 bg-[#CB8263] right-0 absolute -translate-y-1/2 top-1/2 border-t-[0.5px] border-b-[0.5px]"></div>
-      )}
-    </div>
-  );
+const resizerParams: Record<number, {cursor: string, hover_cursor: string, xMult: number, yMult: number}> = {
+  0: {cursor: 'nw-resize', hover_cursor: 'cursor-nw-resize', xMult: -1, yMult: -1},
+  1: {cursor: 'n-resize', hover_cursor: 'cursor-n-resize', xMult: 0, yMult: -1},
+  2: {cursor: 'ne-resize', hover_cursor: 'cursor-ne-resize', xMult: 1, yMult: -1},
+  3: {cursor: 'w-resize', hover_cursor: 'cursor-w-resize', xMult: -1, yMult: 0},
+  5: {cursor: 'e-resize', hover_cursor: 'cursor-e-resize', xMult: 1, yMult: 0},
+  6: {cursor: 'sw-resize', hover_cursor: 'cursor-sw-resize', xMult: -1, yMult: 1},
+  7: {cursor: 's-resize', hover_cursor: 'cursor-s-resize', xMult: 0, yMult: 1},
+  8: {cursor: 'se-resize', hover_cursor: 'cursor-se-resize', xMult: 1, yMult: 1}
 }
 
 export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { styles, showGrid, gridSize } = useGuiStore();
-  const { levelData, setDims, saveLevel, saveToUndoStack } = useLevelStore();
+  const { permLevelData, renderedLevelData, isSolving, setDims, saveLevel, saveToUndoStack } = useLevelStore();
   const [ resizerGrabbed, setResizerGrabbed ] = useState(-1)
   const [ resizeStartPos, setResizeStartPos ] = useState({x: 0, y: 0})
   const [animationFlag, setFlag] = useState(false);
   const [tileHovering, setTileHovering] = useState({y: -1, x: -1});
   const gridRef = useRef<HTMLDivElement | null>(null)
-  const { width, height } = levelData;
+  const [ width, height ] = [permLevelData.grid[0].length, permLevelData.grid.length];
   const [ savedDims, setSavedDims ] = useState({width: 0, height: 0})
   // grid_x and grid_y are the relative position of the editing grid compared to its parent, so the grabbers can be situated around it.
   const grid_x = (12 - width) * gridSize / 2 + 4 * 4
   const grid_y = (12 - height) * gridSize / 2 + 4 * 4
-
-  const resizerParams: Record<number, {cursor: string, hover_cursor: string, xMult: number, yMult: number}> = {
-    0: {cursor: 'nw-resize', hover_cursor: 'cursor-nw-resize', xMult: -1, yMult: -1},
-    1: {cursor: 'n-resize', hover_cursor: 'cursor-n-resize', xMult: 0, yMult: -1},
-    2: {cursor: 'ne-resize', hover_cursor: 'cursor-ne-resize', xMult: 1, yMult: -1},
-    3: {cursor: 'w-resize', hover_cursor: 'cursor-w-resize', xMult: -1, yMult: 0},
-    5: {cursor: 'e-resize', hover_cursor: 'cursor-e-resize', xMult: 1, yMult: 0},
-    6: {cursor: 'sw-resize', hover_cursor: 'cursor-sw-resize', xMult: -1, yMult: 1},
-    7: {cursor: 's-resize', hover_cursor: 'cursor-s-resize', xMult: 0, yMult: 1},
-    8: {cursor: 'se-resize', hover_cursor: 'cursor-se-resize', xMult: 1, yMult: 1}
-  }
 
   useEffect(() => {
     const mouseup = () => {
@@ -103,10 +58,10 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
     };
   }, [resizeStartPos, resizerGrabbed, width, height])
 
-    // NOTE: Animation is delayed when hovering over tiles because the animation doesn't trigger on the cursor until 800ms after it's loaded.
-    useEffect(() => {
-      setTimeout(() => setFlag(!animationFlag), 800)
-    }, [animationFlag])
+  // Have to make this not trigger a re-render every time cause it breaks ResizeGrabber's isHovered.
+  useEffect(() => {
+    setTimeout(() => setFlag(!animationFlag), 800)
+  }, [animationFlag])
 
   const ResizeGrabber: React.FC<{
     idx: number;
@@ -248,7 +203,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
             d={animationFlag ? 'm38 43l5 0l0 -5' : 'm35 40l5 0l0 -5'}
           />
         </svg>
-        {levelData.grid.map((row, idx) =>
+        {renderedLevelData.map((row, idx) =>
           row.map((tile, jdx) => (
             <div
               key={`${idx}-${jdx}`}
@@ -262,9 +217,8 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
                 track={tile.track}
                 mod={tile.mod}
                 mod_num={tile.mod_num}
-                disabled={false}
+                disabled={!isSolving}
               />
-              <FenceConnector pos={{ y: idx, x: jdx }} />
             </div>
           ))
         )}

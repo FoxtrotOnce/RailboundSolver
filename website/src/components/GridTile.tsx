@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Track, Mod, Car, Direction, CarType } from "../../../algo/classes";
 
 import {
@@ -39,14 +39,56 @@ import {
 import { useGuiStore, useLevelStore } from "../store";
 import type { GridCell } from "../store/levelStore";
 
-const fork_2_tracks = new Set<Track>([
+/**
+ * Tracks that require the Perm_Fork2 svg.
+ */
+const fork2_tracks = new Set<Track>([
   Track.BOTTOM_RIGHT_TOP_3WAY,
   Track.BOTTOM_LEFT_RIGHT_3WAY,
   Track.TOP_RIGHT_LEFT_3WAY,
   Track.TOP_LEFT_BOTTOM_3WAY,
 ]);
-// NOTE: Tailwind rotations are clockwise, rotation from useGuiStore() is counterclockwise as it increases.
-const TrackIcons = new Map<Track, React.ReactNode>([
+/**
+ * Gives the rotation for items based on what track is underneath them.
+ */
+const ItemRotations = new Map<Track, string>([
+  [Track.EMPTY, `rotate-0`],
+  [Track.HORIZONTAL_TRACK, `rotate-0`],
+  [Track.VERTICAL_TRACK, `rotate-90`],
+  [Track.CAR_ENDING_TRACK_LEFT, `rotate-180`],
+  [Track.CAR_ENDING_TRACK_RIGHT, `rotate-0`],
+  [Track.CAR_ENDING_TRACK_DOWN, `rotate-90`],
+  [Track.CAR_ENDING_TRACK_UP, `rotate-270`],
+  [Track.ROADBLOCK, `rotate-0`],
+  [Track.BOTTOM_RIGHT_TURN, `rotate-0`],
+  [Track.BOTTOM_LEFT_TURN, `rotate-90`],
+  [Track.TOP_RIGHT_TURN, `rotate-270`],
+  [Track.TOP_LEFT_TURN, `rotate-180`],
+  [Track.BOTTOM_RIGHT_LEFT_3WAY, `rotate-0`],
+  [Track.BOTTOM_RIGHT_TOP_3WAY, `rotate-270`],
+  [Track.BOTTOM_LEFT_RIGHT_3WAY, `rotate-0`],
+  [Track.BOTTOM_LEFT_TOP_3WAY, `rotate-90`],
+  [Track.TOP_RIGHT_LEFT_3WAY, `rotate-180`],
+  [Track.TOP_RIGHT_BOTTOM_3WAY, `rotate-270`],
+  [Track.TOP_LEFT_RIGHT_3WAY, `rotate-180`],
+  [Track.TOP_LEFT_BOTTOM_3WAY, `rotate-90`],
+  [Track.LEFT_FACING_TUNNEL, `rotate-0`],
+  [Track.RIGHT_FACING_TUNNEL, `rotate-180`],
+  [Track.DOWN_FACING_TUNNEL, `rotate-270`],
+  [Track.UP_FACING_TUNNEL, `rotate-90`],
+  [Track.NCAR_ENDING_TRACK_LEFT, `rotate-180`],
+  [Track.NCAR_ENDING_TRACK_RIGHT, `rotate-0`],
+  [Track.NCAR_ENDING_TRACK_DOWN, `rotate-90`],
+  [Track.NCAR_ENDING_TRACK_UP, `rotate-270`],
+  [Track.STATION_LEFT, `rotate-90`],
+  [Track.STATION_RIGHT, `rotate-270`],
+  [Track.STATION_DOWN, `rotate-0`],
+  [Track.STATION_UP, `rotate-180`]
+]);
+/**
+ * Gives the corresponding svg for each Track (Besides Stations).
+ */
+const TrackIcons = new Map<Track, React.ReactNode | never>([
   [Track.EMPTY, <></>],
   [Track.HORIZONTAL_TRACK, Perm_StraightTrack],
   [Track.VERTICAL_TRACK, Perm_StraightTrack],
@@ -77,41 +119,14 @@ const TrackIcons = new Map<Track, React.ReactNode>([
   [Track.NCAR_ENDING_TRACK_DOWN, Numeral_Ending],
   [Track.NCAR_ENDING_TRACK_UP, Numeral_Ending],
   // Station's icons depends on the grid and can be either a station or a post office, so it is obtained via function instead.
+  [Track.STATION_LEFT, <></> as never],
+  [Track.STATION_RIGHT, <></> as never],
+  [Track.STATION_DOWN, <></> as never],
+  [Track.STATION_UP, <></> as never]
 ]);
-const TrackRotations = new Map<Track, number>([
-  [Track.EMPTY, 0],
-  [Track.HORIZONTAL_TRACK, 0],
-  [Track.VERTICAL_TRACK, 90],
-  [Track.CAR_ENDING_TRACK_LEFT, 180],
-  [Track.CAR_ENDING_TRACK_RIGHT, 0],
-  [Track.CAR_ENDING_TRACK_DOWN, 90],
-  [Track.CAR_ENDING_TRACK_UP, 270],
-  [Track.ROADBLOCK, 0],
-  [Track.BOTTOM_RIGHT_TURN, 0],
-  [Track.BOTTOM_LEFT_TURN, 90],
-  [Track.TOP_RIGHT_TURN, 270],
-  [Track.TOP_LEFT_TURN, 180],
-  [Track.BOTTOM_RIGHT_LEFT_3WAY, 0],
-  [Track.BOTTOM_RIGHT_TOP_3WAY, 270],
-  [Track.BOTTOM_LEFT_RIGHT_3WAY, 0],
-  [Track.BOTTOM_LEFT_TOP_3WAY, 90],
-  [Track.TOP_RIGHT_LEFT_3WAY, 180],
-  [Track.TOP_RIGHT_BOTTOM_3WAY, 270],
-  [Track.TOP_LEFT_RIGHT_3WAY, 180],
-  [Track.TOP_LEFT_BOTTOM_3WAY, 90],
-  [Track.LEFT_FACING_TUNNEL, 0],
-  [Track.RIGHT_FACING_TUNNEL, 180],
-  [Track.DOWN_FACING_TUNNEL, 270],
-  [Track.UP_FACING_TUNNEL, 90],
-  [Track.NCAR_ENDING_TRACK_LEFT, 180],
-  [Track.NCAR_ENDING_TRACK_RIGHT, 0],
-  [Track.NCAR_ENDING_TRACK_DOWN, 90],
-  [Track.NCAR_ENDING_TRACK_UP, 270],
-  [Track.STATION_LEFT, 90],
-  [Track.STATION_RIGHT, 270],
-  [Track.STATION_DOWN, 0],
-  [Track.STATION_UP, 180]
-]);
+/**
+ * Gives the corresponding svg for each Mod (Besides Tunnels and Stations)
+ */
 const ModIcons = new Map<Mod | string, React.ReactNode>([
   [Mod.EMPTY, <></>],
   [Mod.TUNNEL, <></>], // Tunnel is blank since the track has rotation value, the mod doesn't
@@ -124,6 +139,9 @@ const ModIcons = new Map<Mod | string, React.ReactNode>([
   [Mod.SWITCH_RAIL, Switch_Rail],
   [Mod.POST_OFFICE, <></>]
 ]);
+/**
+ * Gives the corresponding svg for each car, based on its CarType and number.
+ */
 const CarIcons = new Map<CarType, React.ReactNode[]>([
   [
     CarType.NORMAL,
@@ -145,181 +163,26 @@ const CarIcons = new Map<CarType, React.ReactNode[]>([
   ],
   [CarType.DECOY, Array(144).fill(Decoy)],
 ]);
-const StationStyles = new Map<number, string>([
-  [270, "absolute -left-full rotate-270 size-full"],
-  [90, "absolute -right-full rotate-90 size-full"],
-  [0, "absolute -bottom-full rotate-180 size-full"],
-  [180, "absolute -top-full rotate-0 size-full"]
+/**
+ * Gives the Tailwind rotation for a car based on its Direction.
+ */
+const dirToRot = new Map<Direction, string | never>([
+  [Direction.LEFT, `rotate-180`],
+  [Direction.RIGHT, `rotate-0`],
+  [Direction.DOWN, `rotate-90`],
+  [Direction.UP, `rotate-270`],
+  [Direction.UNKNOWN, `rotate-0` as never],
+  [Direction.CRASH, `rotate-0` as never]
 ])
-
-interface return_types {
-  track: Track | undefined;
-  mod: Mod | undefined;
-  cartype: CarType | undefined;
-}
-
-function getTypeFromInfo(
-  toolId: string | undefined,
-  pieceId: string | undefined,
-  rotation: number,
-  modNum: number
-): return_types {
-  const to_return: return_types = {
-    track: undefined,
-    mod: undefined,
-    cartype: undefined,
-  };
-  if (toolId === "STRAIGHT") {
-    if (rotation === 0 || rotation === 2) {
-      to_return.track = Track.HORIZONTAL_TRACK;
-    } else {
-      to_return.track = Track.VERTICAL_TRACK;
-    }
-  }
-  if (toolId === "CURVED") {
-    if (rotation === 0) {
-      to_return.track = Track.BOTTOM_RIGHT_TURN;
-    } else if (rotation === 1) {
-      to_return.track = Track.TOP_RIGHT_TURN;
-    } else if (rotation === 2) {
-      to_return.track = Track.TOP_LEFT_TURN;
-    } else {
-      to_return.track = Track.BOTTOM_LEFT_TURN;
-    }
-  }
-  if (toolId === "FORK") {
-    if (rotation === 0) {
-      to_return.track = Track.BOTTOM_RIGHT_LEFT_3WAY;
-    } else if (rotation === 1) {
-      to_return.track = Track.TOP_RIGHT_BOTTOM_3WAY;
-    } else if (rotation === 2) {
-      to_return.track = Track.TOP_LEFT_RIGHT_3WAY;
-    } else {
-      to_return.track = Track.BOTTOM_LEFT_TOP_3WAY;
-    }
-  }
-  if (toolId === "FORK_2") {
-    if (rotation === 0) {
-      to_return.track = Track.BOTTOM_LEFT_RIGHT_3WAY;
-    } else if (rotation === 1) {
-      to_return.track = Track.BOTTOM_RIGHT_TOP_3WAY;
-    } else if (rotation === 2) {
-      to_return.track = Track.TOP_RIGHT_LEFT_3WAY;
-    } else {
-      to_return.track = Track.TOP_LEFT_BOTTOM_3WAY;
-    }
-  }
-  if (pieceId === "END_TRACK") {
-    if (modNum < 4) {
-      if (rotation === 0) {
-        to_return.track = Track.CAR_ENDING_TRACK_RIGHT;
-      } else if (rotation === 1) {
-        to_return.track = Track.CAR_ENDING_TRACK_UP;
-      } else if (rotation === 2) {
-        to_return.track = Track.CAR_ENDING_TRACK_LEFT;
-      } else {
-        to_return.track = Track.CAR_ENDING_TRACK_DOWN;
-      }
-    } else {
-      if (rotation === 0) {
-        to_return.track = Track.NCAR_ENDING_TRACK_RIGHT;
-      } else if (rotation === 1) {
-        to_return.track = Track.NCAR_ENDING_TRACK_UP;
-      } else if (rotation === 2) {
-        to_return.track = Track.NCAR_ENDING_TRACK_LEFT;
-      } else {
-        to_return.track = Track.NCAR_ENDING_TRACK_DOWN;
-      }
-    }
-  }
-  if (pieceId === "ROADBLOCK") {
-    to_return.track = Track.ROADBLOCK;
-  }
-  if (pieceId === "STATION") {
-    if (modNum < 4) {
-      to_return.mod = Mod.STATION;
-    } else {
-      to_return.mod = Mod.POST_OFFICE
-    }
-    // The grid handles making the station appear as a station/post office, not the Track class.
-    if (rotation === 0) {
-      to_return.track = Track.STATION_RIGHT;
-    } else if (rotation === 1) {
-      to_return.track = Track.STATION_UP;
-    } else if (rotation === 2) {
-      to_return.track = Track.STATION_LEFT;
-    } else {
-      to_return.track = Track.STATION_DOWN;
-    }
-  }
-  if (pieceId === "SWITCH") {
-    to_return.mod = Mod.SWITCH;
-  }
-  if (pieceId === "OPEN_GATE") {
-    to_return.mod = Mod.OPEN_GATE;
-  }
-  if (pieceId === "CLOSED_GATE") {
-    to_return.mod = Mod.CLOSED_GATE;
-  }
-  if (pieceId === "SWITCH_FORK_TRACK") {
-    to_return.mod = Mod.SWAPPING_TRACK;
-  }
-  if (pieceId === "TUNNEL") {
-    if (rotation === 0) {
-      to_return.track = Track.RIGHT_FACING_TUNNEL
-    } else if (rotation === 1) {
-      to_return.track = Track.UP_FACING_TUNNEL
-    } else if (rotation === 2) {
-      to_return.track = Track.LEFT_FACING_TUNNEL
-    } else  {
-      to_return.track = Track.DOWN_FACING_TUNNEL
-    }
-    to_return.mod = Mod.TUNNEL;
-  }
-  if (pieceId === "SWITCH_RAIL") {
-    to_return.mod = Mod.SWITCH_RAIL;
-  }
-  if (pieceId === "NORMAL") {
-    if (modNum < 4) {
-      to_return.cartype = CarType.NORMAL;
-    } else {
-      to_return.cartype = CarType.NUMERAL
-    }
-  }
-  if (pieceId === "DECOY") {
-    to_return.cartype = CarType.DECOY;
-  }
-  return to_return;
-}
-function getRotationClass(degrees: number): string {
-  switch (degrees) {
-    case 0:
-      return "rotate-0";
-    case 90:
-      return "rotate-90";
-    case 180:
-      return "rotate-180";
-    case 270:
-      return "rotate-270";
-    default:
-      return "rotate-0";
-  }
-}
-
-function carDirToDeg(dir: Direction): string {
-  if (dir === Direction.LEFT) {
-    return "rotate-180";
-  } else if (dir === Direction.RIGHT) {
-    return "rotate-0";
-  } else if (dir === Direction.DOWN) {
-    return "rotate-90";
-  } else if (dir === Direction.UP) {
-    return "rotate-270";
-  } else {
-    console.log(`strange direction trying to be shown. Direction: ${dir}`);
-    return "rotate-0";
-  }
-}
+/**
+ * Gives the Tailwind rotation for a div based on rotation (from useGuiStore())
+ */
+const rotToRot = new Map<number, string>([
+  [0, `rotate-0`],
+  [1, `rotate-270`],
+  [2, `rotate-180`],
+  [3, `rotate-90`]
+])
 
 export const GridTile: React.FC<{
   pos: { y: number; x: number };
@@ -331,35 +194,208 @@ export const GridTile: React.FC<{
 }> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
-  const { placePiece, removePiece, removeModorCar, registryFilled, levelData } = useLevelStore();
+  const { placePiece, removePiece, removeModorCar, registryFilled, permLevelData, saveToUndoStack, saveLevel } = useLevelStore();
+  type items = {
+    track?: Track,
+    mod?: Mod,
+    cartype?: CarType
+  }
+
+  /**
+   * Uses selectedTool, selectedPiece, rotation, and selectedModNum to figure out what
+   * Track, Mod, and CarType need to get placed on the grid.
+   */
+  function getItemsToPlace(): items {
+    const to_return: items = {
+      track: undefined,
+      mod: undefined,
+      cartype: undefined,
+    };
+
+    if (selectedTool === "STRAIGHT") {
+      if (rotation === 0 || rotation === 2) {
+        to_return.track = Track.HORIZONTAL_TRACK;
+      } else {
+        to_return.track = Track.VERTICAL_TRACK;
+      }
+    }
+    if (selectedTool === "CURVED") {
+      if (rotation === 0) {
+        to_return.track = Track.BOTTOM_RIGHT_TURN;
+      } else if (rotation === 1) {
+        to_return.track = Track.TOP_RIGHT_TURN;
+      } else if (rotation === 2) {
+        to_return.track = Track.TOP_LEFT_TURN;
+      } else {
+        to_return.track = Track.BOTTOM_LEFT_TURN;
+      }
+    }
+    if (selectedTool === "FORK") {
+      if (rotation === 0) {
+        to_return.track = Track.BOTTOM_RIGHT_LEFT_3WAY;
+      } else if (rotation === 1) {
+        to_return.track = Track.TOP_RIGHT_BOTTOM_3WAY;
+      } else if (rotation === 2) {
+        to_return.track = Track.TOP_LEFT_RIGHT_3WAY;
+      } else {
+        to_return.track = Track.BOTTOM_LEFT_TOP_3WAY;
+      }
+    }
+    if (selectedTool === "FORK_2") {
+      if (rotation === 0) {
+        to_return.track = Track.BOTTOM_LEFT_RIGHT_3WAY;
+      } else if (rotation === 1) {
+        to_return.track = Track.BOTTOM_RIGHT_TOP_3WAY;
+      } else if (rotation === 2) {
+        to_return.track = Track.TOP_RIGHT_LEFT_3WAY;
+      } else {
+        to_return.track = Track.TOP_LEFT_BOTTOM_3WAY;
+      }
+    }
+    if (selectedPiece === "END_TRACK") {
+      if (selectedModNum < 4) {
+        if (rotation === 0) {
+          to_return.track = Track.CAR_ENDING_TRACK_RIGHT;
+        } else if (rotation === 1) {
+          to_return.track = Track.CAR_ENDING_TRACK_UP;
+        } else if (rotation === 2) {
+          to_return.track = Track.CAR_ENDING_TRACK_LEFT;
+        } else {
+          to_return.track = Track.CAR_ENDING_TRACK_DOWN;
+        }
+      } else {
+        if (rotation === 0) {
+          to_return.track = Track.NCAR_ENDING_TRACK_RIGHT;
+        } else if (rotation === 1) {
+          to_return.track = Track.NCAR_ENDING_TRACK_UP;
+        } else if (rotation === 2) {
+          to_return.track = Track.NCAR_ENDING_TRACK_LEFT;
+        } else {
+          to_return.track = Track.NCAR_ENDING_TRACK_DOWN;
+        }
+      }
+    }
+    if (selectedPiece === "ROADBLOCK") {
+      to_return.track = Track.ROADBLOCK;
+    }
+    if (selectedPiece === "STATION") {
+      if (rotation === 0) {
+        to_return.track = Track.STATION_RIGHT;
+      } else if (rotation === 1) {
+        to_return.track = Track.STATION_UP;
+      } else if (rotation === 2) {
+        to_return.track = Track.STATION_LEFT;
+      } else {
+        to_return.track = Track.STATION_DOWN;
+      }
+    }
+    if (selectedPiece === "SWITCH") {
+      to_return.mod = Mod.SWITCH;
+    }
+    if (selectedPiece === "OPEN_GATE") {
+      to_return.mod = Mod.OPEN_GATE;
+    }
+    if (selectedPiece === "CLOSED_GATE") {
+      to_return.mod = Mod.CLOSED_GATE;
+    }
+    if (selectedPiece === "SWITCH_FORK_TRACK") {
+      to_return.mod = Mod.SWAPPING_TRACK;
+    }
+    if (selectedPiece === "TUNNEL") {
+      if (rotation === 0) {
+        to_return.track = Track.RIGHT_FACING_TUNNEL
+      } else if (rotation === 1) {
+        to_return.track = Track.UP_FACING_TUNNEL
+      } else if (rotation === 2) {
+        to_return.track = Track.LEFT_FACING_TUNNEL
+      } else  {
+        to_return.track = Track.DOWN_FACING_TUNNEL
+      }
+      to_return.mod = Mod.TUNNEL;
+    }
+    if (selectedPiece === "SWITCH_RAIL") {
+      to_return.mod = Mod.SWITCH_RAIL;
+    }
+    if (selectedPiece === "NORMAL") {
+      if (selectedModNum < 4) {
+        to_return.cartype = CarType.NORMAL;
+      } else {
+        to_return.cartype = CarType.NUMERAL
+      }
+    }
+    if (selectedPiece === "DECOY") {
+      to_return.cartype = CarType.DECOY;
+    }
+    return to_return;
+  }
 
   const {
     track: selected_track,
     mod: selected_mod,
     cartype: selected_cartype,
-  } = getTypeFromInfo(selectedTool, selectedPiece, rotation, selectedModNum);
-
+  } = getItemsToPlace();
+  
   function onClick() {
+    // If selected_track is a Track.STATION_LEFT/RIGHT/DOWN/UP, place the station,
+    // but also place a station mod on the tile the station is facing.
+    // Since 2 placePiece calls need to be made to do this, saving is done manually here so undoing properly undoes both actions.
+    const isPlacingStation = selected_track?.is_station()
+    if (isPlacingStation) {
+      const grid = permLevelData.grid
+      const station_pos = {...pos}
+      if (selected_track === Track.STATION_LEFT) {
+        station_pos.x--
+      } else if (selected_track === Track.STATION_RIGHT) {
+        station_pos.x++
+      } else if (selected_track === Track.STATION_UP) {
+        station_pos.y--
+      } else {
+        station_pos.y++
+      }
+      const station_track: Track = grid[station_pos.y]?.[station_pos.x]?.track
+      // Don't place anything if the station mod's location is OOB, or the mod isn't being placed on a normal track.
+      if (station_track === undefined || (!station_track.is_straight() && !station_track.is_turn() && !station_track.is_3way())) {
+        return
+      }
+      saveToUndoStack()
+      placePiece(
+        station_pos.x,
+        station_pos.y,
+        undefined,
+        undefined,
+        selectedModNum < 4 ? Mod.STATION : Mod.POST_OFFICE,
+        selectedModNum % 4,
+        undefined,
+        false
+      )
+    }
     placePiece(
       pos.x,
       pos.y,
       selected_cartype,
       selected_track,
       selected_mod,
-      selected_mod === Mod.POST_OFFICE ? selectedModNum - 4 : selectedModNum,
-      rotation
+      selectedModNum % 4,
+      rotation,
+      !isPlacingStation
     );
+    if (isPlacingStation) {
+      saveLevel()
+    }
   }
-  function onRightClick(e: React.MouseEvent) {
-    e.preventDefault();
+  function onRightClick() {
     if (track !== Track.EMPTY && (mod !== Mod.EMPTY || car !== undefined)) {
       removeModorCar(pos.x, pos.y);
     } else if (track !== Track.EMPTY) {
       removePiece(pos.x, pos.y);
     }
   }
-  function getStationIcon(track: Track, pos: { x: number, y: number }) {
-    const grid = levelData.grid
+  /**
+   * Used if the track is a Track.STATION_LEFT/RIGHT/DOWN/UP.
+   * Returns an icon based on the mod and mod_num of the tile the station is facing.
+   */
+  function getPlacedStationIcon(): React.ReactNode {
+    const grid = permLevelData.grid
     let stationIcon: React.ReactNode
     let modTile: GridCell
     if (track === Track.STATION_LEFT) {
@@ -396,185 +432,151 @@ export const GridTile: React.FC<{
     }
     return stationIcon
   }
-  function getStation() {
-    if (selected_mod === Mod.STATION) {
+  /**
+   * Used if the selected_track is a Track.STATION_LEFT/RIGHT/DOWN/UP.
+   * Returns an icon based on selectedModNum.
+   */
+  function getHoveredStationIcon(): React.ReactNode {
+    let stationIcon: React.ReactNode
+    if (selectedModNum < 4) {
       if (selectedModNum === 0) {
-        return Station_1
+        stationIcon = Station_1
       } else if (selectedModNum === 1) {
-        return Station_2
+        stationIcon = Station_2
       } else if (selectedModNum === 2) {
-        return Station_3
+        stationIcon = Station_3
       } else {
-        return Station_4
+        stationIcon = Station_4
       }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
     } else {
-      if (selectedModNum === 0) {
-        return Post_Office_1
-      } else if (selectedModNum === 1) {
-        return Post_Office_2
-      } else if (selectedModNum === 2) {
-        return Post_Office_3
+      if (selectedModNum === 4) {
+        stationIcon = Post_Office_1
+      } else if (selectedModNum === 5) {
+        stationIcon = Post_Office_2
+      } else if (selectedModNum === 6) {
+        stationIcon = Post_Office_3
       } else {
-        return Post_Office_4
+        stationIcon = Post_Office_4
       }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
     }
+    return stationIcon
   }
-  function tryDisplayOOBstation(mod: Mod, pos: { x: number, y: number }) {
-    let stationPos: { x: number, y: number } | undefined
-    const grid = levelData.grid
+  /**
+   * Try to display a station out-of-bounds based on this tile's mod and modNum if there is no station Track adjacent to it.
+   */
+  function tryDisplayOOBstation(): React.ReactNode {
+    let stationPos: { x: number, y: number }
+    const grid = permLevelData.grid
     // TODO: add post office here
     const adjPoses = [{ x: -1, y: 0 }, { x: 1, y: 0}, { x: 0, y: 1 }, { x: 0, y: -1 }]
 
-    for (const offsetPos of adjPoses) {
-      const adjPos = { x: pos.x + offsetPos.x, y: pos.y + offsetPos.y }
-      if (adjPos.x < 0 || adjPos.y < 0 || adjPos.x >= grid[0].length || adjPos.y >= grid.length) {
-        stationPos = offsetPos
+    // Check each adjacent pos around this tile to see if there's an OOB tile.
+    for (let adjPos of adjPoses) {
+      adjPos = { x: pos.x + adjPos.x, y: pos.y + adjPos.y }
+
+      if (adjPos.x < 0 || adjPos.y < 0 || adjPos.x >= permLevelData.grid[0].length || adjPos.y >= permLevelData.grid.length) {
+        // Found an OOB pos adjacent to this tile, put the station OOB there if no stations are adjacent to this tile.
+        stationPos = adjPos
       } else if (grid[adjPos.y][adjPos.x].track.is_station()) {
-        stationPos = undefined
-        break
+        // Found a station adjacent to this tile, do not render an OOB station.
+        return <></>
       }
     }
-    if (stationPos !== undefined) {
-      // Render station outside of the border
-      let stationIcon: React.ReactNode
-      const mod_num = grid[pos.y][pos.x].mod_num
-      if (mod === Mod.STATION) {
-        if (mod_num === 0) {
-          stationIcon = Station_1
-        } else if (mod_num === 1) {
-          stationIcon = Station_2
-        } else if (mod_num === 2) {
-          stationIcon = Station_3
-        } else {
-          stationIcon = Station_4
-        }
-        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+    // Figure out what icon to display based on the mod and mod_num.
+    let stationIcon: React.ReactNode
+    if (mod === Mod.STATION) {
+      if (mod_num === 0) {
+        stationIcon = Station_1
+      } else if (mod_num === 1) {
+        stationIcon = Station_2
+      } else if (mod_num === 2) {
+        stationIcon = Station_3
       } else {
-        if (mod_num === 0) {
-          stationIcon = Post_Office_1
-        } else if (mod_num === 1) {
-          stationIcon = Post_Office_2
-        } else if (mod_num === 2) {
-          stationIcon = Post_Office_3
-        } else {
-          stationIcon = Post_Office_4
-        }
-        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+        stationIcon = Station_4
       }
-      if (stationPos.x === -1) {
-        return <div className={StationStyles.get(270)}>{stationIcon}</div>
-      } else if (stationPos.x === 1) {
-        return <div className={StationStyles.get(90)}>{stationIcon}</div>
-      } else if (stationPos.y === 1) {
-        return <div className={StationStyles.get(0)}>{stationIcon}</div>
-      } else {
-        return <div className={StationStyles.get(180)}>{stationIcon}</div>
-      }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
     } else {
-      // No OOBstation found, don't render anything.
-      return <></>
+      if (mod_num === 0) {
+        stationIcon = Post_Office_1
+      } else if (mod_num === 1) {
+        stationIcon = Post_Office_2
+      } else if (mod_num === 2) {
+        stationIcon = Post_Office_3
+      } else {
+        stationIcon = Post_Office_4
+      }
+      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+    }
+    // Return the formatted station icon based on which side it's OOB on. (Left/Right/Top/Bottom)
+    if (stationPos!.x < 0) {
+      return <div className={"absolute -left-full w-full h-full rotate-270 pointer-events-none"}>{stationIcon}</div>
+    } else if (stationPos!.x >= permLevelData.grid[0].length) {
+      return <div className={"absolute -right-full w-full h-full rotate-90 pointer-events-none"}>{stationIcon}</div>
+    } else if (stationPos!.y < 0) {
+      return <div className={"absolute -top-full w-full h-full rotate-0 pointer-events-none"}>{stationIcon}</div>
+    } else {
+      return <div className={"absolute -bottom-full w-full h-full rotate-180 pointer-events-none"}>{stationIcon}</div>
     }
   }
 
   return (
     <div
       className={`select-none size-full`}
-      onContextMenu={(e) => {if (!disabled) {onRightClick(e)}}}
+      onContextMenu={(e) => {if (!disabled) {e.preventDefault(); onRightClick()}}}
       onClick={() => {if (!disabled) {onClick()}}}
       onMouseEnter={() => {if (!disabled) {setIsHovered(true)}}}
       onMouseLeave={() => {if (!disabled) {setIsHovered(false)}}}
     >
       {/* Track */}
-      <div
-        className={`absolute inset-0 ${getRotationClass(
-          TrackRotations.get(track)!
-        )} ${
-          styles.mods[mod_num].text
-        }`}
-      >
+      <div className={`absolute inset-0 ${styles.mods[mod_num].text} ${ItemRotations.get(track)}`}>
         {track.is_station()
-        ? getStationIcon(track, pos)
+        ? getPlacedStationIcon()
         : TrackIcons.get(track)
         }
       </div>
       {/* Mod */}
-      <div
-        className={`absolute inset-0 ${
-          mod !== Mod.STATION && mod !== Mod.POST_OFFICE &&
-          getRotationClass(TrackRotations.get(track)!)
-        } ${
-          styles.mods[mod_num].text
-        }`}
-      >
-        {mod === Mod.SWAPPING_TRACK && fork_2_tracks.has(track)
+      <div className={`absolute inset-0 ${styles.mods[mod_num].text} ${!mod.is_station() && ItemRotations.get(track)}`}>
+        {mod === Mod.SWAPPING_TRACK && fork2_tracks.has(track)
         ? ModIcons.get("SWAPPING_TRACK_2")
-        : ((mod === Mod.STATION || mod === Mod.POST_OFFICE)
-          ? tryDisplayOOBstation(mod, pos)
+        : (mod.is_station()
+          ? tryDisplayOOBstation()
           : ModIcons.get(mod)
-        )
+          )
         }
       </div>
       {/* Car */}
-      {car && (
-        <div className={`absolute inset-0 ${carDirToDeg(car.direction)}`}>
+      {car && 
+        <div className={`absolute inset-0 ${dirToRot.get(car.direction)}`}>
           {CarIcons.get(car.type)![car.num]}
         </div>
-      )}
+      }
       {/* Hover Track */}
-      <div
-        className={`absolute inset-0 opacity-60 pointer-events:none ${
-          selected_track
-          ? getRotationClass(TrackRotations.get(selected_track)!)
-          : "rotate-0"
-        } ${
-          styles.mods[selectedModNum].text
-        }`}
-      >
-        {selected_track && isHovered && (selected_track.is_station()
-          ? getStation()
-          : TrackIcons.get(selected_track))
+      {selected_track && isHovered &&
+      <div className={`absolute inset-0 opacity-60 pointer-events:none ${styles.mods[selectedModNum].text} ${ItemRotations.get(selected_track)}`}>
+        {selected_track.is_station()
+          ? getHoveredStationIcon()
+          : TrackIcons.get(selected_track)
         }
-      </div>
+      </div>}
       {/* Hover Mod */}
-      <div
-        className={`absolute inset-0 opacity-60 pointer-events:none ${
-          selected_track
-          ? getRotationClass(TrackRotations.get(selected_track)!)
-          : "rotate-0"
-        } ${
-          styles.mods[selectedModNum].text
-        }`}
-      >
-        {selected_mod && isHovered && (
-          selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
+      {selected_mod && isHovered &&
+      <div className={`absolute inset-0 opacity-60 pointer-events:none ${styles.mods[selectedModNum].text} ${
+        selected_track ? ItemRotations.get(selected_track) : rotToRot.get(rotation)
+      }`}>
+        {selectedPiece === "SWITCH_FORK_TRACK" && selectedTool === "FORK_2"
           ? ModIcons.get("SWAPPING_TRACK_2")
           : ModIcons.get(selected_mod)
-        )}
-      </div>
+        }
+      </div>}
       {/* Hover Car */}
-      <div
-        className={`absolute inset-0 opacity-60 pointer-events:none ${(() => {
-          switch (rotation) {
-            case 0:
-              return "rotate-0"; // left (0 degrees)
-            case 1:
-              return "rotate-270"; // right (270 degrees)
-            case 2:
-              return "rotate-180"; // down (180 degrees)
-            case 3:
-              return "rotate-90"; // up (90 degrees)
-            default:
-              return "rotate-0";
-          }
-        })()}`}
-      >
-        {selected_cartype &&
-          isHovered &&
-          !registryFilled(selected_cartype) &&
-          CarIcons.get(selected_cartype)![
-            levelData.next_nums.get(selected_cartype)!
-          ]}
-      </div>
+      {selected_cartype && isHovered && !registryFilled(selected_cartype) &&
+      <div className={`absolute inset-0 opacity-60 pointer-events:none ${rotToRot.get(rotation)}`}>
+        {CarIcons.get(selected_cartype)![
+          permLevelData.next_nums.get(selected_cartype)!
+        ]}
+      </div>}
     </div>
   );
 };

@@ -18,6 +18,7 @@ import {
 // NOTE: THE ROTATE NUMBER SEEM WRONG, it better if it 0:left, 1:up, 2:right, 3:down
 
 // Generation parameters
+// visualize_rate is how many milliseconds before the next visualization callback.
 export interface Hyperparameters {
   heatmap_limit_limit: number;
   decoy_heatmap_limit: number;

@@ -1,14 +1,15 @@
 import React from "react";
-import { useGuiStore } from "../store";
+import { useGuiStore, useLevelStore } from "../store";
 
 export const ProgressBar: React.FC = () => {
   const { styles } = useGuiStore()
+  const { iterations, time_elapsed } = useLevelStore()
 
   return (
     <div className={`flex flex-col font-bold text-[1.25rem] leading-[1.625rem] ${styles.text.text}`}>
       <div className={`flex flex-row w-full justify-between`}>
         <div className={`flex flex-col`}>
-          <span>Iterations: ??,???,???,???</span>
+          <span>Iterations: {iterations.toLocaleString()}</span>
           <span>Estimated 99:59:59 remaining</span>
         </div>
         <div className={`flex flex-row items-end`}>
