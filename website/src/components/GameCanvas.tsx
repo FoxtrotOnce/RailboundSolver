@@ -15,7 +15,7 @@ const resizerParams: Record<number, {cursor: string, hover_cursor: string, xMult
 
 export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { styles, showGrid, gridSize } = useGuiStore();
-  const { permLevelData, renderedLevelData, isSolving, setDims, saveLevel, saveToUndoStack } = useLevelStore();
+  const { permLevelData, renderedLevelData, solvingWorker, setDims, saveLevel, saveToUndoStack } = useLevelStore();
   const [ resizerGrabbed, setResizerGrabbed ] = useState(-1)
   const [ resizeStartPos, setResizeStartPos ] = useState({x: 0, y: 0})
   const [animationFlag, setFlag] = useState(false);
@@ -204,7 +204,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           />
         </svg>
         {renderedLevelData.map((row, idx) =>
-          row.map((tile, jdx) => (
+          row.map((_, jdx) => (
             <div
               key={`${idx}-${jdx}`}
               className={`relative border-b-1 border-r-1 ${styles.text.border}`}
@@ -212,12 +212,9 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
               onMouseLeave={() => setTileHovering({y: -1, x: -1})}
             >
               <GridTile
+                is_rendered_grid={true}
                 pos={{ y: idx, x: jdx }}
-                car={tile.car}
-                track={tile.track}
-                mod={tile.mod}
-                mod_num={tile.mod_num}
-                disabled={!isSolving}
+                disabled={solvingWorker !== undefined}
               />
             </div>
           ))
@@ -225,6 +222,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
       </div>
       {/* Grid Resizing Grabbers */}
       {/* NOTE - Grabbers are located on the top-most div, and are moved to the position of the grid in their d's. */}
+      {solvingWorker === undefined &&
       <svg
         className={`absolute inset-0 pointer-events-none`}
         viewBox={`-${grid_x} -${grid_y} ${gridSize * 12 + 4 * 8} ${gridSize * 12 + 4 * 8}`}
@@ -269,7 +267,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
           idx={8}
           d={`m${gridSize * width - 16} ${gridSize * height + 8}l24 0l0 -24`}
         />
-      </svg>
+      </svg>}
     </div>
   );
 };

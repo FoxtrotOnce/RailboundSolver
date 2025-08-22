@@ -4,6 +4,10 @@ import { Track, Mod, Car, Direction, CarType } from "../../../algo/classes";
 import {
   Normal_Ending,
   Numeral_Ending,
+  Normal_StraightTrack,
+  Normal_Turn,
+  Normal_Fork,
+  Normal_Fork2,
   Perm_StraightTrack,
   Perm_Turn,
   Perm_Fork,
@@ -34,7 +38,10 @@ import {
   Car_II,
   Car_III,
   Car_IIII,
-  Decoy
+  Decoy,
+  Crashed_Decoy,
+  Open_Semaphore,
+  Closed_Semaphore,
 } from "../assets/svgs"
 import { useGuiStore, useLevelStore } from "../store";
 import type { GridCell } from "../store/levelStore";
@@ -86,9 +93,9 @@ const ItemRotations = new Map<Track, string>([
   [Track.STATION_UP, `rotate-180`]
 ]);
 /**
- * Gives the corresponding svg for each Track (Besides Stations).
+ * Gives the corresponding svg for each permanent Track (Besides Stations).
  */
-const TrackIcons = new Map<Track, React.ReactNode | never>([
+const PermTrackIcons = new Map<Track, React.ReactNode | never>([
   [Track.EMPTY, <></>],
   [Track.HORIZONTAL_TRACK, Perm_StraightTrack],
   [Track.VERTICAL_TRACK, Perm_StraightTrack],
@@ -125,6 +132,25 @@ const TrackIcons = new Map<Track, React.ReactNode | never>([
   [Track.STATION_UP, <></> as never]
 ]);
 /**
+ * Gives the corresponding svg for each normal Track.
+ */
+const NormTrackIcons = new Map<Track, React.ReactNode | never>([
+  [Track.HORIZONTAL_TRACK, Normal_StraightTrack],
+  [Track.VERTICAL_TRACK, Normal_StraightTrack],
+  [Track.BOTTOM_RIGHT_TURN, Normal_Turn],
+  [Track.BOTTOM_LEFT_TURN, Normal_Turn],
+  [Track.TOP_RIGHT_TURN, Normal_Turn],
+  [Track.TOP_LEFT_TURN, Normal_Turn],
+  [Track.BOTTOM_RIGHT_LEFT_3WAY, Normal_Fork],
+  [Track.BOTTOM_RIGHT_TOP_3WAY, Normal_Fork2],
+  [Track.BOTTOM_LEFT_RIGHT_3WAY, Normal_Fork2],
+  [Track.BOTTOM_LEFT_TOP_3WAY, Normal_Fork],
+  [Track.TOP_RIGHT_LEFT_3WAY, Normal_Fork2],
+  [Track.TOP_RIGHT_BOTTOM_3WAY, Normal_Fork],
+  [Track.TOP_LEFT_RIGHT_3WAY, Normal_Fork],
+  [Track.TOP_LEFT_BOTTOM_3WAY, Normal_Fork2],
+]);
+/**
  * Gives the corresponding svg for each Mod (Besides Tunnels and Stations)
  */
 const ModIcons = new Map<Mod | string, React.ReactNode>([
@@ -137,6 +163,7 @@ const ModIcons = new Map<Mod | string, React.ReactNode>([
   ["SWAPPING_TRACK_2", Swapping_Track2],
   [Mod.STATION, <></>],  // The actual mod for a station doesn't have an icon, but the station around it does.
   [Mod.SWITCH_RAIL, Switch_Rail],
+  [Mod.SEMAPHORE, Closed_Semaphore],
   [Mod.POST_OFFICE, <></>]
 ]);
 /**
@@ -162,6 +189,7 @@ const CarIcons = new Map<CarType, React.ReactNode[]>([
     ],
   ],
   [CarType.DECOY, Array(144).fill(Decoy)],
+  [CarType.CRASHED, Array(144).fill(Crashed_Decoy)]
 ]);
 /**
  * Gives the Tailwind rotation for a car based on its Direction.
@@ -185,16 +213,17 @@ const rotToRot = new Map<number, string>([
 ])
 
 export const GridTile: React.FC<{
-  pos: { y: number; x: number };
-  car?: Car;
-  track?: Track;
-  mod?: Mod;
-  mod_num?: number;
+  is_rendered_grid: boolean
+  pos: { y: number; x: number }
   disabled?: boolean
-}> = ({ pos, car = undefined, track = Track.EMPTY, mod = Mod.EMPTY, mod_num = 0, disabled = false }) => {
+}> = ({ is_rendered_grid, pos, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
   const { styles, selectedTool, selectedPiece, rotation, selectedModNum } = useGuiStore();
-  const { placePiece, removePiece, removeModorCar, registryFilled, permLevelData, saveToUndoStack, saveLevel } = useLevelStore();
+  const { placePiece, removePiece, removeModorCar, registryFilled, permLevelData, renderedLevelData, settingsLevelData, saveToUndoStack, saveLevel } = useLevelStore();
+  const grid = is_rendered_grid ? renderedLevelData : settingsLevelData
+  const { car, track, mod, mod_num } = grid[pos.y][pos.x]
+  const is_perm = is_rendered_grid ? permLevelData.grid[pos.y][pos.x].track === track : true
+  const permMod = is_rendered_grid ? permLevelData.grid[pos.y][pos.x].mod : mod
   type items = {
     track?: Track,
     mod?: Mod,
@@ -395,18 +424,21 @@ export const GridTile: React.FC<{
    * Returns an icon based on the mod and mod_num of the tile the station is facing.
    */
   function getPlacedStationIcon(): React.ReactNode {
-    const grid = permLevelData.grid
-    let stationIcon: React.ReactNode
-    let modTile: GridCell
+    const modPos = {y: pos.y, x: pos.x}
     if (track === Track.STATION_LEFT) {
-      modTile = grid[pos.y][pos.x - 1]
+      modPos.x--
     } else if (track === Track.STATION_RIGHT) {
-      modTile = grid[pos.y][pos.x + 1]
+      modPos.x++
     } else if (track === Track.STATION_DOWN) {
-      modTile = grid[pos.y + 1][pos.x]
+      modPos.y++
     } else {
-      modTile = grid[pos.y - 1][pos.x]
+      modPos.y--
     }
+
+    // Can only render a station without the ticket/mail overlay if it's being rendered, since it'll be different from the permLevelData.
+    // settingsLevelData has nothing to reference and no reason to have a ticket/mail overlay, so it simply uses its own mod.
+    const modTile = is_rendered_grid ? permLevelData.grid[modPos.y][modPos.x] : grid[modPos.y][modPos.x]
+    let stationIcon: React.ReactNode
     if (modTile.mod === Mod.STATION) {
       if (modTile.mod_num === 0) {
         stationIcon = Station_1
@@ -417,7 +449,9 @@ export const GridTile: React.FC<{
       } else {
         stationIcon = Station_4
       }
-      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+      if (grid[modPos.y][modPos.x].mod !== Mod.DEACTIVATED_MOD) {
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+      }
     } else {
       if (modTile.mod_num === 0) {
         stationIcon = Post_Office_1
@@ -428,7 +462,9 @@ export const GridTile: React.FC<{
       } else {
         stationIcon = Post_Office_4
       }
-      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+      if (grid[modPos.y][modPos.x].mod !== Mod.DEACTIVATED_MOD) {
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+      }
     }
     return stationIcon
   }
@@ -468,25 +504,25 @@ export const GridTile: React.FC<{
    */
   function tryDisplayOOBstation(): React.ReactNode {
     let stationPos: { x: number, y: number }
-    const grid = permLevelData.grid
     // TODO: add post office here
     const adjPoses = [{ x: -1, y: 0 }, { x: 1, y: 0}, { x: 0, y: 1 }, { x: 0, y: -1 }]
+    const stations = [Track.STATION_RIGHT, Track.STATION_LEFT, Track.STATION_UP, Track.STATION_DOWN]
 
-    // Check each adjacent pos around this tile to see if there's an OOB tile.
-    for (let adjPos of adjPoses) {
+    // Check each adjacent pos around this tile to see if there's an OOB tile or station.
+    for (let i = 0; i < adjPoses.length; i++) {
+      let adjPos = adjPoses[i]
       adjPos = { x: pos.x + adjPos.x, y: pos.y + adjPos.y }
-
-      if (adjPos.x < 0 || adjPos.y < 0 || adjPos.x >= permLevelData.grid[0].length || adjPos.y >= permLevelData.grid.length) {
+      if (adjPos.x < 0 || adjPos.y < 0 || adjPos.x >= grid[0].length || adjPos.y >= grid.length) {
         // Found an OOB pos adjacent to this tile, put the station OOB there if no stations are adjacent to this tile.
         stationPos = adjPos
-      } else if (grid[adjPos.y][adjPos.x].track.is_station()) {
-        // Found a station adjacent to this tile, do not render an OOB station.
+      } else if (grid[adjPos.y][adjPos.x].track === stations[i]) {
+        // Found an adjacent station facing this tile, do not render OOB station.
         return <></>
       }
     }
     // Figure out what icon to display based on the mod and mod_num.
     let stationIcon: React.ReactNode
-    if (mod === Mod.STATION) {
+    if (permMod === Mod.STATION) {
       if (mod_num === 0) {
         stationIcon = Station_1
       } else if (mod_num === 1) {
@@ -496,7 +532,9 @@ export const GridTile: React.FC<{
       } else {
         stationIcon = Station_4
       }
-      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+      if (mod !== Mod.DEACTIVATED_MOD) {
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Ticket_Overlay}</div></div>
+      }
     } else {
       if (mod_num === 0) {
         stationIcon = Post_Office_1
@@ -507,12 +545,14 @@ export const GridTile: React.FC<{
       } else {
         stationIcon = Post_Office_4
       }
-      stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+      if (mod !== Mod.DEACTIVATED_MOD) {
+        stationIcon = <div>{stationIcon}<div className={`absolute inset-0`}>{Mail_Overlay}</div></div>
+      }
     }
     // Return the formatted station icon based on which side it's OOB on. (Left/Right/Top/Bottom)
     if (stationPos!.x < 0) {
       return <div className={"absolute -left-full w-full h-full rotate-270 pointer-events-none"}>{stationIcon}</div>
-    } else if (stationPos!.x >= permLevelData.grid[0].length) {
+    } else if (stationPos!.x >= grid[0].length) {
       return <div className={"absolute -right-full w-full h-full rotate-90 pointer-events-none"}>{stationIcon}</div>
     } else if (stationPos!.y < 0) {
       return <div className={"absolute -top-full w-full h-full rotate-0 pointer-events-none"}>{stationIcon}</div>
@@ -533,14 +573,16 @@ export const GridTile: React.FC<{
       <div className={`absolute inset-0 ${styles.mods[mod_num].text} ${ItemRotations.get(track)}`}>
         {track.is_station()
         ? getPlacedStationIcon()
-        : TrackIcons.get(track)
+        : is_perm
+          ? PermTrackIcons.get(track)
+          : NormTrackIcons.get(track)
         }
       </div>
       {/* Mod */}
       <div className={`absolute inset-0 ${styles.mods[mod_num].text} ${!mod.is_station() && ItemRotations.get(track)}`}>
         {mod === Mod.SWAPPING_TRACK && fork2_tracks.has(track)
         ? ModIcons.get("SWAPPING_TRACK_2")
-        : (mod.is_station()
+        : (permMod?.is_station()
           ? tryDisplayOOBstation()
           : ModIcons.get(mod)
           )
@@ -557,7 +599,7 @@ export const GridTile: React.FC<{
       <div className={`absolute inset-0 opacity-60 pointer-events:none ${styles.mods[selectedModNum].text} ${ItemRotations.get(selected_track)}`}>
         {selected_track.is_station()
           ? getHoveredStationIcon()
-          : TrackIcons.get(selected_track)
+          : PermTrackIcons.get(selected_track)
         }
       </div>}
       {/* Hover Mod */}

@@ -92,9 +92,9 @@ interface LevelState {
   savedLevels: Record<number, LevelData>;
 
   /**
-   * Whether or not the level is currently being solved.
+   * The worker currently being used for level solving (if solving).
    */
-  isSolving: boolean;
+  solvingWorker: undefined | Worker;
 
   /**
    * Current total iterations elapsed (obtained via main.ts, updated according to the visualization rate)
@@ -155,9 +155,14 @@ interface LevelState {
   setSemaphores: (max_semaphores: number) => void;
 
   /**
-   * Load level data
+   * Load level data to permLevelData and renderedLevelData
    */
   loadLevel: (levelData: LevelData) => void;
+
+  /**
+   * Load level data to settingsLevelData
+   */
+  renderSettingsLevel: (levelData: LevelData) => void;
 
   /**
    * Save level data (Only applicable to custom levels)
@@ -165,9 +170,24 @@ interface LevelState {
   saveLevel: () => void;
 
   /**
-   * Solve level and return solution
+   * Terminate the current solvingWorker if possible.
    */
-  solveLevel: () => void;
+  terminateWorker: () => void;
+
+  /**
+   * Solve the level (permLevelData) and return solution, render steps to renderedLevelData.
+   */
+  solveLevel: (step?: boolean) => void;
+
+  /**
+   * Pause/resume level generation.
+   */
+  pauseLevel: (pause: boolean) => void;
+
+  /**
+   * Perform 1 step of level generation.
+   */
+  stepLevel: () => void;
 
   /**
    * Converts JSON level data to LevelData and returns it.
@@ -308,7 +328,7 @@ export const useLevelStore = create<LevelState>()(
       settingsLevelData: defaultLevel.grid,
       levelData: defaultLevel,
       savedLevels: {[defaultLevel.id]: defaultLevel} as Record<number, LevelData>,
-      isSolving: false,
+      solvingWorker: undefined,
       iterations: 0,
       time_elapsed: 0,
       undoStack: [],
@@ -340,8 +360,9 @@ export const useLevelStore = create<LevelState>()(
       },
 
       setTracks: (max_tracks) => {
-        const { permLevelData, saveLevel, saveToUndoStack } = get();
+        const { permLevelData, saveLevel, saveToUndoStack, terminateWorker } = get();
         saveToUndoStack()
+        terminateWorker()
         set(
           {
             permLevelData: {
@@ -358,8 +379,9 @@ export const useLevelStore = create<LevelState>()(
       },
 
       setSemaphores: (max_semaphores) => {
-        const { permLevelData, saveLevel, saveToUndoStack } = get();
+        const { permLevelData, saveLevel, saveToUndoStack, terminateWorker } = get();
         saveToUndoStack()
+        terminateWorker()
         set(
           {
             permLevelData: {
@@ -470,17 +492,23 @@ export const useLevelStore = create<LevelState>()(
         // * The level is only saved after the user finishes dragging the resize grabbers in GameCanvas.tsx.
       },
 
-      loadLevel: (loadData) => {
+      loadLevel: (levelData) => {
+        get().terminateWorker()
         set(
           {
-            permLevelData: { ...loadData, modifiedAt: Date.now() },
-            renderedLevelData: loadData.grid,
+            permLevelData: { ...levelData, modifiedAt: Date.now() },
+            renderedLevelData: levelData.grid,
+            settingsLevelData: levelData.grid,
             undoStack: [],
             redoStack: [],
           },
           false,
           "loadLevel"
         );
+      },
+
+      renderSettingsLevel: (levelData) => {
+        set({settingsLevelData: levelData.grid}, false, "renderSettingsLevel")
       },
 
       saveLevel: () => {
@@ -495,9 +523,16 @@ export const useLevelStore = create<LevelState>()(
         }
       },
 
-      solveLevel: () => {
-        const { permLevelData } = get()
+      terminateWorker: () => {
+        const { solvingWorker } = get()
 
+        if (solvingWorker !== undefined) {
+          solvingWorker.terminate()
+        }
+        set({solvingWorker: undefined}, false, "terminateWorker")
+      },
+
+      solveLevel: (step: false) => {
         // board, mods, and cars are reserialized inside here since postMessage strips them of their methods.
         function reloadGrid(input: {board: Track[][], mods: Mod[][], cars: Car[]}): void {
           const reloadedGrid: GridCell[][] = []
@@ -530,11 +565,13 @@ export const useLevelStore = create<LevelState>()(
           )
         }
 
-        const worker = new Worker()
-        set({isSolving: true}, false, "solveLevel")
-        worker.postMessage({
+        set({solvingWorker: new Worker()}, false, "solveLevel")
+        const { permLevelData, solvingWorker } = get()
+
+        solvingWorker!.postMessage({
           level: permLevelData,
-          parameters: useGuiStore.getState().hyperparameters
+          parameters: useGuiStore.getState().hyperparameters,
+          step: step
         })
         // board, mods, and cars aren't technically Track/Car/Mod: they share the same properties, but postMessage converts them to Objects,
         // and they lose their methods, so they are reserialized before being dealt with.
@@ -556,7 +593,7 @@ export const useLevelStore = create<LevelState>()(
             iterations: number
           }
         }
-        worker.onmessage = (e: MessageEvent<msgType>) => {
+        solvingWorker!.onmessage = (e: MessageEvent<msgType>) => {
           if (e.data.done) {
             const solution = e.data.solution!
             // Reserialize the solution to GridCell[][]
@@ -578,14 +615,14 @@ export const useLevelStore = create<LevelState>()(
                 })
               }
             }
+            // Note: Don't terminate the worker yet, since the grid still needs to be uneditable.
+            //       It is terminated when the level is changed at all (setTracks, setSemaphores, clearLevel, loadLevel)
             set({
               iterations: e.data.solution!.iterations,
               time_elapsed: e.data.solution!.time_elapsed,
-              isSolving: false,
               renderedLevelData: grid
             }, false, "solveLevel")
             console.log(solution)
-            worker.terminate()
           } else {
             reloadGrid(e.data.visualize_data!)
             set({
@@ -593,6 +630,20 @@ export const useLevelStore = create<LevelState>()(
               time_elapsed: e.data.visualize_data!.time_elapsed
             }, false, "solveLevel")
           }
+        }
+      },
+
+      pauseLevel: (pause) => {
+        console.log('a')
+        get().solvingWorker!.postMessage({pause: pause})
+      },
+
+      stepLevel: () => {
+        const { solvingWorker, solveLevel } = get()
+        if (solvingWorker !== undefined) {
+          solvingWorker.postMessage({step: true})
+        } else {
+          solveLevel(true)
         }
       },
 
@@ -623,7 +674,7 @@ export const useLevelStore = create<LevelState>()(
       },
 
       saveToUndoStack: () => {
-        const { permLevelData, undoStack, maxUndoStates, copyLevel } = get();
+        const { undoStack, maxUndoStates, copyLevel } = get();
 
         undoStack.push(copyLevel())
         if (undoStack.length > maxUndoStates) {
@@ -973,19 +1024,23 @@ export const useLevelStore = create<LevelState>()(
       },
 
       clearLevel: () => {
-        const { saveToUndoStack, saveLevel, permLevelData } = get()
+        const { saveToUndoStack, saveLevel, permLevelData, terminateWorker } = get()
         saveToUndoStack()
         const defaultParams = createDefaultLevel()
         permLevelData.car_nums = defaultParams.car_nums
         permLevelData.next_nums = defaultParams.next_nums
         permLevelData.grid = createEmptyGrid(permLevelData.grid[0].length, permLevelData.grid.length)
+        terminateWorker()
         
         set(
           {
             permLevelData: {
               ...permLevelData,
               modifiedAt: Date.now()
-            }
+            },
+            renderedLevelData: permLevelData.grid,
+            iterations: 0,
+            time_elapsed: 0
           },
           false,
           "clearLevel"

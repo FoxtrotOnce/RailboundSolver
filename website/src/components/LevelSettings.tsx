@@ -151,8 +151,11 @@ const SelectionButton: React.FC<{
   name: string
   selected: boolean
   onClick: () => void
-}> = ({name, selected, onClick}) => {
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
+}> = ({name, selected, onClick, onMouseEnter, onMouseLeave}) => {
   const { styles } = useGuiStore()
+  const [ isHovered, setHover ] = useState(false)
   // const testref = useRef<HTMLButtonElement | null>(null)
 
   // useEffect(() => {
@@ -161,12 +164,22 @@ const SelectionButton: React.FC<{
 
   return (
     <button
-      className={`transition-all flex justify-center w-full px-3 py-1 rounded-[0.25rem] font-bold border-1 cursor-pointer ${
+      className={`transition-all duration-300 flex justify-center w-full px-3 py-1 rounded-[0.25rem] font-bold border-1 cursor-pointer ${
         selected
         ? `${styles.text.bg} ${styles.base.text} ${styles.text.border}`
-        : `${styles.text.text} ${styles.border.border}`
+        : isHovered
+          ? `${styles.highlight.bg} ${styles.text.text} ${styles.highlight.border}`
+          : `${styles.text.text} ${styles.border.border}`
       }`}
       onClick={onClick}
+      onMouseEnter={() => {
+        setHover(true)
+        onMouseEnter?.()
+      }}
+      onMouseLeave={() => {
+        setHover(false)
+        onMouseLeave?.()
+      }}
     >
       <div className="truncate">
         {name || <span className="invisible">&nbsp;</span>}
@@ -198,7 +211,7 @@ const StatisticSlider: React.FC<{
 export const LevelSettings: React.FC = () => {
   const { styles, displayLevelSettings } = useGuiStore()
   const [selectedWorld, setSelectedWorld] = useState('11')
-  const { permLevelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel } = useLevelStore()
+  const { permLevelData, settingsLevelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel, renderSettingsLevel } = useLevelStore()
   const gridRef = useRef<HTMLDivElement | null>(null)
   const [ bottomH, setBottomH ] = useState(0)  
   const [ worlds, setWorlds ] = useState(worldsRaw)
@@ -282,22 +295,19 @@ export const LevelSettings: React.FC = () => {
                   <div
                     className={`grid border-t-1 border-l-1 ${styles.highlight.border}`}
                     style={{
-                      gridTemplateColumns: `repeat(${permLevelData.grid[0].length}, 30px)`,
-                      gridTemplateRows: `repeat(${permLevelData.grid.length}, 30px)`,
+                      gridTemplateColumns: `repeat(${settingsLevelData[0].length}, 30px)`,
+                      gridTemplateRows: `repeat(${settingsLevelData.length}, 30px)`,
                     }}
                   >
-                    {permLevelData.grid.map((row, idx) =>
-                      row.map((tile, jdx) => (
+                    {settingsLevelData.map((row, idx) =>
+                      row.map((_, jdx) => (
                         <div
                           key={`${idx}-${jdx}`}
                           className={`relative border-b-1 border-r-1 ${styles.highlight.border}`}
                         >
                           <GridTile
+                            is_rendered_grid={false}
                             pos={{ y: idx, x: jdx }}
-                            car={tile.car}
-                            track={tile.track}
-                            mod={tile.mod}
-                            mod_num={tile.mod_num}
                             disabled={true}
                           />
                         </div>
@@ -318,8 +328,10 @@ export const LevelSettings: React.FC = () => {
                     return <SelectionButton
                       name={level.name}
                       selected={permLevelData.id === level.id}
-                      onClick={() => loadLevel(level)
-                    }/>
+                      onClick={() => loadLevel(level)}
+                      onMouseEnter={() => renderSettingsLevel(level)}
+                      onMouseLeave={() => renderSettingsLevel(permLevelData)}
+                    />
                   })}
                 </div>
               </div>

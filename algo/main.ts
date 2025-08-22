@@ -18,6 +18,9 @@ let DECOY_HEATMAP_LIMIT = 15
 let GEN_TYPE: 'DFS' | 'BFS' = 'DFS'
 // VISUALIZE_RATE is how many milliseconds before the next visualization callback.
 let VISUALIZE_RATE = 100
+let PAUSE = false
+let STEP = false
+let RESUME: () => void
 type json_level_type = (typeof lvls)[keyof typeof lvls]
 type render_level_type = {
     grid: GridCell[][],
@@ -35,8 +38,26 @@ type solved_data = {
 type visualize_type = (input: {board: T[][], mods: M[][], cars: C[], iterations: number, time_elapsed: number}) => void
 
 
-
-function tail_call_gen(args: args_type, visualize: visualize_type): void {
+async function tail_call_gen(args: args_type, visualize: visualize_type) {
+    /**
+     * Pause/step the level solving when needed, and send back generation
+     * visualizations when necessary.
+     */
+    async function data_control(arg: args_type) {
+        if (PAUSE || STEP) {
+            await new Promise<void>((res) => RESUME = res)
+        }
+        if (Date.now() - last_update >= VISUALIZE_RATE) {
+            visualize({
+                board: arg.board_to_use,
+                mods: arg.mods_to_use,
+                cars: arg.cars_to_use,
+                iterations: iterations,
+                time_elapsed: (Date.now() - start_time) / 10e2
+            })
+            last_update = Date.now()
+        }
+    }
     /** when the last callback was performed. */
     let last_update: number = Date.now()
     if (GEN_TYPE === "DFS") {
@@ -44,16 +65,7 @@ function tail_call_gen(args: args_type, visualize: visualize_type): void {
 
         while (argslist.length > 0) {
             const arg: args_type = argslist.pop()!
-            if (Date.now() - last_update >= VISUALIZE_RATE) {
-                visualize({
-                    board: arg.board_to_use,
-                    mods: arg.mods_to_use,
-                    cars: arg.cars_to_use,
-                    iterations: iterations,
-                    time_elapsed: (Date.now() - start_time) / 10e2
-                })
-                last_update = Date.now()
-            }
+            await data_control(arg)
             const args: args_type[] = [...generate_tracks(arg)]
             argslist.push(...args.reverse())
         }
@@ -67,16 +79,7 @@ function tail_call_gen(args: args_type, visualize: visualize_type): void {
         for (const queue of argslist.values()) {
             while (queue.length > 0) {
                 const arg: args_type = queue.popleft()!
-                if (Date.now() - last_update >= VISUALIZE_RATE) {
-                    visualize({
-                        board: arg.board_to_use,
-                        mods: arg.mods_to_use,
-                        cars: arg.cars_to_use,
-                        iterations: iterations,
-                        time_elapsed: (Date.now() - start_time) / 10e2
-                    })
-                    last_update = Date.now()
-                }
+                await data_control(arg)
                 for (const args of generate_tracks(arg)) {
                     if (lowest_tracks_remaining !== -1) {
                         return
@@ -695,7 +698,7 @@ var swapping_track_poses: Map<number, (readonly [number, number])[]>
 var station_poses: Map<M, Map<number, (readonly [number, number])[]>>
 var board_solve_time: number
 
-export function solve_level(data: json_level_type | render_level_type, visualize: visualize_type): solved_data {
+export async function solve_level(data: json_level_type | render_level_type, visualize: visualize_type): Promise<solved_data> {
     if ('grid' in data) {
         // type of data is render_level_type
         const grid = data.grid
@@ -891,24 +894,52 @@ function visualize(input: {board: T[][], mods: M[][], cars: C[]}): void {
 }
 
 type msgType = {
-    level: render_level_type,
-    parameters: {
+    // Initial call parameters (including step, as step may be called initially instead)
+    level?: render_level_type
+    parameters?: {
         heatmap_limit_limit: number,
         decoy_heatmap_limit: number,
         gen_type: 'DFS' | 'BFS',
         visualize_rate: number
     }
+    // "Step" call parameters
+    step?: boolean
+
+    // "Change visualize_rate" call parameters
+    visualize_rate?: number
+
+    // "Pause"/"Resume" call parameters
+    pause?: boolean
 }
+
 // solve function to be run as a worker in ../website/src/store/levelStore.ts
 self.onmessage = (e: MessageEvent<msgType>) => {
-    HEATMAP_LIMIT_LIMIT = e.data.parameters.heatmap_limit_limit
-    DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
-    GEN_TYPE = e.data.parameters.gen_type
-    VISUALIZE_RATE = e.data.parameters.visualize_rate
-
-    const solution = solve_level(e.data.level, visualize)
-    self.postMessage({
-        done: true,
-        solution: solution
-    })
+    if (e.data.parameters !== undefined) {
+        // Initial call message
+        HEATMAP_LIMIT_LIMIT = e.data.parameters.heatmap_limit_limit
+        DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
+        GEN_TYPE = e.data.parameters.gen_type
+        VISUALIZE_RATE = e.data.parameters.visualize_rate
+        STEP = e.data.step!
+        
+        const solve = async () => {
+            const solution = await solve_level(e.data.level!, visualize)
+            self.postMessage({
+                done: true,
+                solution: solution
+            })
+        }
+        solve()
+    } else if (e.data.visualize_rate !== undefined) {
+        // "Change visualize rate" message
+        VISUALIZE_RATE = e.data.visualize_rate
+    } else if (e.data.pause !== undefined) {
+        console.log('b')
+        // "Pause"/"Resume" message
+        PAUSE = e.data.pause
+    } else if (e.data.step !== undefined) {
+        // "Step" message
+        RESUME()
+        STEP = e.data.step
+    }
 }
