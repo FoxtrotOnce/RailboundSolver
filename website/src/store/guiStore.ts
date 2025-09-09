@@ -78,6 +78,8 @@ interface GuiState {
   showLeftDisplay: boolean;
   showPalette: boolean;
   showLevelSettings: boolean;
+  foundSolution: boolean;
+  showSolvedPopup: boolean;
   carRelatedModIcons: Map<string, React.ReactNode[]>
 
   // Actions
@@ -97,7 +99,8 @@ interface GuiState {
   togglePiecePanel: () => void;
   toggleLeftDisplay: () => void;
   togglePalette: () => void;
-  displayLevelSettings: (displaySettings: boolean) => void;
+  displayLevelSettings: (shouldDisplay: boolean) => void;
+  displaySolvedPopup: (shouldDisplay: boolean, foundSolution?: boolean) => void;
   resetGui: () => void;
 }
 
@@ -278,10 +281,25 @@ export const useGuiStore = create<GuiState>()(
       },
       displayLevelSettings: (shouldDisplay) =>  {
         set(
-          (state) => ({ showLevelSettings: shouldDisplay }),
+          { showLevelSettings: shouldDisplay },
           false,
           "displayLevelSettings"
         )
+      },
+      displaySolvedPopup: (shouldDisplay, foundSolution) =>  {
+        if (foundSolution === undefined) {
+          set(
+            { showSolvedPopup: shouldDisplay },
+            false,
+            "displayLevelSettings"
+          )
+        } else {
+          set(
+            { showSolvedPopup: shouldDisplay, foundSolution: foundSolution },
+            false,
+            "displayLevelSettings"
+          )
+        }
       },
       resetGui: () => {
         set(

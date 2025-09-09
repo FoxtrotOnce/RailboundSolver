@@ -87,7 +87,7 @@ const GridButton: React.FC<{
 
 export const GridButtons: React.FC = () => {
   const { styles, setHyperparams, hyperparameters, displayLevelSettings } = useGuiStore()
-  const { clearLevel, solveLevel, pauseLevel, stepLevel } = useLevelStore()
+  const { clearLevel, solveLevel, pauseLevel, stepLevel, solvingWorker, pauseWorker } = useLevelStore()
 
   return (
     <div className={`flex flex-col gap-3 rounded-[0.375rem] w-full items-end`}>
@@ -126,30 +126,34 @@ export const GridButtons: React.FC = () => {
         style={`${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border}`}
       />
       <div className={`w-10.5 h-0.25 rounded-full ${styles.border.bg}`} />
+      {!solvingWorker &&
       <GridButton
         content={<span>Solve</span>}
         icon={Icons.start}
         style={`${styles.background.text} bg-green-500`}
         onClick={() => solveLevel()}
-      />
+      />}
+      {!pauseWorker && solvingWorker &&
       <GridButton
         content={<span>Pause</span>}
         icon={Icons.pause}
         style={`${styles.background.text} bg-yellow-500`}
         onClick={() => pauseLevel(true)}
-      />
+      />}
+      {pauseWorker &&
       <GridButton
         content={<span>Resume</span>}
         icon={Icons.start}
         style={`${styles.background.text} bg-neutral-300`}
         onClick={() => pauseLevel(false)}
-      />
+      />}
+      {solvingWorker &&
       <GridButton
         content={<span>Stop</span>}
         icon={Icons.reset}
         style={`${styles.background.text} bg-red-500`}
-        onClick={() => clearLevel()}
-      />
+        onClick={() => clearLevel(true)}
+      />}
       <GridButton
         content={<span>Step</span>}
         icon={Icons.step}

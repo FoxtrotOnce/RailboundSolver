@@ -18,8 +18,6 @@ let DECOY_HEATMAP_LIMIT = 15
 let GEN_TYPE: 'DFS' | 'BFS' = 'DFS'
 // VISUALIZE_RATE is how many milliseconds before the next visualization callback.
 let VISUALIZE_RATE = 100
-let PAUSE = false
-let STEP = false
 let RESUME: () => void
 type json_level_type = (typeof lvls)[keyof typeof lvls]
 type render_level_type = {
@@ -28,11 +26,11 @@ type render_level_type = {
     max_semaphores: number
 }
 type solved_data = {
-    board: T[][]
-    mods: M[][]
+    board: T[][] | undefined
+    mods: M[][] | undefined
     tracks_left: number
     semaphores_left: number
-    time_elapsed: number,
+    time_elapsed: number
     iterations: number
 } | undefined
 type visualize_type = (input: {board: T[][], mods: M[][], cars: C[], iterations: number, time_elapsed: number}) => void
@@ -44,9 +42,6 @@ async function tail_call_gen(args: args_type, visualize: visualize_type) {
      * visualizations when necessary.
      */
     async function data_control(arg: args_type) {
-        if (PAUSE || STEP) {
-            await new Promise<void>((res) => RESUME = res)
-        }
         if (Date.now() - last_update >= VISUALIZE_RATE) {
             visualize({
                 board: arg.board_to_use,
@@ -56,6 +51,8 @@ async function tail_call_gen(args: args_type, visualize: visualize_type) {
                 time_elapsed: (Date.now() - start_time) / 10e2
             })
             last_update = Date.now()
+            self.postMessage({})
+            await new Promise<void>((res) => RESUME = res)
         }
     }
     /** when the last callback was performed. */
@@ -820,6 +817,10 @@ export async function solve_level(data: json_level_type | render_level_type, vis
             break
         }
     }
+    // Check if there are any cars
+    if (cars.length + ncars.length === 0) {
+        cancel_generation = true
+    }
     if (!cancel_generation) {
         const cars_to_use: C[] = [...all_cars]
         const board_to_use: T[][] = copy_arr(board)
@@ -835,7 +836,7 @@ export async function solve_level(data: json_level_type | render_level_type, vis
         const available_semaphores: number = max_semaphores
         const heatmap_limits: number[][][][] = zeros([all_cars.length, 4, board.length, board[0].length])
 
-        tail_call_gen({
+        await tail_call_gen({
             cars_to_use, board_to_use, mods_to_use, available_tracks, heatmaps,
             solved, stalled, switch_queue, station_stalled, crashed_decoys, mvmts_since_solved,
             available_semaphores, heatmap_limits
@@ -852,18 +853,26 @@ export async function solve_level(data: json_level_type | render_level_type, vis
     if (best_board === undefined || best_mods === undefined) {
         console.log('board failed')
         console.log("------------------------------")
-        return undefined
+        const return_data: solved_data = {
+            board: best_board,
+            mods: best_mods,
+            tracks_left: lowest_tracks_remaining,
+            semaphores_left: semaphores_remaining,
+            time_elapsed: finalTime,
+            iterations: iterations
+        }
+        return return_data
     }
     // Replace permanent tiles that may have been swapped during generation.
     for (const pos_index of permanent_track_poses) {
         const pos: readonly [number, number] = [Math.floor(pos_index / board[0].length), pos_index % board[0].length]
         best_board[pos[0]][pos[1]] = board[pos[0]][pos[1]]
+        best_mods[pos[0]][pos[1]] = mods[pos[0]][pos[1]]
     }
     T.print_values(best_board)
     if (max_semaphores > 0) {
         console.log('max_semaphores > 0')
     }
-    // console.log("thinh feel free to delete this, or do whatever. it is only used for printing semaphore positions.")
     for (let i = 0; i < best_mods.length; i++) {
         for (let j = 0; j < best_mods[0].length; j++) {
             const mod = best_mods[i][j]
@@ -894,7 +903,7 @@ function visualize(input: {board: T[][], mods: M[][], cars: C[]}): void {
 }
 
 type msgType = {
-    // Initial call parameters (including step, as step may be called initially instead)
+    // Initial call parameters
     level?: render_level_type
     parameters?: {
         heatmap_limit_limit: number,
@@ -902,14 +911,9 @@ type msgType = {
         gen_type: 'DFS' | 'BFS',
         visualize_rate: number
     }
-    // "Step" call parameters
-    step?: boolean
 
     // "Change visualize_rate" call parameters
     visualize_rate?: number
-
-    // "Pause"/"Resume" call parameters
-    pause?: boolean
 }
 
 // solve function to be run as a worker in ../website/src/store/levelStore.ts
@@ -920,7 +924,6 @@ self.onmessage = (e: MessageEvent<msgType>) => {
         DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
         GEN_TYPE = e.data.parameters.gen_type
         VISUALIZE_RATE = e.data.parameters.visualize_rate
-        STEP = e.data.step!
         
         const solve = async () => {
             const solution = await solve_level(e.data.level!, visualize)
@@ -930,16 +933,11 @@ self.onmessage = (e: MessageEvent<msgType>) => {
             })
         }
         solve()
-    } else if (e.data.visualize_rate !== undefined) {
-        // "Change visualize rate" message
-        VISUALIZE_RATE = e.data.visualize_rate
-    } else if (e.data.pause !== undefined) {
-        console.log('b')
-        // "Pause"/"Resume" message
-        PAUSE = e.data.pause
-    } else if (e.data.step !== undefined) {
-        // "Step" message
+    } else {
+        if (e.data.visualize_rate !== undefined) {
+            // "Change visualize rate" message
+            VISUALIZE_RATE = e.data.visualize_rate
+        }
         RESUME()
-        STEP = e.data.step
     }
 }

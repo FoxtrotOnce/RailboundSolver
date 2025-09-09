@@ -9,4 +9,5 @@ export { ParamDisplay } from "./ParamDisplay";
 export { ProgressBar } from "./ProgressBar";
 export { GridButtons } from "./GridButtons";
 export { LevelSettings } from "./LevelSettings";
+export { SolvedPopup } from "./SolvedPopup";
 export type { GamePiece } from "../components/GamePieceIcon";

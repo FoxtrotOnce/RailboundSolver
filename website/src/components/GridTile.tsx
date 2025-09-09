@@ -222,7 +222,7 @@ export const GridTile: React.FC<{
   const { placePiece, removePiece, removeModorCar, registryFilled, permLevelData, renderedLevelData, settingsLevelData, saveToUndoStack, saveLevel } = useLevelStore();
   const grid = is_rendered_grid ? renderedLevelData : settingsLevelData
   const { car, track, mod, mod_num } = grid[pos.y][pos.x]
-  const is_perm = is_rendered_grid ? permLevelData.grid[pos.y][pos.x].track === track : true
+  const is_perm = is_rendered_grid ? !permLevelData.grid[pos.y][pos.x].track.is_empty() : !track.is_empty()
   const permMod = is_rendered_grid ? permLevelData.grid[pos.y][pos.x].mod : mod
   type items = {
     track?: Track,

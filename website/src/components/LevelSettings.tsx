@@ -1,26 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import lvls from "../../../levels.json";
 import { GridTile } from "./GridTile";
 import { useGuiStore, useLevelStore } from "../store";
-import type { LevelData } from "../store/levelStore";
-
-type LevelType = (typeof lvls)[keyof typeof lvls];
-
-// Organize levels by world, and fetch levels via their id.
-const worldsRaw = new Map<string, Record<string, LevelData>>();
-for (const key in lvls) {
-  const { convertJsonLevel } = useLevelStore.getState()
-  const lvlName = key as keyof typeof lvls;
-  const world: string = lvlName.slice(0, lvlName.indexOf("-"));
-  const data: LevelType = lvls[lvlName];
-  const jsonData = convertJsonLevel(data, lvlName)
-
-  if (!worldsRaw.has(world)) {
-    worldsRaw.set(world, {});
-  }
-  worldsRaw.set(world, {...worldsRaw.get(world)!, [jsonData.id.toString()]: jsonData})
-}
-worldsRaw.set("Custom", {})
 
 const Icons = {
   settings:
@@ -202,7 +182,7 @@ const StatisticSlider: React.FC<{
         <span>{used}/{max}</span>
       </div>
       <div className={`w-full h-4 p-0.5 rounded-[0.25rem] border-2 ${styles.text.border} bg-black`}>
-        <div className={`h-full ${styles.mods[2].bg}`} style={{width: `${used / max * 100}%`}}/>
+        <div className={`h-full ${styles.mods[2].bg}`} style={{width: `${used / (max + 0.001) * 100}%`}}/>
       </div>
     </div>
   )
@@ -210,11 +190,14 @@ const StatisticSlider: React.FC<{
 
 export const LevelSettings: React.FC = () => {
   const { styles, displayLevelSettings } = useGuiStore()
-  const [selectedWorld, setSelectedWorld] = useState('11')
-  const { permLevelData, settingsLevelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel, renderSettingsLevel } = useLevelStore()
+  const [selectedWorld, setSelectedWorld] = useState('Custom')
+  const { permLevelData, settingsLevelData, savedLevels, setLevelName, setTracks, setSemaphores, loadLevel, createDefaultLevel, renderSettingsLevel, defaultLevels } = useLevelStore()
   const gridRef = useRef<HTMLDivElement | null>(null)
-  const [ bottomH, setBottomH ] = useState(0)  
-  const [ worlds, setWorlds ] = useState(worldsRaw)
+  const [ bottomH, setBottomH ] = useState(0)
+  let time_elapsed = permLevelData.solution.time_elapsed
+  if (typeof time_elapsed === 'number') {
+    time_elapsed = `${Math.floor(time_elapsed / 3600)}:${String(Math.floor(time_elapsed / 60) % 60).padStart(2, '0')}:${String(Math.floor(time_elapsed) % 60).padStart(2, '0')}.${String(Math.round((time_elapsed % 1) * 1000)).padEnd(3, '0')}`
+  }
 
   // Use bottomH to set the height for the parent div to be the same as the grid, so world and level selection overflow at the same height.
   useEffect(() => {
@@ -224,11 +207,11 @@ export const LevelSettings: React.FC = () => {
   }, [gridRef, setBottomH])
 
   // Trigger a re-render when savedLevels are changed by setting updatedWorlds to a new variable (a copy of itself with the changes)
-  useEffect(() => {
-    const updatedWorlds = new Map(worlds)
-    updatedWorlds.set("Custom", Object.fromEntries(Object.entries(savedLevels).map(([id, level]) => [id, level])))
-    setWorlds(updatedWorlds)
-  }, [savedLevels, permLevelData])
+  // useEffect(() => {
+  //   const updatedWorlds = new Map(worlds)
+  //   updatedWorlds.set("Custom", Object.fromEntries(Object.entries(savedLevels).map(([id, level]) => [id, level])))
+  //   setWorlds(updatedWorlds)
+  // }, [savedLevels, permLevelData])
 
   return (
     <div className={`relative flex flex-col gap-2 p-4 rounded-[1rem] ${styles.base.bg} border-b-1 ${styles.border.border}`}>
@@ -275,8 +258,7 @@ export const LevelSettings: React.FC = () => {
             <span className={`pl-4 ml-7 text-center font-medium text-[0.875rem] ${styles.text.text}`}>Worlds</span>
             <div className={`flex flex-col gap-0.75 pl-4 ml-7 overflow-y-auto grow-0`} dir="rtl">
               <SelectionButton name="Custom" selected={selectedWorld === "Custom"} onClick={() => setSelectedWorld("Custom")} />
-              {[...worlds.entries()].map(([worldKey]) => (
-                worldKey !== "Custom" &&
+              {[...Object.entries(defaultLevels)].map(([worldKey]) => (
                 <SelectionButton name={`World ${worldKey}`} selected={selectedWorld === worldKey} onClick={() => setSelectedWorld(worldKey)} />
               ))}
             </div>
@@ -292,6 +274,14 @@ export const LevelSettings: React.FC = () => {
               </span>
               <div className={`relative ${styles.background.bg} rounded-[0.25rem] rounded-br-[0rem] p-3 overflow-hidden`}>
                 <div className={`flex items-center justify-center w-90 h-90`}>
+                  <div
+                    className={`absolute flex w-full h-full pointer-events-none mask-x-from-90% mask-x-to-97% mask-y-from-90% mask-y-to-97% opacity-5`}
+                    style={{
+                      backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
+                      backgroundSize: `30px 30px`,
+                      backgroundPosition: `${12 + settingsLevelData[0].length * 30 / 2}px ${12 + settingsLevelData.length * 30 / 2}px`
+                    }}
+                  />
                   <div
                     className={`grid border-t-1 border-l-1 ${styles.highlight.border}`}
                     style={{
@@ -315,6 +305,17 @@ export const LevelSettings: React.FC = () => {
                     )}
                   </div>
                 </div>
+                {/* Blur mask if level not yet solved */}
+                <div
+                  className={`transition-all duration-300 absolute inset-0 flex justify-center items-center opacity-0 ${
+                    permLevelData.solution.grid === undefined && `hover:opacity-100 hover:backdrop-blur-[5px]`
+                  }`}
+                  onMouseEnter={() => permLevelData.solution.grid !== undefined && renderSettingsLevel(permLevelData, true)}
+                  onMouseLeave={() => permLevelData.solution.grid !== undefined && renderSettingsLevel(permLevelData)}
+                >
+                  <div className={`absolute inset-0 rounded-[0.25rem] opacity-50 mask-x-from-90% mask-x-to-97% mask-y-from-90% mask-y-to-97% ${styles.base.bg}`} />
+                  <div className={`px-3 text-center font-bold text-[1.325rem] ${styles.text.text} select-none z-1`}>Solve this level to view the<br/>solution and statistics!</div>
+                </div>
               </div>
             </div>
             {/* Level Selection + Statistics */}
@@ -322,15 +323,24 @@ export const LevelSettings: React.FC = () => {
               {/* Level Selection */}
               <div className={`flex w-50 flex-col gap-0.75 pb-1.5 rounded-bl-[0.25rem] ${styles.base.bg} h-full overflow-hidden`}>
                 <span className={`text-center font-medium text-[0.875rem] ${styles.text.text}`}>Levels</span>
-                <div className={`flex flex-col gap-0.75 px-2 overflow-y-auto h-full`}>
-                  {Object.entries(worlds.get(selectedWorld)!).map(([levelKey]) => {
-                    const level = worlds.get(selectedWorld)![levelKey]
+                <div className={`flex flex-col gap-0.75 px-2 overflow-y-auto h-full`} onMouseLeave={() => renderSettingsLevel(permLevelData)}>
+                  {selectedWorld === "Custom"
+                  ? Object.entries(savedLevels).map(([levelKey]) => {
+                    const level = savedLevels[levelKey]
                     return <SelectionButton
                       name={level.name}
                       selected={permLevelData.id === level.id}
                       onClick={() => loadLevel(level)}
                       onMouseEnter={() => renderSettingsLevel(level)}
-                      onMouseLeave={() => renderSettingsLevel(permLevelData)}
+                    />
+                  })
+                  : Object.entries(defaultLevels[selectedWorld]).map(([levelKey]) => {
+                    const level = defaultLevels[selectedWorld][levelKey]
+                    return <SelectionButton
+                      name={level.name}
+                      selected={permLevelData.id === level.id}
+                      onClick={() => loadLevel(level)}
+                      onMouseEnter={() => renderSettingsLevel(level)}
                     />
                   })}
                 </div>
@@ -346,6 +356,7 @@ export const LevelSettings: React.FC = () => {
                   {/* Actions */}
                   <div className={`flex flex-row justify-between`}>
                     <div className={`flex flex-row gap-2 ${styles.text.text}`}>
+                      {/* Create new level */}
                       <button
                         className={`transition-all cursor-pointer hover:brightness-85 active:brightness-70`}
                         onClick={() => {
@@ -357,18 +368,27 @@ export const LevelSettings: React.FC = () => {
                       >
                         {Icons.newLevel}
                       </button>
+                      {/* Duplicate level */}
                       <button
                         className={`transition-all cursor-pointer hover:brightness-85 active:brightness-70`}
                         onClick={() => {
-                          const newLevel = {...permLevelData}
-                          newLevel.id = createDefaultLevel().id
+                          const newName = permLevelData.name.startsWith("Copy of") || permLevelData.name.length > 100 - "Copy of ".length
+                          ? permLevelData.name
+                          : "Copy of ".concat(permLevelData.name)
+                          const newLevel = {
+                            ...permLevelData,
+                            id: createDefaultLevel().id,
+                            name: newName,
+                          }
                           savedLevels[newLevel.id] = newLevel
+                          setSelectedWorld("Custom")
                           loadLevel(newLevel)
                         }}
                       >
                         {Icons.duplicate}
                       </button>
                     </div>
+                    {/* Delete level */}
                     <button
                       className={`transition-all text-red-500 cursor-pointer hover:brightness-85 active:brightness-70`}
                       onClick={() => {
@@ -380,9 +400,9 @@ export const LevelSettings: React.FC = () => {
                         const levels = Object.values(savedLevels)
                         if (levels.length === 0) {
                           setSelectedWorld("1")
-                          loadLevel(Object.values(worlds.get("1")!)[0])
+                          loadLevel(Object.values(defaultLevels["1"])[0])
                         } else {
-                          loadLevel(Object.values(savedLevels)[0])
+                          loadLevel(Object.values(savedLevels)[Object.values(savedLevels).length - 1])
                         }
                       }}
                     >
@@ -390,15 +410,15 @@ export const LevelSettings: React.FC = () => {
                     </button>
                   </div>
                   {/* Statistics */}
-                  <StatisticSlider name="Tracks Used" used={permLevelData.max_tracks} max={permLevelData.max_tracks} />
-                  <StatisticSlider name="Semaphores Used" used={Math.floor(permLevelData.max_semaphores / 2)} max={permLevelData.max_semaphores} />
+                  <StatisticSlider name="Tracks Used" used={permLevelData.max_tracks - permLevelData.solution.tracks_left} max={permLevelData.max_tracks} />
+                  <StatisticSlider name="Semaphores Used" used={permLevelData.max_semaphores - permLevelData.solution.semaphores_left} max={permLevelData.max_semaphores} />
                   <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
                     <span>Iterations:</span>
-                    <span>{"45,327,981,605"}</span>
+                    <span>{permLevelData.solution.iterations.toLocaleString()}</span>
                   </div>
                   <div className={`flex flex-row justify-between font-medium text-[0.875rem] ${styles.text.text}`}>
                     <span>Time Elapsed:</span>
-                    <span>{"13:48:29.756"}</span>
+                    <span>{time_elapsed}</span>
                   </div>
                 </div>
               </div>

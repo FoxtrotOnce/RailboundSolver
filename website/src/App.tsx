@@ -7,6 +7,7 @@ import {
   GridButtons,
   ChangeModNum,
   LevelSettings,
+  SolvedPopup,
 } from "./components";
 import { useGuiStore, useLevelStore } from "./store";
 
@@ -48,8 +49,16 @@ import { useEffect, useState, useRef } from "react";
  * 5. Leverage separate devtools for debugging each store independently
  */
 
+/**
+ * Z-STACKING LAYERS
+ * 0 - all elements
+ * 1 - square hover cursor (set in ../components/GameCanvas.tsx)
+ * 2 - changemodnum palette (set in this file)
+ * 3 - popups (set in this file)
+ */
+
 export default function App() {
-  const { styles, rotateCW, rotateCCW, showPalette, togglePalette, showLevelSettings, displayLevelSettings } =
+  const { styles, rotateCW, rotateCCW, showPalette, togglePalette, showLevelSettings, showSolvedPopup, displayLevelSettings, displaySolvedPopup } =
     useGuiStore();
   const { clearLevel, undo, redo } = useLevelStore();
   const currMousePos = useRef({ x: 0, y: 0 });
@@ -66,13 +75,10 @@ export default function App() {
       if (target.tagName === "INPUT") return;
 
       if (e.key.toLowerCase() === "q") {
-        e.preventDefault();
         rotateCCW();
       } else if (e.key.toLowerCase() === "e") {
-        e.preventDefault();
         rotateCW();
       } else if (e.key.toLowerCase() === "w") {
-        e.preventDefault();
         // Update the lastMousePos (where the palette should be) only if it's being shown,
         // so it doesn't teleport to the player's mouse when they try to close it.
         if (!showPalette) {
@@ -80,7 +86,6 @@ export default function App() {
         }
         togglePalette();
       } else if (e.key.toLowerCase() === "r") {
-        e.preventDefault();
         clearLevel();
       } else if (e.ctrlKey && e.key === "z") {
         e.preventDefault()
@@ -131,7 +136,7 @@ export default function App() {
         </div>
       </div>
       <div
-        className={`absolute transition-transform duration-300 ${
+        className={`absolute transition-transform duration-300 z-2 ${
           showPalette ? "scale-100" : "scale-0"
         }`}
         style={{
@@ -141,7 +146,13 @@ export default function App() {
       >
         <ChangeModNum />
       </div>
-      <div className={`transition-all absolute inset-0 w-screen h-screen flex items-center justify-center overflow-hidden ${
+      <div className={`transition-all absolute inset-0 w-screen h-screen flex items-center justify-center overflow-hidden z-3 ${
+        showSolvedPopup ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}>
+        <button className={`absolute w-full h-full bg-black opacity-50`} onClick={() => displaySolvedPopup(false)}/>
+        <SolvedPopup />
+      </div>
+      <div className={`transition-all absolute inset-0 w-screen h-screen flex items-center justify-center overflow-hidden z-3 ${
         showLevelSettings ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}>
         <button className={`absolute w-full h-full bg-black opacity-50`} onClick={() => displayLevelSettings(false)}/>
