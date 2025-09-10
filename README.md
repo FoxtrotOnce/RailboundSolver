@@ -24,7 +24,7 @@ RailboundSolver cannot currently be used, but will be usable as soon as the webs
 ### [Afterburn Discord Thread](https://discord.com/channels/441217491612598272/1142318326136180796)
 
 ### Program Flowchart
-![Flowchart](<img width="2181" height="6532" alt="RailboundSolver drawio" src="https://github.com/user-attachments/assets/8a47abf5-ab86-4e5c-b3a2-595699ad8862" />)
+![Flowchart](https://github.com/user-attachments/assets/8a47abf5-ab86-4e5c-b3a2-595699ad8862)
 
 # License
 
