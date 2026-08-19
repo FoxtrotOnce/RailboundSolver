@@ -93,8 +93,15 @@ int wasm_get_mods_at(int y,int x){
 
 // Async + visualize support via callback into JS (Emscripten only)
 #ifdef __EMSCRIPTEN__
-extern "C" void js_visualize_callback(int H,int W, int iterLow,int iterHigh, double elapsed);
-extern "C" int js_should_cancel(); // returns 1 if should cancel
+// Provide JS implementations so wasm-ld doesn't see undefined symbols.
+// They are weak no-ops; JS can override via Module['js_visualize_callback'] if needed,
+// but the solver also works without a JS hook (returns 0 / does nothing).
+EM_JS(void, js_visualize_callback, (int H, int W, int iterLow, int iterHigh, double elapsed), {
+  // optional hook: if (typeof Module !== 'undefined' && Module.onWasmVisualize) Module.onWasmVisualize(H,W,iterLow,iterHigh,elapsed);
+})
+EM_JS(int, js_should_cancel, (), {
+  return 0;
+})
 
 EMSCRIPTEN_KEEPALIVE
 int wasm_solve_with_callback(const int* board_flat, const int* mods_flat, const int* mod_nums_flat,
