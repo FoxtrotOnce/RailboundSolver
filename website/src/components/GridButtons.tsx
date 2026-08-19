@@ -1,6 +1,7 @@
 import React from "react"
 import { useGuiStore, useLevelStore } from "../store"
 import { useEffect, useState, useRef } from "react"
+import { ensureWasm } from "../wasm/solverWasm"
 
 const Icons = {
   settings:
@@ -36,6 +37,16 @@ const Icons = {
   step:
     <svg className={`w-8.75 h-8`} viewBox="0 0 35 32">
       <path fill="currentColor" d="M12.308 3.867 30.08 14.135c1.435.83 1.435 2.9 0 3.73L12.308 28.133c-1.436.83-3.231-.207-3.231-1.865V5.732c0-1.658 1.795-2.695 3.231-1.865ZM5.846 26.23V5.77c0-1.19-.964-2.155-2.154-2.155h-.538C1.964 3.615 1 4.58 1 5.77v20.462c0 1.19.964 2.154 2.154 2.154h.538c1.19 0 2.154-.965 2.154-2.154Z"/>
+    </svg>,
+  wasm:
+    <svg className={`w-8 h-8`} viewBox="0 0 32 32">
+      <path fill="currentColor" d="M6 8h20v2H6zM6 14h20v2H6zM6 20h14v2H6z"/>
+      <text x="20" y="22" fontSize="7" fontWeight="700" fill="currentColor">C++</text>
+    </svg>,
+  js:
+    <svg className={`w-8 h-8`} viewBox="0 0 32 32">
+      <rect x="4" y="6" width="24" height="20" rx="2" fill="none" stroke="currentColor" strokeWidth="2"/>
+      <text x="7" y="20" fontSize="10" fontWeight="700" fill="currentColor">JS</text>
     </svg>,
 }
 
@@ -86,8 +97,19 @@ const GridButton: React.FC<{
 }
 
 export const GridButtons: React.FC = () => {
-  const { styles, setHyperparams, hyperparameters, displayLevelSettings } = useGuiStore()
+  const { styles, setHyperparams, hyperparameters, displayLevelSettings, useWasm, wasmReady, setUseWasm, setWasmReady } = useGuiStore()
   const { clearLevel, solveLevel, pauseLevel, stepLevel, solvingWorker, pauseWorker } = useLevelStore()
+
+  // Probe WASM availability on mount
+  useEffect(() => {
+    let cancelled = false
+    ensureWasm().then((ready) => {
+      if (!cancelled) setWasmReady(ready)
+    }).catch(() => {
+      if (!cancelled) setWasmReady(false)
+    })
+    return () => { cancelled = true }
+  }, [setWasmReady])
 
   return (
     <div className={`flex flex-col gap-3 rounded-[0.375rem] w-full items-end`}>
@@ -124,6 +146,46 @@ export const GridButtons: React.FC = () => {
         }
         icon={Icons.refresh_rate}
         style={`${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border}`}
+      />
+      {/* Solver toggle — WASM (C++ fast) vs JS (TS fallback). Visible choice for user. */}
+      <GridButton
+        content={
+          wasmReady === null ? (
+            <span className="text-[1.1rem]">Checking solver…</span>
+          ) : wasmReady === false ? (
+            <div className="flex flex-col items-end leading-none">
+              <span className="text-[1.1rem]">Solver: JS only</span>
+              <span className="text-[0.7rem] opacity-80">WASM not built</span>
+            </div>
+          ) : useWasm ? (
+            <div className="flex flex-col items-end leading-none">
+              <span className="text-[1.1rem]">Solver: WASM ⚡</span>
+              <span className="text-[0.7rem] opacity-80">C++ fast • click for JS</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-end leading-none">
+              <span className="text-[1.1rem]">Solver: JS</span>
+              <span className="text-[0.7rem] opacity-80">TS fallback • click for WASM</span>
+            </div>
+          )
+        }
+        icon={wasmReady === true && useWasm ? Icons.wasm : Icons.js}
+        style={
+          wasmReady === null
+            ? `${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border} opacity-60`
+            : wasmReady === false
+              ? `${styles.text.text} bg-gray-600 border-b-1 ${styles.border.border} opacity-70`
+              : useWasm
+                ? `${styles.background.text} bg-emerald-500 border-b-1 border-emerald-700`
+                : `${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border}`
+        }
+        onClick={
+          wasmReady === true
+            ? () => setUseWasm(!useWasm)
+            : wasmReady === false
+              ? () => alert("WASM not built yet.\nRun in repo root:\n  wasm/build.sh --setup-emsdk\n  wasm/build.sh --wasm\nThen refresh.")
+              : undefined
+        }
       />
       <div className={`w-10.5 h-0.25 rounded-full ${styles.border.bg}`} />
       {!solvingWorker &&
