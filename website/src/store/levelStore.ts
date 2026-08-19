@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
-import Worker from "../../../algo/main.ts?worker"
+import TsWorker from "../../../algo/main.ts?worker"
+import WasmWorker from "../wasm/wasmWorker.ts?worker"
 import { useGuiStore } from "./guiStore";
 import lvls from "../../../levels.json";
+import { ensureWasm } from "../wasm/solverWasm";
 
 /**
  * Level data structure
@@ -190,8 +192,9 @@ interface LevelState {
 
   /**
    * Solve the level (permLevelData) and return solution, render steps to renderedLevelData.
+   * Uses WASM C++ solver when available (fast path), falls back to TS worker.
    */
-  solveLevel: () => void;
+  solveLevel: () => Promise<void> | void;
 
   /**
    * Pause/resume level generation.
@@ -602,9 +605,18 @@ export const useLevelStore = create<LevelState>()(
         set({solvingWorker: undefined}, false, "terminateWorker")
       },
 
-      solveLevel: () => {
+      solveLevel: async () => {
         const { terminateWorker, permLevelData } = get()
-        const { hyperparameters, displaySolvedPopup } = useGuiStore.getState()
+        const { hyperparameters, displaySolvedPopup, useWasm, setWasmReady } = useGuiStore.getState()
+        let useWasmEffective = false
+        if (useWasm) {
+          try {
+            useWasmEffective = await ensureWasm()
+          } catch { useWasmEffective = false }
+          setWasmReady(useWasmEffective)
+          if (useWasmEffective) console.log("[Solver] Using C++ WASM (fast path)")
+          else console.log("[Solver] WASM not ready, falling back to TS worker")
+        }
         // board, mods, and cars are reserialized inside here since postMessage strips them of their methods.
         function reloadGrid(input: {board: Track[][], mods: Mod[][], cars: Car[]}): void {
           const reloadedGrid: GridCell[][] = []
@@ -638,7 +650,8 @@ export const useLevelStore = create<LevelState>()(
         }
 
         terminateWorker()
-        set({solvingWorker: new Worker()}, false, "solveLevel")
+        const WorkerCtor: any = useWasmEffective ? WasmWorker : TsWorker
+        set({solvingWorker: new WorkerCtor()}, false, "solveLevel")
         const { solvingWorker } = get()
 
         solvingWorker!.postMessage({

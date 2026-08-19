@@ -173,4 +173,15 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# === WASM / C++ Solver (feature/wasm-cpp-solver) ===
+wasm/build/
+wasm/emsdk/
+website/public/wasm/*.wasm
+website/public/wasm/*.js
+!website/public/wasm/.gitkeep
+website/dist/
+website/node_modules/
+# Keep placeholder glue so `vite build` passes before wasm is built
+!website/src/wasm/railbound_wasm.js
+
 # End of https://www.toptal.com/developers/gitignore/api/python

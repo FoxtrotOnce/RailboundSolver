@@ -24,6 +24,7 @@ export interface Hyperparameters {
   decoy_heatmap_limit: number;
   gen_type: "DFS" | "BFS";
   visualize_rate: number;
+  useWasm?: boolean;
 }
 // Website palette. Colors are provided as properties, and are obtained via Styles.[property].as_[bg/text/border]().
 class Styles {
@@ -67,6 +68,10 @@ interface GuiState {
   rotateCCW: () => void;
 
   hyperparameters: Hyperparameters;
+  useWasm: boolean;
+  wasmReady: boolean | null;
+  setUseWasm: (use: boolean) => void;
+  setWasmReady: (ready: boolean | null) => void;
 
   // Canvas display
   showGrid: boolean;
@@ -120,6 +125,8 @@ export const useGuiStore = create<GuiState>()(
       selectedPiece: undefined,
       selectedModNum: 0,
       hyperparameters: createHyperparams(),
+      useWasm: true,
+      wasmReady: null,
       rotation: 0,
       showGrid: true,
       gridSize: 40,
@@ -194,6 +201,8 @@ export const useGuiStore = create<GuiState>()(
         }
         set({ hyperparameters: hyperparameters }, false, "setHyperparams");
       },
+      setUseWasm: (use) => set({ useWasm: use }, false, "setUseWasm"),
+      setWasmReady: (ready) => set({ wasmReady: ready }, false, "setWasmReady"),
       getDefaultHyperparams: () => {
         return createHyperparams();
       },
