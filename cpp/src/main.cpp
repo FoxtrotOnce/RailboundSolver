@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
                       << std::setw(10) << status
                       << std::setw(12) << (res.solved ? std::to_string(res.tracks_left) : "-")
                       << std::setw(16) << res.iterations
-                      << std::fixed << std::setprecision(4) << std::setw(14) << res.time_elapsed_seconds
+                      << std::fixed << std::setprecision(6) << std::setw(14) << res.time_elapsed_seconds
                       << "\n";
 
             if (verbose && res.solved) {

@@ -40,42 +40,39 @@ cpp/
 ## Building
 
 ### Requirements
+
 - C++20 compliant compiler (GCC 11+, Clang 13+, or MSVC 2022)
 - CMake 3.20+
 - Ninja or Make
 
-### Build Commands
-
-```bash
-cd cpp
-mkdir build && cd build
-cmake -G "Ninja" ..
-ninja
-```
-
 ## Running
 
 ### Solve a single level
+
 ```bash
 ./railbound_solver 1-15A
 ```
 
 ### Run on representative test levels
+
 ```bash
 ./railbound_solver --test
 ```
 
 ### Run with custom timeout per level
+
 ```bash
 ./railbound_solver --all --timeout 1.5
 ```
 
 ### Run with BFS mode
+
 ```bash
 ./railbound_solver 1-1 --bfs
 ```
 
 ### Run tests
+
 ```bash
 ./railbound_tests
 ```
