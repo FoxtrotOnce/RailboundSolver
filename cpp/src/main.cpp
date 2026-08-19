@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
     std::string level_name;
     bool run_all = false;
     bool run_test = false;
+    bool run_benchmark = false;
     bool verbose = false;
     railbound::SolverOptions options;
     double timeout = -1.0;
@@ -53,6 +54,8 @@ int main(int argc, char* argv[]) {
             run_all = true;
         } else if (arg == "--test") {
             run_test = true;
+        } else if (arg == "--benchmark") {
+            run_benchmark = true;
         } else if (arg == "--bfs") {
             options.gen_type = railbound::SearchType::BFS;
         } else if (arg == "--dfs") {
@@ -71,6 +74,60 @@ int main(int argc, char* argv[]) {
     if (!fs::exists(levels_file)) {
         std::cerr << "Error: levels file not found: " << levels_file << "\n";
         return 1;
+    }
+
+    if (run_benchmark) {
+        options.timeout_seconds = 10.0;
+        auto levels = railbound::load_levels_from_file(levels_file);
+
+        std::vector<std::string> bench_levels = {
+            "1-11B", "1-13A", "1-15A",
+            "2-3B", "2-7B",
+            "3-2", "3-4", "3-9", "3-10C",
+            "4-3B", "4-5", "4-6B",
+            "5-3", "5-4",
+            "6-3", "7-2", "7-4",
+            "8-1", "8-3", "8-4",
+            "10-3", "10-4", "12-3"
+        };
+
+        // Warmup
+        for (const auto& name : bench_levels) {
+            if (levels.count(name)) {
+                railbound::solve_level(levels.at(name), options);
+            }
+        }
+
+        // 3 runs, take median for high stability
+        std::vector<double> run_times_µs;
+        uint64_t total_iters = 0;
+
+        for (int r = 0; r < 3; ++r) {
+            uint64_t iters_this_run = 0;
+            auto t0 = std::chrono::high_resolution_clock::now();
+            for (const auto& name : bench_levels) {
+                if (levels.count(name)) {
+                    auto res = railbound::solve_level(levels.at(name), options);
+                    iters_this_run += res.iterations;
+                    if (!res.solved) {
+                        std::cerr << "Benchmark failure on level " << name << "\n";
+                        return 1;
+                    }
+                }
+            }
+            auto t1 = std::chrono::high_resolution_clock::now();
+            double µs = std::chrono::duration<double, std::micro>(t1 - t0).count();
+            run_times_µs.push_back(µs);
+            total_iters = iters_this_run;
+        }
+
+        std::sort(run_times_µs.begin(), run_times_µs.end());
+        double median_µs = run_times_µs[1];
+
+        std::cout << "METRIC total_µs=" << std::fixed << std::setprecision(0) << median_µs << "\n";
+        std::cout << "METRIC total_iterations=" << total_iters << "\n";
+        std::cout << "METRIC solve_time_ms=" << std::setprecision(2) << (median_µs / 1000.0) << "\n";
+        return 0;
     }
 
     if (run_test || run_all) {
