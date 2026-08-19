@@ -86,6 +86,7 @@ if(WASM_BUILD)
         -sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','getValue','setValue','UTF8ToString']
         -sMODULARIZE=1
         -sEXPORT_NAME=createRailboundModule
+        -sEXPORT_ES6=1
         -sENVIRONMENT=web,worker
         --bind
     )

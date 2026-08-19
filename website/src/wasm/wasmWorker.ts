@@ -24,15 +24,37 @@ async function tryLoadWasm(): Promise<boolean> {
   try {
     const res = await fetch("/wasm/railbound_wasm.wasm", { method: "HEAD" });
     if (!res.ok) return false;
-    // @ts-ignore – placeholder exists, vite-ignore keeps build passing
-    const mod: any = await import(/* @vite-ignore */ "./railbound_wasm.js");
-    const factory = mod.default ?? mod.createRailboundModule;
+    let mod: any = null;
+    let factory: any = null;
+    try {
+      // @ts-ignore – placeholder exists, vite-ignore keeps build passing
+      mod = await import(/* @vite-ignore */ "./railbound_wasm.js");
+      factory = mod.default ?? mod.createRailboundModule ?? (globalThis as any).createRailboundModule;
+      if (!factory && typeof (globalThis as any).createRailboundModule === 'function') factory = (globalThis as any).createRailboundModule;
+    } catch {}
+    if (!factory) {
+      // UMD fallback via fetch+eval
+      try {
+        const r = await fetch(new URL("./railbound_wasm.js", import.meta.url).href);
+        if (r.ok) {
+          const t = await r.text();
+          if (!t.includes("WASM not built") && t.includes("createRailboundModule")) {
+            const g: any = globalThis;
+            const fn = new Function('globalThis','self','window','module','exports','define', t + '\n;return typeof createRailboundModule !== "undefined" ? createRailboundModule : (module&&module.exports?module.exports.default??module.exports:null);');
+            const m: any = {exports:{}};
+            factory = fn(g, g, g, m, m.exports, undefined);
+          }
+        }
+      } catch {}
+    }
     if (!factory) return false;
     if (factory.toString().includes("WASM not built")) {
       console.info("[WASM Worker] placeholder glue – fallback to TS");
       return false;
     }
-    wasmModule = await factory();
+    wasmModule = await factory({
+      locateFile: (path: string, prefix: string) => path.endsWith('.wasm') ? '/wasm/railbound_wasm.wasm' : prefix + path
+    });
     useWasm = true;
     console.log("[WASM Worker] C++ module loaded");
     return true;

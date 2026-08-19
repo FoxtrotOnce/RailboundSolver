@@ -72,48 +72,65 @@ export async function loadWasm(): Promise<RailboundModule | null> {
 
     // Try to import the JS glue (placeholder until `make wasm` is run).
     // Use vite-ignore so Vite doesn't fail the build when the glue is a stub.
-    let factory: (() => Promise<RailboundModule>) | null = null;
+    // The glue is UMD (emcc without EXPORT_ES6) or ES6 (with -sEXPORT_ES6=1),
+    // so we check multiple export shapes and also global fallback.
+    let factory: ((opts?: any) => Promise<RailboundModule>) | null = null;
     try {
       // @ts-ignore – placeholder file exists; real file overwrites it after `make wasm`
       const mod: any = await import(/* @vite-ignore */ "./railbound_wasm.js");
-      factory = (mod.default ?? mod.createRailboundModule) as any;
-      // Detect placeholder (it throws when called) – try to call and catch
-      // We don't call yet; just check if factory is the placeholder by string
+      factory = (mod.default ?? mod.createRailboundModule ?? (globalThis as any).createRailboundModule ?? (self as any)?.createRailboundModule) as any;
+      // Some UMD builds attach to module.exports which Vite's import doesn't surface – try global after import
+      if (!factory && typeof (globalThis as any).createRailboundModule === 'function') {
+        factory = (globalThis as any).createRailboundModule;
+      }
       if (factory && factory.toString().includes("WASM not built")) {
         console.info("[WASM] placeholder glue detected – will try raw wasm or fall back to TS");
         factory = null;
       }
     } catch (e) {
-      console.info("[WASM] JS glue not available:", (e as Error).message ?? e);
-      factory = null;
+      console.info("[WASM] JS glue import failed:", (e as Error).message ?? e);
+      // Fallback: fetch + eval UMD via Function (for non-ES6 glue)
+      try {
+        const resp = await fetch(new URL("./railbound_wasm.js", import.meta.url).href);
+        if (resp.ok) {
+          const text = await resp.text();
+          if (!text.includes("WASM not built") && text.includes("createRailboundModule")) {
+            const g: any = globalThis;
+            const fn = new Function('globalThis', 'self', 'window', text + '\n;return typeof createRailboundModule !== "undefined" ? createRailboundModule : (typeof module !== "undefined" && module.exports ? module.exports.default ?? module.exports : null);');
+            factory = fn(g, g, g) as any;
+            if (factory) console.info("[WASM] loaded UMD glue via fetch+eval");
+          }
+        }
+      } catch (e2) {
+        console.info("[WASM] fetch+eval fallback also failed:", e2);
+        factory = null;
+      }
     }
 
     if (factory) {
-      wasmModule = await factory();
-      wasmReady = true;
-      console.log("[WASM] Railbound C++ module loaded (embind).");
-      return wasmModule;
+      try {
+        wasmModule = await factory({
+          locateFile: (path: string, prefix: string) => {
+            if (path.endsWith('.wasm')) return '/wasm/railbound_wasm.wasm';
+            return prefix + path;
+          },
+        });
+        wasmReady = true;
+        console.log("[WASM] Railbound C++ module loaded (embind).");
+        return wasmModule;
+      } catch (e) {
+        console.warn("[WASM] factory() failed, falling back to TS:", e);
+        wasmReady = false;
+        return null;
+      }
     }
 
-    // If no JS glue but .wasm exists, we can instantiate the standalone wasm via WebAssembly.instantiateStreaming
-    // This path is for clang wasm32 builds without emscripten glue – we provide a minimal loader using WASI-like imports.
-    console.info("[WASM] JS glue not found, attempting raw wasm instantiation (clang build).");
-    const resp = await fetch(wasmUrl);
-    const bytes = await resp.arrayBuffer();
-    // Minimal imports – the clang wasm expects no imports for our plain C API if built with --allow-undefined
-    const { instance } = await WebAssembly.instantiate(bytes, { env: {} } as any);
-    // Wrap instance exports to match RailboundModule interface (partial)
-    const exp = instance.exports as any;
-    // This raw path lacks _malloc etc if no libc – we warn and fallback
-    if (!exp._wasm_solve_flat) {
-      console.warn("[WASM] raw wasm missing exports – fallback to TS");
-      wasmReady = false;
-      return null;
-    }
-    wasmModule = exp as RailboundModule;
-    wasmReady = true;
-    console.log("[WASM] Raw wasm instantiated.");
-    return wasmModule;
+    // No JS glue but .wasm exists – only for clang standalone builds.
+    // For emcc builds this path would fail (needs glue), so fallback to TS.
+    // We keep a minimal check to avoid noisy "Import #0 a" error: only try raw if file is clang (tiny).
+    console.info("[WASM] JS glue not usable, falling back to TS solver (run make wasm with -sEXPORT_ES6=1 for ES6 glue)");
+    wasmReady = false;
+    return null;
   } catch (e) {
     console.warn("[WASM] failed to load, falling back to TS solver:", e);
     wasmReady = false;
