@@ -19,7 +19,7 @@ static void print_usage(const char* prog) {
               << "  --file <path>       Path to levels.json (default: ../levels.json or levels.json)\n"
               << "  --level <name>      Specific level name (e.g. 1-1, 1-15A, 2-1)\n"
               << "  --bfs               Use BFS generation instead of default DFS\n"
-              << "  --timeout <sec>     Timeout in seconds per level (default: 2.0s for batch, none for single)\n"
+              << "  --timeout <sec>     Timeout in seconds per level (default: 60s for --all/--test/--benchmark, none for single)\n"
               << "  --max-iter <num>    Max iterations limit\n"
               << "  --verbose, -v       Print board and details\n"
               << "  --help, -h          Show this help message\n";
@@ -77,7 +77,11 @@ int main(int argc, char* argv[]) {
     }
 
     if (run_benchmark) {
-        options.timeout_seconds = 10.0;
+        if (timeout > 0.0) {
+            options.timeout_seconds = timeout;
+        } else {
+            options.timeout_seconds = 60.0;
+        }
         auto levels = railbound::load_levels_from_file(levels_file);
 
         std::vector<std::string> bench_levels = {
@@ -132,7 +136,7 @@ int main(int argc, char* argv[]) {
 
     if (run_test || run_all) {
         if (timeout < 0.0) {
-            timeout = 2.0; // 2 seconds default timeout to avoid long-running levels
+            timeout = 60.0; // 60 seconds default for full-level runs
         }
         options.timeout_seconds = timeout;
 
