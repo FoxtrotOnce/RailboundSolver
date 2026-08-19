@@ -8,6 +8,7 @@ export { GridTile } from "./GridTile";
 export { ParamDisplay } from "./ParamDisplay";
 export { ProgressBar } from "./ProgressBar";
 export { GridButtons } from "./GridButtons";
+export { SolverSelector, SolverBadge } from "./SolverSelector";
 export { LevelSettings } from "./LevelSettings";
 export { SolvedPopup } from "./SolvedPopup";
 export type { GamePiece } from "../components/GamePieceIcon";

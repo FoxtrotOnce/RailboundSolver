@@ -1,6 +1,7 @@
 # RailboundSolver Website
 
 > This is the web frontend for RailboundSolver, built with React, TypeScript, and Vite.
+> **Dual solver:** choose between **TypeScript (JS Worker)** and **C++ (WebAssembly)** in the sidebar — see `WASM_GUIDE.md` to build WASM.
 
 ## Prerequisites
 
@@ -41,6 +42,21 @@ npm run build
 ```
 
 The output will be in the `dist/` folder.
+
+### WebAssembly (C++ solver)
+
+The website supports two solvers. TypeScript is selected by default. To use the C++ solver, which is 20–30× faster:
+
+```sh
+# Build WASM (requires emcc)
+./cpp/wasm/build_wasm.sh        # or .\cpp\wasm\build_wasm.ps1 (Windows)
+# or
+npm run build:wasm --prefix website
+
+npm run dev --prefix website   # select WASM in the Solver Engine sidebar
+```
+
+See `WASM_GUIDE.md` and `cpp/wasm/README.md` for details.
 
 ## Previewing the Production Build
 

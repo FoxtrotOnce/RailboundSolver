@@ -4,6 +4,12 @@ import { Track, Mod, Car, CarType, Direction } from "../../../algo/classes";
 import Worker from "../../../algo/main.ts?worker"
 import { useGuiStore } from "./guiStore";
 import lvls from "../../../levels.json";
+import { solverRegistry } from "../solver/registry";
+import type { SolverId } from "../solver/types";
+
+// The active solve promise is cancelled when the user stops, clears, or loads a level.
+// This is kept outside Zustand because it is a runtime callback, not serializable state.
+let cancelActiveSolve: (() => void) | undefined
 
 /**
  * Level data structure
@@ -106,9 +112,25 @@ interface LevelState {
   defaultLevels: Record<string, Record<string, LevelData>>
 
   /**
-   * The worker currently being used for level solving (if solving).
+   * The worker currently being used for level solving (if solving) — legacy TS worker.
+   * For WASM solver, solvingAdapter is used instead. Kept for backward compat / pause.
    */
   solvingWorker: undefined | Worker;
+
+  /**
+   * Current solver adapter running (if any). Used for WASM and unified termination.
+   */
+  solvingAdapter: undefined | { id: SolverId; terminate: () => void };
+
+  /**
+   * Which solver is currently running (null if idle)
+   */
+  activeSolverId: SolverId | null;
+
+  /**
+   * Whether a Compare run (TS then WASM) is in progress — keeps UI in comparing state
+   */
+  isComparing: boolean;
 
   /**
    * Whether or not the worker is paused.
@@ -119,6 +141,11 @@ interface LevelState {
    * The iterations count displayed on the progress bar (../../components/ProgressBar.tsx)
    */
   iterations: number;
+
+  /**
+   * Timestamp for the currently active solve, used for live elapsed-time feedback.
+   */
+  solveStartedAt: number | null;
 
   // =================
   // UNDO/REDO STATE
@@ -186,12 +213,20 @@ interface LevelState {
   /**
    * Terminate the current solvingWorker if possible.
    */
-  terminateWorker: () => void;
+  terminateWorker: (preserveComparison?: boolean) => void;
 
   /**
    * Solve the level (permLevelData) and return solution, render steps to renderedLevelData.
+   * Supports both TS (Worker) and WASM (C++) solvers — solver is chosen via guiStore.selectedSolver
+   * or passed explicitly (for dual buttons / Compare).
    */
-  solveLevel: () => void;
+  solveLevel: (solverId?: SolverId, internal?: boolean) => void | Promise<void>;
+
+  /**
+   * Run both solvers sequentially for comparison (TS then WASM).
+   * Keeps isComparing true throughout so UI doesn't flicker.
+   */
+  compareSolvers: () => Promise<void>;
 
   /**
    * Pause/resume level generation.
@@ -390,8 +425,12 @@ export const useLevelStore = create<LevelState>()(
       savedLevels: {[defaultLevel.id.toString()]: defaultLevel} as Record<string, LevelData>,
       defaultLevels: defaultLevels,
       solvingWorker: undefined,
+      solvingAdapter: undefined,
+      activeSolverId: null,
+      isComparing: false,
       pauseWorker: false,
       iterations: 0,
+      solveStartedAt: null,
       undoStack: [],
       redoStack: [],
 
@@ -593,40 +632,100 @@ export const useLevelStore = create<LevelState>()(
         }
       },
 
-      terminateWorker: () => {
-        const { solvingWorker } = get()
-
+      terminateWorker: (preserveComparison = false) => {
+        const { solvingWorker, solvingAdapter, isComparing } = get()
+        const cancel = cancelActiveSolve
+        cancelActiveSolve = undefined
+        cancel?.()
         if (solvingWorker !== undefined) {
           solvingWorker.terminate()
         }
-        set({solvingWorker: undefined}, false, "terminateWorker")
+        if (solvingAdapter !== undefined) {
+          try { solvingAdapter.terminate() } catch {}
+        }
+        // Also terminate any registry adapters (safety)
+        try { solverRegistry.terminateAll() } catch {}
+        if (!preserveComparison) {
+          useGuiStore.getState().clearSolverStats()
+        }
+        set({
+          solvingWorker: undefined,
+          solvingAdapter: undefined,
+          activeSolverId: null,
+          isComparing: preserveComparison ? isComparing : false,
+          pauseWorker: false,
+          solveStartedAt: null,
+        }, false, "terminateWorker")
       },
 
-      solveLevel: () => {
-        const { terminateWorker, permLevelData } = get()
-        const { hyperparameters, displaySolvedPopup } = useGuiStore.getState()
-        // board, mods, and cars are reserialized inside here since postMessage strips them of their methods.
-        function reloadGrid(input: {board: Track[][], mods: Mod[][], cars: Car[]}): void {
+      solveLevel: async (overrideSolverId?: SolverId, internal = false) => {
+        const currentState = get()
+        // A solve request is a single-flight action. This guard also protects
+        // callers outside the button UI from starting a second run.
+        if (!internal && (
+          currentState.isComparing ||
+          currentState.solvingWorker !== undefined ||
+          currentState.solvingAdapter !== undefined
+        )) {
+          return
+        }
+
+        const { terminateWorker, permLevelData } = currentState
+        const guiState = useGuiStore.getState()
+        const { hyperparameters, displaySolvedPopup, setSolverStats, clearSolverStats, selectedSolver } = guiState
+        const solverId: SolverId = overrideSolverId ?? selectedSolver
+        const preserveComparison = currentState.isComparing
+
+        // Helper to reload grid from solver progress (shared for TS + WASM visualization)
+        // Handles both Track objects (TS) and raw numbers (WASM), and Car instances vs plain JSON
+        function reloadGrid(input: {board: (Track|number)[][], mods: (Mod|number)[][], cars: (Car|{pos:number[],direction:string|Direction,type:string|CarType,num:number})[]}): void {
           const reloadedGrid: GridCell[][] = []
           for (let i = 0; i < permLevelData.grid.length; i++) {
             reloadedGrid.push([])
             for (let j = 0; j < permLevelData.grid[0].length; j++) {
               const tile = permLevelData.grid[i][j]
+              const b = input.board[i][j] as unknown as Track|number
+              const m = input.mods[i][j] as unknown as Mod|number
+              const bVal = typeof b === "number" ? b : (b as Track).value
+              const mVal = typeof m === "number" ? m : (m as Mod).value
               reloadedGrid[i].push({
                 car: undefined,
-                track: Track.get(input.board[i][j].value),
-                mod: Mod.get(input.mods[i][j].value),
+                track: Track.get(bVal),
+                mod: Mod.get(mVal),
                 mod_num: tile.mod_num
               })
             }
           }
-          for (const car of input.cars) {
-            reloadedGrid[car.pos[0]][car.pos[1]].car = new Car(
-              [car.pos[0], car.pos[1]],
-              Direction.get(car.direction.value),
-              car.num,
-              CarType.get(car.type.name)
-            )
+          for (const car of input.cars as unknown as Array<Car|{pos:number[],direction:any,type:any,num:number}>) {
+            const c = car as unknown as {pos:number[],direction:any,type:any,num:number}
+            // Normalize direction and type (handle both Car instances and plain JSON from WASM)
+            let dirVal: number
+            if (typeof c.direction === "string") {
+              const map: Record<string, number> = { LEFT:0, RIGHT:1, DOWN:2, UP:3, CRASH:-2, UNKNOWN:-1 }
+              dirVal = map[c.direction] ?? -1
+            } else if (c.direction && typeof c.direction === "object" && "value" in c.direction) {
+              dirVal = (c.direction as Direction).value
+            } else if (typeof c.direction === "number") {
+              dirVal = c.direction
+            } else {
+              dirVal = -1
+            }
+            let typeName: string
+            if (typeof c.type === "string") typeName = c.type
+            else if (c.type && typeof c.type === "object" && "name" in c.type) typeName = (c.type as CarType).name
+            else typeName = "NORMAL"
+            // Need to handle pos being array vs Car's pos
+            const pos = (c as unknown as Car).pos ?? c.pos
+            const y = Array.isArray(pos) ? pos[0] : (pos as unknown as {y:number}).y
+            const x = Array.isArray(pos) ? pos[1] : (pos as unknown as {x:number}).x
+            if (y >= 0 && y < reloadedGrid.length && x >= 0 && x < reloadedGrid[0].length) {
+              reloadedGrid[y][x].car = new Car(
+                [y, x],
+                Direction.get(dirVal),
+                c.num,
+                CarType.get(typeName)
+              )
+            }
           }
           set(
             {
@@ -637,39 +736,89 @@ export const useLevelStore = create<LevelState>()(
           )
         }
 
-        terminateWorker()
-        set({solvingWorker: new Worker()}, false, "solveLevel")
-        const { solvingWorker } = get()
+        // A comparison owns both internal solver transitions; normal solves cancel
+        // any previous comparison. Hide an older result while this run is active.
+        terminateWorker(preserveComparison)
+        displaySolvedPopup(false)
+        if (!preserveComparison) clearSolverStats()
 
-        solvingWorker!.postMessage({
-          level: permLevelData,
-          parameters: hyperparameters,
+        let cancelled = false
+        let resolveCancelled: (() => void) | undefined
+        const cancelledPromise = new Promise<void>((resolve) => {
+          resolveCancelled = () => {
+            if (!cancelled) {
+              cancelled = true
+              resolve()
+            }
+          }
         })
-        // board, mods, and cars aren't technically Track/Car/Mod: they share the same properties, but postMessage converts them to Objects,
-        // and they lose their methods, so they are reserialized before being dealt with.
-        type msgType = {
-          done: boolean
-          visualize_data?: {
-            board: Track[][],
-            mods: Mod[][],
-            cars: Car[],
-            iterations: number,
-            time_elapsed: number
-          }
-          solution?: {
-            board: Track[][] | undefined,
-            mods: Mod[][] | undefined,
-            tracks_left: number,
-            semaphores_left: number,
-            time_elapsed: number,
-            iterations: number
-          }
+        const cancelThisSolve = () => resolveCancelled?.()
+        cancelActiveSolve = cancelThisSolve
+        const finishThisSolve = () => {
+          if (cancelActiveSolve === cancelThisSolve) cancelActiveSolve = undefined
         }
-        solvingWorker!.onmessage = (e: MessageEvent<msgType>) => {
-          if (e.data.done) {
-            const solution = e.data.solution!
-            if (solution.board === undefined || solution.mods === undefined) {
-              // No solution found.
+
+        const adapter = solverRegistry.get(solverId)
+        // Mark active solver for UI (GridButtons, ProgressBar)
+        // For TS we still need a Worker instance to support pause/step semantics,
+        // so we create a dummy adapter wrapper that proxies to the real adapter
+        // but we also keep solvingWorker for pause logic if needed.
+        // For now unify via solvingAdapter field.
+        const adapterHandle = { id: solverId, terminate: () => adapter.terminate() }
+        set({
+          solvingAdapter: adapterHandle,
+          activeSolverId: solverId,
+          pauseWorker: false,
+          solveStartedAt: Date.now(),
+        }, false, "solveLevel:start")
+
+        // WASM fast path: no incremental visualization, just await result
+        if (solverId === "wasm") {
+          // Check availability first
+          let available = true
+          try { available = await adapter.isAvailable() } catch { available = false }
+          if (cancelled) {
+            finishThisSolve()
+            return
+          }
+          if (!available) {
+            console.warn("[solveLevel] WASM not available, falling back to TypeScript")
+            // Recursive call with TS (avoid infinite loop). The recursive call
+            // replaces this run's cancellation handle and preserves comparison.
+            finishThisSolve()
+            useGuiStore.getState().setSelectedSolver("typescript")
+            return get().solveLevel("typescript", true)
+          }
+          try {
+            // Start from base grid for WASM
+            set({ renderedLevelData: permLevelData.grid, iterations: 0 }, false, "solveLevel:wasmStart")
+            const result = await Promise.race([
+              adapter.solve(permLevelData, hyperparameters, (prog) => {
+                // WASM currently doesn't stream progress, but handle if it does
+                const anyProg = prog as unknown as { board: Track[][], mods: Mod[][], cars: Car[], iterations: number, time_elapsed: number }
+                if (anyProg?.board && anyProg?.mods && !cancelled) {
+                  reloadGrid(anyProg as unknown as {board: Track[][], mods: Mod[][], cars: Car[]})
+                  set({
+                    permLevelData: {
+                      ...get().permLevelData,
+                      solution: {
+                        tracks_left: 0,
+                        semaphores_left: 0,
+                        iterations: anyProg.iterations,
+                        time_elapsed: anyProg.time_elapsed,
+                      }
+                    },
+                    iterations: anyProg.iterations,
+                  }, false, "solveLevel:wasmProgress")
+                }
+              }).then((solution) => ({ solution })),
+              cancelledPromise.then(() => ({ cancelled: true as const })),
+            ])
+            if ("cancelled" in result) return
+            const solution = result.solution
+            // Record stats
+            try { setSolverStats("wasm", { time: solution.time_elapsed as number, iterations: solution.iterations }) } catch {}
+            if (!solution.solved || solution.board === undefined || solution.mods === undefined) {
               set({
                 permLevelData: {
                   ...permLevelData,
@@ -681,16 +830,20 @@ export const useLevelStore = create<LevelState>()(
                   }
                 },
                 iterations: solution.iterations,
-                renderedLevelData: permLevelData.grid
-              }, false, "solveLevel")
+                renderedLevelData: permLevelData.grid,
+                solvingAdapter: undefined,
+                activeSolverId: null,
+                solveStartedAt: null,
+              }, false, "solveLevel:wasmDoneNoSolution")
               displaySolvedPopup(true, false)
             } else {
-              // Level solved. Reserialize the solution to GridCell[][]
               const grid: GridCell[][] = []
               for (let i = 0; i < solution.board.length; i++) {
                 grid.push([])
                 for (let j = 0; j < solution.board[0].length; j++) {
                   const car = permLevelData.grid[i][j].car
+                  const tVal = (solution.board[i][j] as unknown as Track)?.value ?? (solution.board[i][j] as unknown as number)
+                  const mVal = (solution.mods![i][j] as unknown as Mod)?.value ?? (solution.mods![i][j] as unknown as number)
                   grid[i].push({
                     car: car && new Car(
                       [car.pos[0], car.pos[1]],
@@ -698,14 +851,12 @@ export const useLevelStore = create<LevelState>()(
                       car.num,
                       CarType.get(car.type.name)
                     ),
-                    track: Track.get(solution.board[i][j].value),
-                    mod: Mod.get(solution.mods[i][j].value),
+                    track: Track.get(tVal),
+                    mod: Mod.get(mVal),
                     mod_num: permLevelData.grid[i][j].mod_num
                   })
                 }
               }
-              // Note: Don't terminate the worker yet, since the grid still needs to be uneditable.
-              //       It is terminated when the level is changed at all (setTracks, setSemaphores, clearLevel, loadLevel)
               set({
                 permLevelData: {
                   ...permLevelData,
@@ -719,44 +870,290 @@ export const useLevelStore = create<LevelState>()(
                 },
                 iterations: solution.iterations,
                 renderedLevelData: grid,
-              }, false, "solveLevel")
+                solvingAdapter: undefined,
+                activeSolverId: null,
+                solveStartedAt: null,
+              }, false, "solveLevel:wasmDone")
               displaySolvedPopup(true, true)
             }
-            console.log(solution)
-          } else if (e.data.visualize_data !== undefined) {
-            reloadGrid(e.data.visualize_data!)
+            console.log("[WASM solve]", solution)
+          } catch (e) {
+            if (cancelled) return
+            console.error("[WASM solve] error", e)
+            set({ solvingAdapter: undefined, activeSolverId: null, solveStartedAt: null }, false, "solveLevel:wasmError")
+            // Show error as no solution popup
+            const errMsg = e instanceof Error ? e.message : String(e)
+            // Store error in iterations field for visibility
             set({
               permLevelData: {
                 ...permLevelData,
                 solution: {
                   tracks_left: 0,
                   semaphores_left: 0,
-                  iterations: e.data.visualize_data!.iterations,
-                  time_elapsed: e.data.visualize_data!.time_elapsed
+                  iterations: 0,
+                  time_elapsed: errMsg,
                 }
               },
-              iterations: e.data.visualize_data!.iterations,
-            }, false, "solveLevel")
-          } else {
-            if (!get().pauseWorker) {
-              solvingWorker!.postMessage({visualize_rate: useGuiStore.getState().hyperparameters.visualize_rate})
+              iterations: 0,
+              renderedLevelData: permLevelData.grid,
+            }, false, "solveLevel:wasmErrorState")
+            displaySolvedPopup(true, false)
+          } finally {
+            finishThisSolve()
+          }
+          return
+        }
+
+        // TypeScript path — keep original Worker logic but via adapter for consistency
+        // We still use direct Worker for fine-grained pause/step control, but also support adapter fallback
+        try {
+          let resolveWorker: (() => void) | undefined
+          let rejectWorker: ((reason?: unknown) => void) | undefined
+          const workerFinished = new Promise<void>((resolve, reject) => {
+            resolveWorker = resolve
+            rejectWorker = reject
+          })
+          set({solvingWorker: new Worker()}, false, "solveLevel:tsStart")
+          const { solvingWorker } = get()
+          // Override solvingAdapter to reflect TS as well
+          set({ solvingAdapter: { id: "typescript", terminate: () => { try{solvingWorker?.terminate()}catch{} } }, activeSolverId: "typescript" }, false, "solveLevel:tsAdapter")
+          solvingWorker!.postMessage({
+            level: permLevelData,
+            parameters: hyperparameters,
+          })
+          type msgType = {
+            done: boolean
+            visualize_data?: {
+              board: Track[][],
+              mods: Mod[][],
+              cars: Car[],
+              iterations: number,
+              time_elapsed: number
+            }
+            solution?: {
+              board: Track[][] | undefined,
+              mods: Mod[][] | undefined,
+              tracks_left: number,
+              semaphores_left: number,
+              time_elapsed: number,
+              iterations: number
             }
           }
+          solvingWorker!.onmessage = (e: MessageEvent<msgType>) => {
+            if (cancelled) return
+            if (e.data.done) {
+              const solution = e.data.solution!
+              try { setSolverStats("typescript", { time: solution.time_elapsed as number, iterations: solution.iterations }) } catch {}
+              if (solution.board === undefined || solution.mods === undefined) {
+                set({
+                  permLevelData: {
+                    ...permLevelData,
+                    solution: {
+                      tracks_left: 0,
+                      semaphores_left: 0,
+                      iterations: solution.iterations,
+                      time_elapsed: solution.time_elapsed,
+                    }
+                  },
+                  iterations: solution.iterations,
+                  renderedLevelData: permLevelData.grid,
+                  solvingWorker: undefined,
+                  solvingAdapter: undefined,
+                  activeSolverId: null,
+                  solveStartedAt: null,
+                }, false, "solveLevel:tsDoneNoSolution")
+                displaySolvedPopup(true, false)
+              } else {
+                const grid: GridCell[][] = []
+                for (let i = 0; i < solution.board.length; i++) {
+                  grid.push([])
+                  for (let j = 0; j < solution.board[0].length; j++) {
+                    const car = permLevelData.grid[i][j].car
+                    grid[i].push({
+                      car: car && new Car(
+                        [car.pos[0], car.pos[1]],
+                        Direction.get(car.direction.value),
+                        car.num,
+                        CarType.get(car.type.name)
+                      ),
+                      track: Track.get(solution.board[i][j].value),
+                      mod: Mod.get(solution.mods[i][j].value),
+                      mod_num: permLevelData.grid[i][j].mod_num
+                    })
+                  }
+                }
+                set({
+                  permLevelData: {
+                    ...permLevelData,
+                    solution: {
+                      grid: grid,
+                      tracks_left: solution.tracks_left,
+                      semaphores_left: solution.semaphores_left,
+                      iterations: solution.iterations,
+                      time_elapsed: solution.time_elapsed,
+                    }
+                  },
+                  iterations: solution.iterations,
+                  renderedLevelData: grid,
+                  solvingWorker: undefined,
+                  solvingAdapter: undefined,
+                  activeSolverId: null,
+                  solveStartedAt: null,
+                }, false, "solveLevel:tsDone")
+                displaySolvedPopup(true, true)
+              }
+              console.log(solution)
+              try { solvingWorker?.terminate() } catch {}
+              resolveWorker?.()
+            } else if (e.data.visualize_data !== undefined) {
+              reloadGrid(e.data.visualize_data!)
+              set({
+                permLevelData: {
+                  ...permLevelData,
+                  solution: {
+                    tracks_left: 0,
+                    semaphores_left: 0,
+                    iterations: e.data.visualize_data!.iterations,
+                    time_elapsed: e.data.visualize_data!.time_elapsed
+                  }
+                },
+                iterations: e.data.visualize_data!.iterations,
+              }, false, "solveLevel:tsProgress")
+            } else {
+              if (!get().pauseWorker) {
+                solvingWorker!.postMessage({visualize_rate: useGuiStore.getState().hyperparameters.visualize_rate})
+              }
+            }
+          }
+          solvingWorker!.onerror = (ev) => {
+            if (cancelled) return
+            console.error("[TS solve] worker error", ev)
+            set({ solvingWorker: undefined, solvingAdapter: undefined, activeSolverId: null, solveStartedAt: null }, false, "solveLevel:tsError")
+            rejectWorker?.(ev)
+          }
+          await Promise.race([workerFinished, cancelledPromise])
+        } catch (e) {
+          if (cancelled) return
+          console.error("[TS solve] failed, trying adapter", e)
+          set({
+            solvingAdapter: { id: "typescript", terminate: () => adapter.terminate() },
+            activeSolverId: "typescript",
+          }, false, "solveLevel:tsAdapterFallback")
+          const result = await Promise.race([
+            adapter.solve(permLevelData, hyperparameters, (prog) => {
+              if (cancelled) return
+              reloadGrid(prog as unknown as {board: Track[][], mods: Mod[][], cars: Car[]})
+              set({
+                permLevelData: {
+                  ...get().permLevelData,
+                  solution: {
+                    tracks_left: 0,
+                    semaphores_left: 0,
+                    iterations: (prog as unknown as {iterations:number}).iterations,
+                    time_elapsed: (prog as unknown as {time_elapsed:number}).time_elapsed
+                  }
+                },
+                iterations: (prog as unknown as {iterations:number}).iterations,
+              }, false, "solveLevel:tsAdapterProgress")
+            }).then((solution) => ({ solution })),
+            cancelledPromise.then(() => ({ cancelled: true as const })),
+          ])
+          if ("cancelled" in result) return
+          const solution = result.solution
+          try { setSolverStats("typescript", { time: solution.time_elapsed as number, iterations: solution.iterations }) } catch {}
+          if (!solution.solved) {
+            set({
+              permLevelData: { ...permLevelData, solution: { tracks_left: 0, semaphores_left: 0, iterations: solution.iterations, time_elapsed: solution.time_elapsed } },
+              iterations: solution.iterations,
+              renderedLevelData: permLevelData.grid,
+              solvingWorker: undefined,
+              solvingAdapter: undefined,
+              activeSolverId: null,
+              solveStartedAt: null,
+            }, false, "solveLevel:tsAdapterNoSolution")
+            displaySolvedPopup(true, false)
+          } else {
+            const grid: GridCell[][] = []
+            for (let i = 0; i < solution.board!.length; i++) {
+              grid.push([])
+              for (let j = 0; j < solution.board![0].length; j++) {
+                const car = permLevelData.grid[i][j].car
+                const tVal = (solution.board![i][j] as unknown as Track)?.value ?? (solution.board![i][j] as unknown as number)
+                const mVal = (solution.mods![i][j] as unknown as Mod)?.value ?? (solution.mods![i][j] as unknown as number)
+                grid[i].push({
+                  car: car && new Car([car.pos[0], car.pos[1]], Direction.get(car.direction.value), car.num, CarType.get(car.type.name)),
+                  track: Track.get(tVal),
+                  mod: Mod.get(mVal),
+                  mod_num: permLevelData.grid[i][j].mod_num
+                })
+              }
+            }
+            set({
+              permLevelData: { ...permLevelData, solution: { grid, tracks_left: solution.tracks_left, semaphores_left: solution.semaphores_left, iterations: solution.iterations, time_elapsed: solution.time_elapsed } },
+              iterations: solution.iterations,
+              renderedLevelData: grid,
+              solvingWorker: undefined,
+              solvingAdapter: undefined,
+              activeSolverId: null,
+              solveStartedAt: null,
+            }, false, "solveLevel:tsAdapterDone")
+            displaySolvedPopup(true, true)
+          }
+
+        } finally {
+          finishThisSolve()
+        }
+      },
+
+      compareSolvers: async () => {
+        const { isComparing, solvingWorker, solvingAdapter } = get()
+        if (isComparing || solvingWorker !== undefined || solvingAdapter !== undefined) return
+        useGuiStore.getState().clearSolverStats()
+        set({ isComparing: true }, false, "compareSolvers:start")
+        try {
+          // solveLevel is awaitable for both implementations, so WASM starts
+          // only after the TypeScript worker has actually finished.
+          useGuiStore.getState().setSelectedSolver("typescript")
+          await get().solveLevel("typescript", true)
+          if (!get().isComparing) return
+
+          const wasmAvailable = useGuiStore.getState().wasmAvailable
+          if (wasmAvailable !== true) {
+            console.warn("[compareSolvers] WASM not available, skipping")
+            return
+          }
+
+          useGuiStore.getState().setSelectedSolver("wasm")
+          await get().solveLevel("wasm", true)
+        } finally {
+          set({ isComparing: false }, false, "compareSolvers:end")
         }
       },
 
       pauseLevel: (pause) => {
-        const { solvingWorker, pauseWorker } = get()
+        const { solvingWorker, solvingAdapter, activeSolverId, pauseWorker } = get()
+        // WASM solver is synchronous — pause has no effect (just update UI state)
+        if (activeSolverId === "wasm" || solvingAdapter?.id === "wasm") {
+          console.log("[pauseLevel] WASM solver does not support pause — ignoring")
+          set({pauseWorker: pause}, false, "pauseLevel")
+          return
+        }
         if (pauseWorker && !pause) {
-          // Resume the worker (it is paused and is trying to be unpaused)
-          // A new message needs to be sent to unpause the program.
           solvingWorker!.postMessage({visualize_rate: useGuiStore.getState().hyperparameters.visualize_rate})
         }
         set({pauseWorker: pause}, false, "pauseLevel")
       },
 
       stepLevel: () => {
-        const { solvingWorker, solveLevel } = get()
+        const { solvingWorker, solvingAdapter, activeSolverId, solveLevel } = get()
+        if (activeSolverId === "wasm" || solvingAdapter?.id === "wasm") {
+          console.log("[stepLevel] WASM solver does not support step — running full solve")
+          // For WASM, step just triggers a full solve (or no-op if already solving)
+          if (!solvingAdapter) {
+            solveLevel()
+          }
+          return
+        }
         set({pauseWorker: true}, false, "stepLevel")
         if (solvingWorker === undefined) {
           solveLevel()

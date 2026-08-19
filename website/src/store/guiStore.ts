@@ -82,6 +82,15 @@ interface GuiState {
   showSolvedPopup: boolean;
   carRelatedModIcons: Map<string, React.ReactNode[]>
 
+  // Solver selection
+  selectedSolver: "typescript" | "wasm";
+  setSelectedSolver: (solver: "typescript" | "wasm") => void;
+  wasmAvailable: boolean | null; // null = checking, true/false = result
+  setWasmAvailable: (available: boolean) => void;
+  solverStats: { wasm?: { time?: number; iterations?: number }; typescript?: { time?: number; iterations?: number } };
+  setSolverStats: (solver: "typescript" | "wasm", stats: { time: number; iterations: number }) => void;
+  clearSolverStats: () => void;
+
   // Actions
   setSelectedTool: (tool: string | undefined) => void;
   setSelectedPiece: (piece: string | undefined) => void;
@@ -127,6 +136,9 @@ export const useGuiStore = create<GuiState>()(
       showPiecePanel: true,
       showLeftDisplay: true,
       showPalette: false,
+      selectedSolver: "typescript" as const,
+      wasmAvailable: null as boolean | null,
+      solverStats: {} as { wasm?: { time?: number; iterations?: number }; typescript?: { time?: number; iterations?: number } },
       carRelatedModIcons: new Map<string, React.ReactNode[]>([
           ["END_TRACK", [Normal_Ending, Normal_Ending, Normal_Ending, Normal_Ending, Numeral_Ending, Numeral_Ending, Numeral_Ending, Numeral_Ending]],
           ["NORMAL", [Car_1, Car_1, Car_1, Car_1, Car_I, Car_I, Car_I, Car_I]],  // Cars are placed via registry, not by piece, so displaying each car num is misleading.
@@ -172,6 +184,20 @@ export const useGuiStore = create<GuiState>()(
       },
       setSelectedModNum: (mod_num) => {
         set({ selectedModNum: mod_num }, false, "setSelectedModNum")
+      },
+      setSelectedSolver: (solver) => {
+        set({ selectedSolver: solver }, false, "setSelectedSolver")
+        console.log(`🧠 Solver selected: ${solver}`)
+      },
+      setWasmAvailable: (available) => {
+        set({ wasmAvailable: available }, false, "setWasmAvailable")
+      },
+      setSolverStats: (solver, stats) => {
+        const { solverStats } = get()
+        set({ solverStats: { ...solverStats, [solver]: stats } }, false, "setSolverStats")
+      },
+      clearSolverStats: () => {
+        set({ solverStats: {} }, false, "clearSolverStats")
       },
       setHyperparams: (
         heatmap_limit_limit,

@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:wasm": "bash ../cpp/wasm/build_wasm.sh",
+    "build:wasm:debug": "bash ../cpp/wasm/build_wasm.sh --debug",
+    "build:wasm:ps": "powershell -ExecutionPolicy Bypass -File ../cpp/wasm/build_wasm.ps1",
+    "build:all": "npm run build:wasm && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

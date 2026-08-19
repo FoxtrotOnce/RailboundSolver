@@ -18,22 +18,22 @@ const Icons = {
     </svg>,
   caution:
     <svg className={`w-5 h-4.5`} viewBox="0 0 20 18">
-      <path fill="currentColor" fill-rule="evenodd" d="M8.284 1 .27 15c-.764 1.333.19 3 1.716 3h16.03c1.526 0 2.48-1.667 1.716-3L11.716 1a1.973 1.973 0 0 0-3.432 0Zm.5.253a1.403 1.403 0 0 1 2.431 0l8.176 14.026c.553.948-.125 2.144-1.215 2.144H1.824c-1.09 0-1.768-1.196-1.215-2.144L8.785 1.253Z" clip-rule="evenodd"/>
+      <path fill="currentColor" fillRule="evenodd" d="M8.284 1 .27 15c-.764 1.333.19 3 1.716 3h16.03c1.526 0 2.48-1.667 1.716-3L11.716 1a1.973 1.973 0 0 0-3.432 0Zm.5.253a1.403 1.403 0 0 1 2.431 0l8.176 14.026c.553.948-.125 2.144-1.215 2.144H1.824c-1.09 0-1.768-1.196-1.215-2.144L8.785 1.253Z" clipRule="evenodd"/>
       <path fill="currentColor" d="M10.492 1.682a.569.569 0 0 0-.985 0L1.332 15.707c-.224.385.05.87.492.87l8.12-2.447a.979.979 0 0 1-.644-.24c-.185-.16-.277-.386-.277-.68 0-.293.092-.52.277-.68a.979.979 0 0 1 .644-.24l.575-.5h-1.13c-.066-.48-.122-.952-.168-1.42-.04-.466-.06-.969-.06-1.509v-1.79h1.576v1.79c0 .54-.02 1.043-.06 1.51-.04.466-.092.94-.158 1.42l-.575.5c.238 0 .45.08.634.24.192.16.288.386.288.68 0 .293-.096.52-.288.68a.942.942 0 0 1-.634.24l-8.12 2.446h16.352a.578.578 0 0 0 .492-.87L10.493 1.682Z"/>
     </svg>,
   warning:
     <svg className={`w-4.5 h-4.75`} viewBox="0 0 18 19">
-      <path fill="currentColor" fill-rule="evenodd" d="M18 9.5a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-8.105 4.346c.27-.224.406-.541.406-.952 0-.41-.135-.728-.406-.952A1.338 1.338 0 0 0 9 11.606c-.336 0-.64.112-.91.336-.261.224-.392.541-.392.952 0 .41.13.728.392.952.27.224.574.336.91.336.336 0 .635-.112.896-.336Zm.224-7.042c0 .756-.028 1.46-.084 2.114-.056.653-.13 1.316-.224 1.988H8.215a52.235 52.235 0 0 1-.238-1.988 24.833 24.833 0 0 1-.084-2.114V4.298h2.226v2.506Z" clip-rule="evenodd"/>
+      <path fill="currentColor" fillRule="evenodd" d="M18 9.5a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-8.105 4.346c.27-.224.406-.541.406-.952 0-.41-.135-.728-.406-.952A1.338 1.338 0 0 0 9 11.606c-.336 0-.64.112-.91.336-.261.224-.392.541-.392.952 0 .41.13.728.392.952.27.224.574.336.91.336.336 0 .635-.112.896-.336Zm.224-7.042c0 .756-.028 1.46-.084 2.114-.056.653-.13 1.316-.224 1.988H8.215a52.235 52.235 0 0 1-.238-1.988 24.833 24.833 0 0 1-.084-2.114V4.298h2.226v2.506Z" clipRule="evenodd"/>
     </svg>,
   newLevel:
     <svg className={`w-5 h-5`} viewBox="0 0 20 20">
-      <path fill="currentColor" fill-rule="evenodd" d="M10 20c5.523 0 10-4.477 10-10S15.523 0 10 0 0 4.477 0 10s4.477 10 10 10Zm1.364-11.364v-4.09H8.636v4.09h-4.09v2.728h4.09v4.09h2.728v-4.09h4.09V8.636h-4.09Z" clip-rule="evenodd"/>
+      <path fill="currentColor" fillRule="evenodd" d="M10 20c5.523 0 10-4.477 10-10S15.523 0 10 0 0 4.477 0 10s4.477 10 10 10Zm1.364-11.364v-4.09H8.636v4.09h-4.09v2.728h4.09v4.09h2.728v-4.09h4.09V8.636h-4.09Z" clipRule="evenodd"/>
     </svg>,
   duplicate:
     <svg className={`w-5 h-5`} viewBox="0 0 20 20">
       <path fill="currentColor" d="M17.006 18.182V20H6.63v-1.818h10.375Zm1.176-1.176V6.63c0-.65-.527-1.176-1.176-1.176H6.63c-.65 0-1.176.527-1.176 1.176v10.375c0 .65.527 1.176 1.176 1.176V20l-.154-.004A2.995 2.995 0 0 1 3.64 17.16l-.004-.154V6.63a2.995 2.995 0 0 1 2.841-2.99l.154-.005h10.375l.154.004A2.995 2.995 0 0 1 20 6.631v10.375l-.004.154a2.994 2.994 0 0 1-2.836 2.836l-.154.004v-1.818c.65 0 1.176-.527 1.176-1.176Z"/>
       <path fill="currentColor" d="M12.728 8.636v2.728h2.726v1.818h-2.726V15.91h-1.819V13.182H8.182v-1.818h2.727V8.636h1.819Z"/>
-      <path fill="currentColor" fill-rule="evenodd" d="M5.455 16.363h-2.46l-.154-.004a2.995 2.995 0 0 1-2.837-2.836L0 13.37V2.995A2.995 2.995 0 0 1 2.84.004L2.996 0H13.37l.154.004a2.995 2.995 0 0 1 2.84 2.991v2.46h-1.817v-2.46c0-.65-.527-1.177-1.177-1.177H2.995c-.65 0-1.177.527-1.177 1.177V13.37c0 .65.527 1.177 1.177 1.177h2.46v1.817Zm9.09-5v1.82h.91v-1.82h-.91Zm-3.636 3.183h1.819v1.363h-1.819v-1.363Z" clip-rule="evenodd"/>
+      <path fill="currentColor" fillRule="evenodd" d="M5.455 16.363h-2.46l-.154-.004a2.995 2.995 0 0 1-2.837-2.836L0 13.37V2.995A2.995 2.995 0 0 1 2.84.004L2.996 0H13.37l.154.004a2.995 2.995 0 0 1 2.84 2.991v2.46h-1.817v-2.46c0-.65-.527-1.177-1.177-1.177H2.995c-.65 0-1.177.527-1.177 1.177V13.37c0 .65.527 1.177 1.177 1.177h2.46v1.817Zm9.09-5v1.82h.91v-1.82h-.91Zm-3.636 3.183h1.819v1.363h-1.819v-1.363Z" clipRule="evenodd"/>
     </svg>
 }
 
@@ -46,6 +46,7 @@ const EntryBox: React.FC<{
   max?: number
 }> = ({title, value, setData, cautionThreshold=999, max=100}) => {
   const { styles } = useGuiStore()
+  const fieldId = `level-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
   const { permLevelData } = useLevelStore()
   const [status, setStatus] = useState<"valid" | "caution" | "warning">("valid")
   const [isFocused, setFocus] = useState(false)
@@ -84,11 +85,13 @@ const EntryBox: React.FC<{
 
   return (
     <div className={`flex flex-col px-2 py-1 w-full ${styles.text.text}`}>
-      <span className={`font-medium text-[0.875rem] pb-0.5`} >{title}</span>
+      <label htmlFor={fieldId} className={`font-medium text-[0.875rem] pb-0.5`} >{title}</label>
       <div className={`transition-all flex flex-row gap-2 w-full px-2 py-1 rounded-[0.25rem] border-1 ${styles.border.border} ${
         status === "warning" ? styles.warning.border : (isFocused && "border-white")
       }`}>
         <input
+          id={fieldId}
+          name={fieldId}
           maxLength={150}
           value={text}
           className={`w-full focus:outline-none`}
@@ -259,7 +262,7 @@ export const LevelSettings: React.FC = () => {
             <div className={`flex flex-col gap-0.75 pl-4 ml-7 overflow-y-auto grow-0`} dir="rtl">
               <SelectionButton name="Custom" selected={selectedWorld === "Custom"} onClick={() => setSelectedWorld("Custom")} />
               {[...Object.entries(defaultLevels)].map(([worldKey]) => (
-                <SelectionButton name={`World ${worldKey}`} selected={selectedWorld === worldKey} onClick={() => setSelectedWorld(worldKey)} />
+                <SelectionButton key={worldKey} name={`World ${worldKey}`} selected={selectedWorld === worldKey} onClick={() => setSelectedWorld(worldKey)} />
               ))}
             </div>
           </div>
@@ -328,6 +331,7 @@ export const LevelSettings: React.FC = () => {
                   ? Object.entries(savedLevels).map(([levelKey]) => {
                     const level = savedLevels[levelKey]
                     return <SelectionButton
+                      key={levelKey}
                       name={level.name}
                       selected={permLevelData.id === level.id}
                       onClick={() => loadLevel(level)}
@@ -337,6 +341,7 @@ export const LevelSettings: React.FC = () => {
                   : Object.entries(defaultLevels[selectedWorld]).map(([levelKey]) => {
                     const level = defaultLevels[selectedWorld][levelKey]
                     return <SelectionButton
+                      key={levelKey}
                       name={level.name}
                       selected={permLevelData.id === level.id}
                       onClick={() => loadLevel(level)}
