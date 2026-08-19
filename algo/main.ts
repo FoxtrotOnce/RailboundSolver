@@ -51,8 +51,10 @@ async function tail_call_gen(args: args_type, visualize: visualize_type) {
                 time_elapsed: (Date.now() - start_time) / 10e2
             })
             last_update = Date.now()
-            self.postMessage({})
-            await new Promise<void>((res) => RESUME = res)
+            if (typeof self !== 'undefined' && typeof self.postMessage === 'function' && self.constructor?.name === 'DedicatedWorkerGlobalScope') {
+                self.postMessage({})
+                await new Promise<void>((res) => RESUME = res)
+            }
         }
     }
     /** when the last callback was performed. */
@@ -917,27 +919,29 @@ type msgType = {
 }
 
 // solve function to be run as a worker in ../website/src/store/levelStore.ts
-self.onmessage = (e: MessageEvent<msgType>) => {
-    if (e.data.parameters !== undefined) {
-        // Initial call message
-        HEATMAP_LIMIT_LIMIT = e.data.parameters.heatmap_limit_limit
-        DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
-        GEN_TYPE = e.data.parameters.gen_type
-        VISUALIZE_RATE = e.data.parameters.visualize_rate
-        
-        const solve = async () => {
-            const solution = await solve_level(e.data.level!, visualize)
-            self.postMessage({
-                done: true,
-                solution: solution
-            })
+if (typeof self !== 'undefined') {
+    self.onmessage = (e: MessageEvent<msgType>) => {
+        if (e.data.parameters !== undefined) {
+            // Initial call message
+            HEATMAP_LIMIT_LIMIT = e.data.parameters.heatmap_limit_limit
+            DECOY_HEATMAP_LIMIT = e.data.parameters.decoy_heatmap_limit
+            GEN_TYPE = e.data.parameters.gen_type
+            VISUALIZE_RATE = e.data.parameters.visualize_rate
+            
+            const solve = async () => {
+                const solution = await solve_level(e.data.level!, visualize)
+                self.postMessage({
+                    done: true,
+                    solution: solution
+                })
+            }
+            solve()
+        } else {
+            if (e.data.visualize_rate !== undefined) {
+                // "Change visualize rate" message
+                VISUALIZE_RATE = e.data.visualize_rate
+            }
+            RESUME()
         }
-        solve()
-    } else {
-        if (e.data.visualize_rate !== undefined) {
-            // "Change visualize rate" message
-            VISUALIZE_RATE = e.data.visualize_rate
-        }
-        RESUME()
     }
 }
