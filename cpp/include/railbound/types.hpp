@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <span>
 #include <optional>
 #include <stdexcept>
 #include <functional>
@@ -41,37 +42,35 @@ enum class Direction : int8_t {
     UP = 3
 };
 
-inline constexpr Pos direction_to_vector(Direction dir) {
-    switch (dir) {
-        case Direction::LEFT:  return {0, -1};
-        case Direction::RIGHT: return {0, 1};
-        case Direction::DOWN:  return {1, 0};
-        case Direction::UP:    return {-1, 0};
-        default: throw std::invalid_argument("Direction does not map to a vector");
-    }
+inline constexpr Pos DIR_VECTORS[4] = { {0, -1}, {0, 1}, {1, 0}, {-1, 0} };
+
+inline constexpr Pos direction_to_vector(Direction dir) noexcept {
+    int8_t d = static_cast<int8_t>(dir);
+    if (d >= 0 && d <= 3) return DIR_VECTORS[d];
+    return {0, 0};
 }
 
-inline constexpr Direction direction_from_vector(Pos vec) {
+inline constexpr Direction direction_from_vector(Pos vec) noexcept {
     if (vec.y == 0 && vec.x == -1) return Direction::LEFT;
     if (vec.y == 0 && vec.x == 1)  return Direction::RIGHT;
     if (vec.y == 1 && vec.x == 0)  return Direction::DOWN;
     if (vec.y == -1 && vec.x == 0) return Direction::UP;
-    throw std::invalid_argument("Vector does not map to a direction");
+    return Direction::UNKNOWN;
 }
 
-inline constexpr Direction direction_reverse(Direction dir) {
-    switch (dir) {
-        case Direction::LEFT:  return Direction::RIGHT;
-        case Direction::RIGHT: return Direction::LEFT;
-        case Direction::DOWN:  return Direction::UP;
-        case Direction::UP:    return Direction::DOWN;
-        default: throw std::invalid_argument("Direction cannot be reversed");
+inline constexpr Direction direction_reverse(Direction dir) noexcept {
+    int8_t d = static_cast<int8_t>(dir);
+    if (d >= 0 && d <= 3) return static_cast<Direction>(d ^ 1);
+    return Direction::UNKNOWN;
+}
+
+inline constexpr Pos direction_add_vector(Direction dir, Pos p) noexcept {
+    int8_t d = static_cast<int8_t>(dir);
+    if (d >= 0 && d <= 3) {
+        const auto& v = DIR_VECTORS[d];
+        return {p.y + v.y, p.x + v.x};
     }
-}
-
-inline constexpr Pos direction_add_vector(Direction dir, Pos p) {
-    Pos d = direction_to_vector(dir);
-    return {p.y + d.y, p.x + d.x};
+    return p;
 }
 
 inline Direction direction_from_string(const std::string& str) {
@@ -143,29 +142,23 @@ inline constexpr bool track_is_empty(Track t) noexcept {
 }
 
 inline constexpr bool track_is_straight(Track t) noexcept {
-    return t == Track::HORIZONTAL_TRACK || t == Track::VERTICAL_TRACK;
+    return static_cast<uint8_t>(t) - 1u <= 1u;
 }
 
 inline constexpr bool track_is_car_ending(Track t) noexcept {
-    return t == Track::CAR_ENDING_TRACK_LEFT ||
-           t == Track::CAR_ENDING_TRACK_RIGHT ||
-           t == Track::CAR_ENDING_TRACK_DOWN ||
-           t == Track::CAR_ENDING_TRACK_UP;
+    return t == Track::CAR_ENDING_TRACK_RIGHT || static_cast<uint8_t>(t) - 29u <= 2u;
 }
 
 inline constexpr bool track_is_turn(Track t) noexcept {
-    return t == Track::BOTTOM_RIGHT_TURN ||
-           t == Track::BOTTOM_LEFT_TURN ||
-           t == Track::TOP_RIGHT_TURN ||
-           t == Track::TOP_LEFT_TURN;
+    return static_cast<uint8_t>(t) - 5u <= 3u;
 }
 
 inline constexpr bool track_is_3way(Track t) noexcept {
-    return static_cast<uint8_t>(t) >= 9 && static_cast<uint8_t>(t) <= 16;
+    return static_cast<uint8_t>(t) - 9u <= 7u;
 }
 
 inline constexpr bool track_is_tunnel(Track t) noexcept {
-    return static_cast<uint8_t>(t) >= 17 && static_cast<uint8_t>(t) <= 20;
+    return static_cast<uint8_t>(t) - 17u <= 3u;
 }
 
 inline constexpr Track track_swap(Track t) {
@@ -270,8 +263,89 @@ inline std::string car_type_to_string(CarType type) {
     return "UNKNOWN";
 }
 
+// Lookup table: [track][direction_index] where direction_index: LEFT=0, RIGHT=1, DOWN=2, UP=3
+inline constexpr Direction TRACK_DIRECTIONS[static_cast<size_t>(Track::COUNT)][4] = {
+    // 0: EMPTY
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 1: HORIZONTAL_TRACK
+    {Direction::LEFT, Direction::RIGHT, Direction::CRASH, Direction::CRASH},
+    // 2: VERTICAL_TRACK
+    {Direction::CRASH, Direction::CRASH, Direction::DOWN, Direction::UP},
+    // 3: CAR_ENDING_TRACK_RIGHT
+    {Direction::CRASH, Direction::UNKNOWN, Direction::CRASH, Direction::CRASH},
+    // 4: ROADBLOCK
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 5: BOTTOM_RIGHT_TURN
+    {Direction::DOWN, Direction::CRASH, Direction::CRASH, Direction::RIGHT},
+    // 6: BOTTOM_LEFT_TURN
+    {Direction::CRASH, Direction::DOWN, Direction::CRASH, Direction::LEFT},
+    // 7: TOP_RIGHT_TURN
+    {Direction::UP, Direction::CRASH, Direction::RIGHT, Direction::CRASH},
+    // 8: TOP_LEFT_TURN
+    {Direction::CRASH, Direction::UP, Direction::LEFT, Direction::CRASH},
+    // 9: BOTTOM_RIGHT_LEFT_3WAY
+    {Direction::DOWN, Direction::RIGHT, Direction::CRASH, Direction::RIGHT},
+    // 10: BOTTOM_RIGHT_TOP_3WAY
+    {Direction::DOWN, Direction::CRASH, Direction::DOWN, Direction::RIGHT},
+    // 11: BOTTOM_LEFT_RIGHT_3WAY
+    {Direction::LEFT, Direction::DOWN, Direction::CRASH, Direction::LEFT},
+    // 12: BOTTOM_LEFT_TOP_3WAY
+    {Direction::CRASH, Direction::DOWN, Direction::DOWN, Direction::LEFT},
+    // 13: TOP_RIGHT_LEFT_3WAY
+    {Direction::UP, Direction::RIGHT, Direction::RIGHT, Direction::CRASH},
+    // 14: TOP_RIGHT_BOTTOM_3WAY
+    {Direction::UP, Direction::CRASH, Direction::RIGHT, Direction::UP},
+    // 15: TOP_LEFT_RIGHT_3WAY
+    {Direction::LEFT, Direction::UP, Direction::LEFT, Direction::CRASH},
+    // 16: TOP_LEFT_BOTTOM_3WAY
+    {Direction::CRASH, Direction::UP, Direction::LEFT, Direction::UP},
+    // 17: LEFT_FACING_TUNNEL
+    {Direction::CRASH, Direction::UNKNOWN, Direction::CRASH, Direction::CRASH},
+    // 18: RIGHT_FACING_TUNNEL
+    {Direction::UNKNOWN, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 19: DOWN_FACING_TUNNEL
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::UNKNOWN},
+    // 20: UP_FACING_TUNNEL
+    {Direction::CRASH, Direction::CRASH, Direction::UNKNOWN, Direction::CRASH},
+    // 21: NCAR_ENDING_TRACK_RIGHT
+    {Direction::CRASH, Direction::UNKNOWN, Direction::CRASH, Direction::CRASH},
+    // 22: NCAR_ENDING_TRACK_LEFT
+    {Direction::UNKNOWN, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 23..28: SEM placeholder tracks
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 29: CAR_ENDING_TRACK_LEFT
+    {Direction::UNKNOWN, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 30: CAR_ENDING_TRACK_DOWN
+    {Direction::CRASH, Direction::CRASH, Direction::UNKNOWN, Direction::CRASH},
+    // 31: CAR_ENDING_TRACK_UP
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::UNKNOWN},
+    // 32: NCAR_ENDING_TRACK_DOWN
+    {Direction::CRASH, Direction::CRASH, Direction::UNKNOWN, Direction::CRASH},
+    // 33: NCAR_ENDING_TRACK_UP
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::UNKNOWN},
+    // 34: STATION_LEFT
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 35: STATION_RIGHT
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 36: STATION_DOWN
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    // 37: STATION_UP
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH}
+};
+
 // Direction redirect map for (Track, Direction)
-Direction get_track_direction(Track track, Direction dir) noexcept;
+inline constexpr Direction get_track_direction(Track track, Direction dir) noexcept {
+    int d = static_cast<int8_t>(dir);
+    if (d < 0 || d > 3) return Direction::CRASH;
+    size_t t = static_cast<size_t>(track);
+    if (t >= static_cast<size_t>(Track::COUNT)) return Direction::CRASH;
+    return TRACK_DIRECTIONS[t][d];
+}
 
 // Semaphore pass directions
 std::pair<Direction, Direction> get_semaphore_pass(Track track);
@@ -279,9 +353,76 @@ std::pair<Direction, Direction> get_semaphore_pass(Track track);
 // Tunnel exit velocity direction
 Direction get_tunnel_exit_velo(Track track);
 
-// Generable tracks and 3ways
-const std::vector<Track>& get_generable_tracks(Direction dir);
-const std::vector<Track>& get_generable_3ways(Direction dir, Track track);
+inline constexpr Track GENERABLE_TRACKS[4][3] = {
+    {Track::HORIZONTAL_TRACK, Track::BOTTOM_RIGHT_TURN, Track::TOP_RIGHT_TURN}, // LEFT = 0
+    {Track::HORIZONTAL_TRACK, Track::BOTTOM_LEFT_TURN, Track::TOP_LEFT_TURN},   // RIGHT = 1
+    {Track::VERTICAL_TRACK, Track::TOP_RIGHT_TURN, Track::TOP_LEFT_TURN},      // DOWN = 2
+    {Track::VERTICAL_TRACK, Track::BOTTOM_RIGHT_TURN, Track::BOTTOM_LEFT_TURN}   // UP = 3
+};
+
+inline constexpr std::span<const Track> get_generable_tracks_span(Direction dir) noexcept {
+    int8_t d = static_cast<int8_t>(dir);
+    if (d >= 0 && d <= 3) return std::span<const Track, 3>(GENERABLE_TRACKS[d]);
+    return {};
+}
+struct G3Entry {
+    Track tracks[2]{Track::EMPTY, Track::EMPTY};
+    uint8_t count{0};
+
+    constexpr std::span<const Track> span() const noexcept {
+        return std::span<const Track>(tracks, count);
+    }
+};
+
+inline std::span<const Track> get_generable_3ways_span(Direction dir, Track track) noexcept {
+    static constexpr G3Entry table[4][38] = {
+        // LEFT = 0
+        {
+            {}, // 0 EMPTY
+            { {Track::BOTTOM_RIGHT_LEFT_3WAY, Track::TOP_RIGHT_LEFT_3WAY}, 2 }, // 1 HORIZONTAL_TRACK
+            { {Track::BOTTOM_RIGHT_TOP_3WAY, Track::TOP_RIGHT_BOTTOM_3WAY}, 2 }, // 2 VERTICAL_TRACK
+            {}, {}, {}, // 3, 4, 5
+            { {Track::BOTTOM_LEFT_RIGHT_3WAY}, 1 }, // 6 BOTTOM_LEFT_TURN
+            {}, // 7
+            { {Track::TOP_LEFT_RIGHT_3WAY}, 1 } // 8 TOP_LEFT_TURN
+        },
+        // RIGHT = 1
+        {
+            {}, // 0
+            { {Track::BOTTOM_LEFT_RIGHT_3WAY, Track::TOP_LEFT_RIGHT_3WAY}, 2 }, // 1 HORIZONTAL_TRACK
+            { {Track::BOTTOM_LEFT_TOP_3WAY, Track::TOP_LEFT_BOTTOM_3WAY}, 2 }, // 2 VERTICAL_TRACK
+            {}, {}, // 3, 4
+            { {Track::BOTTOM_RIGHT_LEFT_3WAY}, 1 }, // 5 BOTTOM_RIGHT_TURN
+            {}, // 6
+            { {Track::TOP_RIGHT_LEFT_3WAY}, 1 } // 7 TOP_RIGHT_TURN
+        },
+        // DOWN = 2
+        {
+            {}, // 0
+            { {Track::TOP_RIGHT_LEFT_3WAY, Track::TOP_LEFT_RIGHT_3WAY}, 2 }, // 1 HORIZONTAL_TRACK
+            { {Track::TOP_RIGHT_BOTTOM_3WAY, Track::TOP_LEFT_BOTTOM_3WAY}, 2 }, // 2 VERTICAL_TRACK
+            {}, {}, // 3, 4
+            { {Track::BOTTOM_RIGHT_TOP_3WAY}, 1 }, // 5 BOTTOM_RIGHT_TURN
+            { {Track::BOTTOM_LEFT_TOP_3WAY}, 1 }  // 6 BOTTOM_LEFT_TURN
+        },
+        // UP = 3
+        {
+            {}, // 0
+            { {Track::BOTTOM_RIGHT_LEFT_3WAY, Track::BOTTOM_LEFT_RIGHT_3WAY}, 2 }, // 1 HORIZONTAL_TRACK
+            { {Track::BOTTOM_RIGHT_TOP_3WAY, Track::BOTTOM_LEFT_TOP_3WAY}, 2 }, // 2 VERTICAL_TRACK
+            {}, {}, {}, {}, // 3, 4, 5, 6
+            { {Track::TOP_RIGHT_BOTTOM_3WAY}, 1 }, // 7 TOP_RIGHT_TURN
+            { {Track::TOP_LEFT_BOTTOM_3WAY}, 1 }  // 8 TOP_LEFT_TURN
+        }
+    };
+
+    int8_t d = static_cast<int8_t>(dir);
+    uint8_t t = static_cast<uint8_t>(track);
+    if (d >= 0 && d <= 3 && t < 38) {
+        return table[d][t].span();
+    }
+    return {};
+}
 
 struct Car {
     Pos pos;
@@ -292,27 +433,23 @@ struct Car {
 
     Car() : pos{0, 0}, direction(Direction::RIGHT), num(0), type(CarType::NORMAL), pos_ahead{0, 1} {}
 
-    Car(Pos p, Direction dir, int n, CarType t)
+    Car(Pos p, Direction dir, int n, CarType t) noexcept
         : pos(p), direction(dir), num(n), type(t) {
-        if (static_cast<int8_t>(dir) >= 0) {
-            pos_ahead = direction_add_vector(dir, pos);
+        int8_t d = static_cast<int8_t>(dir);
+        if (static_cast<uint8_t>(d) <= 3) {
+            const auto& v = DIR_VECTORS[d];
+            pos_ahead = {p.y + v.y, p.x + v.x};
         } else {
-            pos_ahead = pos;
+            pos_ahead = p;
         }
     }
 
-    const std::vector<Track>& generable_tracks() const {
-        if (direction == Direction::CRASH || direction == Direction::UNKNOWN) {
-            throw std::invalid_argument("The direction must be cardinal for generable_tracks.");
-        }
-        return get_generable_tracks(direction);
+    std::span<const Track> generable_tracks() const noexcept {
+        return get_generable_tracks_span(direction);
     }
 
-    const std::vector<Track>& generable_3ways(Track track) const {
-        if (direction == Direction::CRASH || direction == Direction::UNKNOWN) {
-            throw std::invalid_argument("The direction must be cardinal for generable_3ways.");
-        }
-        return get_generable_3ways(direction, track);
+    std::span<const Track> generable_3ways(Track track) const noexcept {
+        return get_generable_3ways_span(direction, track);
     }
 
     bool border_crash(int rows, int cols) const noexcept {
@@ -326,7 +463,8 @@ struct Car {
         return Car(pos, direction, num, CarType::CRASHED);
     }
 
-    bool same_tile_crashes(const std::vector<Car>& other_cars) const noexcept {
+    template <typename Container>
+    bool same_tile_crashes(const Container& other_cars) const noexcept {
         for (const auto& other : other_cars) {
             if (pos_ahead == other.pos) {
                 return true;
@@ -335,7 +473,8 @@ struct Car {
         return false;
     }
 
-    bool head_on_crashes(const std::vector<Car>& other_cars) const noexcept {
+    template <typename Container>
+    bool head_on_crashes(const Container& other_cars) const noexcept {
         if (static_cast<int8_t>(direction) < 0) return false;
         Direction rev = direction_reverse(direction);
         for (const auto& other : other_cars) {
@@ -346,14 +485,17 @@ struct Car {
         return false;
     }
 
-    Mod get_station() const {
+    inline Mod get_station() const noexcept {
         if (type == CarType::NORMAL) return Mod::STATION;
         if (type == CarType::NUMERAL) return Mod::POST_OFFICE;
-        throw std::invalid_argument("Car must be NORMAL or NUMERAL to get station.");
+        return Mod::EMPTY;
     }
 
-    bool on_correct_station(Mod mod, int mod_num) const {
-        return mod_num == num && mod == get_station();
+    inline bool on_correct_station(Mod mod, int mod_num) const noexcept {
+        if (mod_num != num) return false;
+        if (type == CarType::NORMAL) return mod == Mod::STATION;
+        if (type == CarType::NUMERAL) return mod == Mod::POST_OFFICE;
+        return false;
     }
 
     size_t car_index(size_t normal_count, size_t decoy_count) const {
