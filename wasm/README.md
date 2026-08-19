@@ -143,3 +143,11 @@ See `src/bindings.cpp` and `website/src/wasm/solverWasm.ts` for full `ccall`/`cw
 ## License
 
 MIT – same as repo root.
+
+---
+
+## Can't build on this machine?
+
+You **don't have to**. The placeholder `website/src/wasm/railbound_wasm.js` lets `vite build`/`npm run dev` work without WASM — it auto-falls back to the TS worker and the solver chooser in `GridButtons` shows **"Solver: JS only — WASM not built"**.
+
+See `wasm/DOCKER.md` for Docker / GitHub Actions alternatives, or just use JS until you have `emsdk`.

@@ -1,0 +1,45 @@
+name: Build WASM
+
+on:
+  push:
+    branches: [ feature/wasm-cpp-solver, main ]
+    paths: [ 'wasm/**', 'algo/**', '.github/workflows/wasm.yml' ]
+  workflow_dispatch:
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.72
+      - name: Verify emcc
+        run: emcc --version
+      - name: Configure WASM
+        run: |
+          emcmake cmake -S wasm -B wasm/build/wasm -DWASM_BUILD=ON -DNATIVE_TEST=OFF -DCMAKE_BUILD_TYPE=Release
+      - name: Build WASM
+        run: cmake --build wasm/build/wasm -j
+      - name: Copy to website
+        run: |
+          mkdir -p website/public/wasm website/src/wasm
+          cp wasm/build/wasm/railbound_wasm.js website/src/wasm/ 2>/dev/null || cp wasm/build/wasm/*.js website/src/wasm/ 2>/dev/null || true
+          cp wasm/build/wasm/railbound_wasm.wasm website/public/wasm/ 2>/dev/null || cp wasm/build/wasm/*.wasm website/public/wasm/ 2>/dev/null || true
+          ls -lh website/src/wasm/ website/public/wasm/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: railbound-wasm
+          path: |
+            website/src/wasm/railbound_wasm.js
+            website/public/wasm/railbound_wasm.wasm
+            wasm/build/wasm/*
+          if-no-files-found: warn
+      - name: Test website build (with WASM)
+        run: |
+          cd website
+          npm ci
+          npm run build
+          ls -lh dist/
