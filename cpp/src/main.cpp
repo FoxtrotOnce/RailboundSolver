@@ -248,7 +248,13 @@ int main(int argc, char* argv[]) {
     railbound::print_mod_values(level.mods);
 
     std::cout << "\nSolving...\n";
-    auto result = railbound::solve_level(level, options);
+    railbound::SolveResult result;
+    try {
+        result = railbound::solve_level(level, options);
+    } catch (const std::exception& e) {
+        std::cerr << "EXCEPTION caught: " << e.what() << "\n";
+        return 1;
+    }
 
     std::cout << "\n" << std::string(40, '-') << "\n";
     if (result.solved) {
