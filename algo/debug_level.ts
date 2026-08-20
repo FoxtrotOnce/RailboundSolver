@@ -7,8 +7,6 @@ import {Track, Mod, Car} from './classes'
 // }
 // throw Error
 
-const start_time: number = Date.now()
-
 type lvl_type = (typeof lvls)[keyof typeof lvls]
 const worlds = new Map<string, Map<string, lvl_type>>()
 for (const key in lvls) {

@@ -4,8 +4,8 @@
  */
 
 import type { SolverAdapter, SolverProgress, SolverSolution, SolverInfo } from "./types";
-import { SOLVERS, levelDataToJson } from "./types";
-import type { LevelData, GridCell } from "../store/levelStore";
+import { SOLVERS } from "./types";
+import type { LevelData } from "../store/levelStore";
 import type { Hyperparameters } from "../store/guiStore";
 import { Track, Mod } from "../../../algo/classes";
 
@@ -77,8 +77,6 @@ export class TsSolverAdapter implements SolverAdapter {
         parameters: hyperparameters,
       };
 
-      let lastIterations = 0;
-
       worker.onmessage = (e: MessageEvent<TsWorkerMessage>) => {
         if (e.data.done) {
           const sol = e.data.solution!;
@@ -109,7 +107,6 @@ export class TsSolverAdapter implements SolverAdapter {
           worker.terminate();
         } else if (e.data.visualize_data !== undefined) {
           const vd = e.data.visualize_data;
-          lastIterations = vd.iterations;
           if (onProgress) {
             onProgress({
               board: vd.board as unknown as Track[][],

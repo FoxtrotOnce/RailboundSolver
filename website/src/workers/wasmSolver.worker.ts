@@ -57,7 +57,7 @@ async function getWasmModule(): Promise<WasmModule> {
       } else {
         throw new Error("importScripts not available");
       }
-    } catch (e) {
+    } catch {
       // Fallback: dynamic import via fetch (if worker supports ESM)
       // Not all workers are ESM; we try to fetch and create via function
       const res = await fetch(glueUrl);

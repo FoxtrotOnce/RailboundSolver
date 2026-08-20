@@ -78,7 +78,7 @@ export class WasmSolverAdapter implements SolverAdapter {
     // For better UX, we optionally run in a Worker so UI stays responsive.
 
     if (this.useWorker && typeof Worker !== "undefined") {
-      return await this.solveInWorker(inputStr, levelData, onProgress);
+      return await this.solveInWorker(inputStr, onProgress);
     } else {
       return await this.solveInMainThread(inputStr, onProgress);
     }
@@ -178,7 +178,6 @@ export class WasmSolverAdapter implements SolverAdapter {
 
   private solveInWorker(
     inputStr: string,
-    levelData: LevelData,
     onProgress?: (progress: SolverProgress) => void
   ): Promise<SolverSolution> {
     return new Promise((resolve, reject) => {
@@ -187,11 +186,7 @@ export class WasmSolverAdapter implements SolverAdapter {
 
       // Worker protocol: post { type: 'solve', payload: inputStr }
       // Worker responds with { type: 'progress', ... } or { type: 'done', payload: outputStr }
-      const timeoutMs = 60000; // fallback timeout; caller may have its own
-      let timeoutId: number | null = null;
-
       const cleanup = () => {
-        if (timeoutId !== null) window.clearTimeout(timeoutId);
         if (this.worker === worker) {
           this.worker = null;
         }
@@ -260,13 +255,6 @@ export class WasmSolverAdapter implements SolverAdapter {
         console.warn("[WasmSolver] Worker failed, falling back to main thread", ev);
         this.solveInMainThread(inputStr, onProgress).then(resolve).catch(reject);
       };
-
-      // Optional timeout to detect hung worker
-      // timeoutId = window.setTimeout(() => {
-      //   cleanup();
-      //   worker.terminate();
-      //   reject(new Error("WASM solver timeout"));
-      // }, timeoutMs);
 
       worker.postMessage({ type: "solve", payload: inputStr });
     });

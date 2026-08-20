@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Track, Mod, Car, Direction, CarType } from "../../../algo/classes";
+import { Track, Mod, Direction, CarType } from "../../../algo/classes";
 
 import {
   Normal_Ending,
@@ -40,11 +40,9 @@ import {
   Car_IIII,
   Decoy,
   Crashed_Decoy,
-  Open_Semaphore,
   Closed_Semaphore,
 } from "../assets/svgs"
 import { useGuiStore, useLevelStore } from "../store";
-import type { GridCell } from "../store/levelStore";
 
 /**
  * Tracks that require the Perm_Fork2 svg.

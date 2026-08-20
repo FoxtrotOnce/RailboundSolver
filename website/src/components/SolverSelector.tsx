@@ -112,7 +112,7 @@ export const SolverSelector: React.FC = () => {
 };
 
 export const SolverBadge: React.FC = () => {
-  const { selectedSolver, styles } = useGuiStore();
+  const { selectedSolver } = useGuiStore();
   const info = SOLVERS[selectedSolver];
   return (
     <div className={`flex flex-row items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold border ${info.color} text-white border-white/20`}>

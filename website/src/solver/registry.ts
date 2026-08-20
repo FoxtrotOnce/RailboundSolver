@@ -4,7 +4,6 @@ import { WasmSolverAdapter } from "./wasmSolver";
 
 export class SolverRegistry {
   private adapters: Map<SolverId, SolverAdapter> = new Map();
-  private initialized = false;
 
   constructor() {
     this.adapters.set("typescript", new TsSolverAdapter());
