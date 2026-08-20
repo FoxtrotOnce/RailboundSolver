@@ -2,6 +2,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <iostream>
 
 namespace railbound {
 
@@ -276,38 +277,40 @@ void compute_distance_field(
                 }
             }
 
-            if (tr == Track::EMPTY || !perm_ptr[r * W + c]) {
+            bool can_pass_fixed = false;
+            if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
+                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
+                if (redirected == static_cast<Direction>(d)) {
+                    can_pass_fixed = true;
+                } else if ((m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
+                    Track swapped = track_swap(tr);
+                    if (get_track_direction(swapped, static_cast<Direction>(pd)) == static_cast<Direction>(d)) {
+                        can_pass_fixed = true;
+                    }
+                }
+            }
+
+            if (can_pass_fixed) {
+                uint8_t cost = 0;
+                int pred_u = (pr * W + pc) * 4 + pd;
+                if (d_val + cost < out_dist[pred_u]) {
+                    out_dist[pred_u] = d_val + cost;
+                    q.push_front(pred_u);
+                }
+            } else {
                 bool can_transition = false;
-                if (pd == d) can_transition = true;
-                else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
-                else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                if (tr == Track::EMPTY || !perm_ptr[r * W + c] || track_is_turn(tr) || track_is_straight(tr)) {
+                    if (pd == d) can_transition = true;
+                    else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
+                    else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                }
 
                 if (can_transition) {
-                    uint8_t cost = 1;
+                    uint8_t cost = (tr == Track::EMPTY ? 1 : 0);
                     int pred_u = (pr * W + pc) * 4 + pd;
                     if (d_val + cost < out_dist[pred_u]) {
                         out_dist[pred_u] = d_val + cost;
                         q.push_back(pred_u);
-                    }
-                }
-            } else if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
-                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
-                bool can_pass = (redirected == static_cast<Direction>(d));
-
-                if (!can_pass && (m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
-                    Track swapped = track_swap(tr);
-                    Direction redirected_swap = get_track_direction(swapped, static_cast<Direction>(pd));
-                    if (redirected_swap == static_cast<Direction>(d)) {
-                        can_pass = true;
-                    }
-                }
-
-                if (can_pass) {
-                    uint8_t cost = 0;
-                    int pred_u = (pr * W + pc) * 4 + pd;
-                    if (d_val + cost < out_dist[pred_u]) {
-                        out_dist[pred_u] = d_val + cost;
-                        q.push_front(pred_u);
                     }
                 }
             }
@@ -388,38 +391,40 @@ void compute_station_distance_field(
                 }
             }
 
-            if (tr == Track::EMPTY || !perm_ptr[r * W + c]) {
+            bool can_pass_fixed_st = false;
+            if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
+                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
+                if (redirected == static_cast<Direction>(d)) {
+                    can_pass_fixed_st = true;
+                } else if ((m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
+                    Track swapped = track_swap(tr);
+                    if (get_track_direction(swapped, static_cast<Direction>(pd)) == static_cast<Direction>(d)) {
+                        can_pass_fixed_st = true;
+                    }
+                }
+            }
+
+            if (can_pass_fixed_st) {
+                uint8_t cost = 0;
+                int pred_u = (pr * W + pc) * 4 + pd;
+                if (d_val + cost < out_dist[pred_u]) {
+                    out_dist[pred_u] = d_val + cost;
+                    q.push_front(pred_u);
+                }
+            } else {
                 bool can_transition = false;
-                if (pd == d) can_transition = true;
-                else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
-                else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                if (tr == Track::EMPTY || !perm_ptr[r * W + c] || track_is_turn(tr) || track_is_straight(tr)) {
+                    if (pd == d) can_transition = true;
+                    else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
+                    else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                }
 
                 if (can_transition) {
-                    uint8_t cost = 1;
+                    uint8_t cost = (tr == Track::EMPTY ? 1 : 0);
                     int pred_u = (pr * W + pc) * 4 + pd;
                     if (d_val + cost < out_dist[pred_u]) {
                         out_dist[pred_u] = d_val + cost;
                         q.push_back(pred_u);
-                    }
-                }
-            } else if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
-                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
-                bool can_pass = (redirected == static_cast<Direction>(d));
-
-                if (!can_pass && (m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
-                    Track swapped = track_swap(tr);
-                    Direction redirected_swap = get_track_direction(swapped, static_cast<Direction>(pd));
-                    if (redirected_swap == static_cast<Direction>(d)) {
-                        can_pass = true;
-                    }
-                }
-
-                if (can_pass) {
-                    uint8_t cost = 0;
-                    int pred_u = (pr * W + pc) * 4 + pd;
-                    if (d_val + cost < out_dist[pred_u]) {
-                        out_dist[pred_u] = d_val + cost;
-                        q.push_front(pred_u);
                     }
                 }
             }
@@ -1362,7 +1367,25 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                 next_state.available_semaphores = semaphores_to_pass;
                 next_state.heatmap_limits = std::move(heatmap_limits_pass);
 
-                next_states.push_back(std::move(next_state));
+                bool unreachable = false;
+                for (const auto& c : next_state.cars_to_use) {
+                    if (c.type == CarType::NORMAL || c.type == CarType::NUMERAL) {
+                        size_t c_idx = c.car_index(cars_count, decoys_count);
+                        const uint8_t* d_map = get_active_dist_map(next_state, c, c_idx);
+                        if (d_map && c.pos.y >= 0 && c.pos.y < H && c.pos.x >= 0 && c.pos.x < W) {
+                            int f = (c.pos.y * W + c.pos.x) * 4 + static_cast<int>(c.direction);
+                            int d_val = d_map[f];
+                            if (d_val == INF_DIST) {
+                                unreachable = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!unreachable) {
+                    next_states.push_back(std::move(next_state));
+                }
             }
 
             // Increment indices
