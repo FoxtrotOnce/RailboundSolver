@@ -1159,6 +1159,42 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
 
             if (usable_tracks[c].empty()) return;
 
+            // Prune per-car options that are unreachable (INF distance) for normal/numeral cars
+            if (car.type == CarType::NORMAL || car.type == CarType::NUMERAL) {
+                const uint8_t* dist_map2 = get_active_dist_map(state, car, car_idx);
+                if (dist_map2) {
+                    size_t write = 0;
+                    for (size_t i = 0; i < usable_tracks[c].size(); ++i) {
+                        Track tr = usable_tracks[c][i];
+                        const Car& gc = cars_generated[c][i];
+                        if (track_is_car_ending(tr) || track_is_ncar_ending(tr)) {
+                            if (write != i) {
+                                usable_tracks[c][write] = usable_tracks[c][i];
+                                cars_generated[c][write] = cars_generated[c][i];
+                            }
+                            ++write;
+                        } else {
+                            if (gc.pos.y >= 0 && gc.pos.y < H && gc.pos.x >= 0 && gc.pos.x < W) {
+                                int flat_ahead = (gc.pos.y * W + gc.pos.x) * 4 + static_cast<int>(gc.direction);
+                                int d = dist_map2[flat_ahead];
+                                if (d == INF_DIST) {
+                                    continue;
+                                }
+                            }
+                            if (write != i) {
+                                usable_tracks[c][write] = usable_tracks[c][i];
+                                cars_generated[c][write] = cars_generated[c][i];
+                            }
+                            ++write;
+                        }
+                    }
+                    if (write == 0) return;
+                    usable_tracks[c].count = static_cast<uint8_t>(write);
+                    cars_generated[c].count = static_cast<uint8_t>(write);
+                    if (write == 1) continue;
+                }
+            }
+
             if (usable_tracks[c].size() > 1) {
                 int scores[8];
                 const uint8_t* dist_map = get_active_dist_map(state, car, car_idx);
@@ -1448,7 +1484,7 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                             const uint8_t* d_map = get_active_dist_map(s, c, c_idx);
                             if (d_map && c.pos.y >= 0 && c.pos.y < H && c.pos.x >= 0 && c.pos.x < W) {
                                 int f = (c.pos.y * W + c.pos.x) * 4 + static_cast<int>(c.direction);
-                                int weight = (c.num < 4) ? (1 << (2 * (3 - c.num))) : 1;
+                                int weight = (c.num < 4) ? (1 << (3 - c.num)) : 1;
                                 score += d_map[f] * weight;
                             }
                         }
