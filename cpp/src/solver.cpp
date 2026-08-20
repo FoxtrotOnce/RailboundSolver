@@ -213,19 +213,19 @@ void compute_distance_field(
                     q.push_back(u);
                 }
             } else if (target_car_type == CarType::NUMERAL) {
-                if (t == Track::NCAR_ENDING_TRACK_RIGHT && c > 0) {
+                if ((t == Track::NCAR_ENDING_TRACK_RIGHT || t == Track::STATION_RIGHT) && c > 0) {
                     int u = ((r * W + (c - 1)) * 4) + static_cast<int>(Direction::RIGHT);
                     out_dist[u] = 0;
                     q.push_back(u);
-                } else if (t == Track::NCAR_ENDING_TRACK_LEFT && c + 1 < W) {
+                } else if ((t == Track::NCAR_ENDING_TRACK_LEFT || t == Track::STATION_LEFT) && c + 1 < W) {
                     int u = ((r * W + (c + 1)) * 4) + static_cast<int>(Direction::LEFT);
                     out_dist[u] = 0;
                     q.push_back(u);
-                } else if (t == Track::NCAR_ENDING_TRACK_DOWN && r > 0) {
+                } else if ((t == Track::NCAR_ENDING_TRACK_DOWN || t == Track::STATION_DOWN) && r > 0) {
                     int u = (((r - 1) * W + c) * 4) + static_cast<int>(Direction::DOWN);
                     out_dist[u] = 0;
                     q.push_back(u);
-                } else if (t == Track::NCAR_ENDING_TRACK_UP && r + 1 < H) {
+                } else if ((t == Track::NCAR_ENDING_TRACK_UP || t == Track::STATION_UP) && r + 1 < H) {
                     int u = (((r + 1) * W + c) * 4) + static_cast<int>(Direction::UP);
                     out_dist[u] = 0;
                     q.push_back(u);
@@ -1012,6 +1012,16 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                     possible_redirect = get_track_direction(possibleTrack, car.direction);
                 }
 
+                if (possible_redirect == Direction::CRASH) {
+                    if (car.type == CarType::DECOY) {
+                        cars_generated[c].push_back(car.crash());
+                        usable_tracks[c].push_back(possibleTrack);
+                        continue;
+                    } else {
+                        return;
+                    }
+                }
+
                 if (track_is_car_ending(possibleTrack) || track_is_ncar_ending(possibleTrack)) {
                     int is_numeral = (car.type == CarType::NUMERAL ? 1 : 0);
                     const SmallIntVec& any_solved = (is_numeral == 1 ? state.solved_numeral : state.solved_normal);
@@ -1156,10 +1166,14 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                         scores[i] = (tr == Track::EMPTY ? 100 : 10);
                     } else {
                         scores[i] = 0;
-                        if (dist_map) {
+                        if (dist_map && gc.pos.y >= 0 && gc.pos.y < H && gc.pos.x >= 0 && gc.pos.x < W) {
                             int flat_ahead = (gc.pos.y * W + gc.pos.x) * 4 + static_cast<int>(gc.direction);
                             int d = dist_map[flat_ahead];
-                            scores[i] = d * 4;
+                            if (d == INF_DIST) {
+                                scores[i] = 100000;
+                            } else {
+                                scores[i] = d * 4;
+                            }
                         }
                         if (track_is_placeholder_semaphore(tr)) scores[i] += 3;
                         else if (track_is_empty(state.board_to_use[gc.pos.y * W + gc.pos.x])) scores[i] += 2;
@@ -1204,25 +1218,22 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
             }
         }
 
-        if (just_solved.first != -1) {
-            size_t sc = static_cast<size_t>(just_solved.first);
-            for (size_t i = sc; i < N - 1; ++i) {
-                cars_generated[i] = cars_generated[i + 1];
-                usable_tracks[i] = usable_tracks[i + 1];
-                state.stalled[i] = state.stalled[i + 1];
+        std::vector<size_t> to_remove;
+        if (just_solved.first != -1) to_remove.push_back(static_cast<size_t>(just_solved.first));
+        if (just_solved.second != -1) to_remove.push_back(static_cast<size_t>(just_solved.second));
+        std::sort(to_remove.rbegin(), to_remove.rend());
+        to_remove.erase(std::unique(to_remove.begin(), to_remove.end()), to_remove.end());
+
+        for (size_t sc : to_remove) {
+            if (sc < N) {
+                for (size_t i = sc; i < N - 1; ++i) {
+                    cars_generated[i] = cars_generated[i + 1];
+                    usable_tracks[i] = usable_tracks[i + 1];
+                    state.stalled[i] = state.stalled[i + 1];
+                }
+                state.stalled.pop_back();
+                N--;
             }
-            state.stalled.pop_back();
-            N--;
-        }
-        if (just_solved.second != -1) {
-            size_t sc = static_cast<size_t>(just_solved.second - (just_solved.first != -1 ? 1 : 0));
-            for (size_t i = sc; i < N - 1; ++i) {
-                cars_generated[i] = cars_generated[i + 1];
-                usable_tracks[i] = usable_tracks[i + 1];
-                state.stalled[i] = state.stalled[i + 1];
-            }
-            state.stalled.pop_back();
-            N--;
         }
 
         size_t combo_cars_count = N;
@@ -1412,7 +1423,7 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                         if (c.type == CarType::NORMAL || c.type == CarType::NUMERAL) {
                             size_t c_idx = c.car_index(cars_count, decoys_count);
                             const uint8_t* d_map = get_active_dist_map(s, c, c_idx);
-                            if (d_map) {
+                            if (d_map && c.pos.y >= 0 && c.pos.y < H && c.pos.x >= 0 && c.pos.x < W) {
                                 int f = (c.pos.y * W + c.pos.x) * 4 + static_cast<int>(c.direction);
                                 int weight = (c.num < 4) ? (1 << (2 * (3 - c.num))) : 1;
                                 score += d_map[f] * weight;

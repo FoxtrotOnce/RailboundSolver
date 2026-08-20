@@ -127,7 +127,7 @@ const three_ways = new Set<Track>([
 ])
 const tunnels = new Set<Track>([Track.LEFT_FACING_TUNNEL, Track.RIGHT_FACING_TUNNEL, Track.DOWN_FACING_TUNNEL, Track.UP_FACING_TUNNEL])
 const car_endings = new Set<Track>([Track.CAR_ENDING_TRACK_LEFT, Track.CAR_ENDING_TRACK_RIGHT, Track.CAR_ENDING_TRACK_DOWN, Track.CAR_ENDING_TRACK_UP])
-const ncar_endings = new Set<Track>([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT, Track.NCAR_ENDING_TRACK_DOWN, Track.NCAR_ENDING_TRACK_UP])
+const ncar_endings = new Set<Track>([Track.NCAR_ENDING_TRACK_LEFT, Track.NCAR_ENDING_TRACK_RIGHT, Track.NCAR_ENDING_TRACK_DOWN, Track.NCAR_ENDING_TRACK_UP, Track.STATION_LEFT, Track.STATION_RIGHT, Track.STATION_DOWN, Track.STATION_UP])
 const stations = new Set<Track>([Track.STATION_LEFT, Track.STATION_RIGHT, Track.STATION_DOWN, Track.STATION_UP])
 const semaphore_tracks = new Map<Track, Track>([
     [Track.HORIZONTAL_TRACK, Track.SEM_HORIZONTAL_TRACK],
@@ -502,10 +502,10 @@ export const directions = new Map<Track, Map<Direction, Direction>>([
     [Track.NCAR_ENDING_TRACK_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])],
     
     [Track.ROADBLOCK, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
-    [Track.STATION_LEFT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
-    [Track.STATION_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
-    [Track.STATION_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
-    [Track.STATION_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_LEFT, new Map([[Direction.LEFT, Direction.UNKNOWN], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_RIGHT, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.UNKNOWN], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_DOWN, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.UNKNOWN], [Direction.UP, Direction.CRASH]])],
+    [Track.STATION_UP, new Map([[Direction.LEFT, Direction.CRASH], [Direction.RIGHT, Direction.CRASH], [Direction.DOWN, Direction.CRASH], [Direction.UP, Direction.UNKNOWN]])],
 ])
 
 /**  Return every combination of the iterables. */
