@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
     std::cout << "\n" << std::string(40, '-') << "\n";
     if (result.solved) {
         std::cout << "SOLVED!\n";
-        std::cout << "Time elapsed: " << std::fixed << std::setprecision(4) << result.time_elapsed_seconds << "s\n";
+        std::cout << "Time elapsed: " << std::fixed << std::setprecision(9) << result.time_elapsed_seconds << "s\n";
         std::cout << "Iterations: " << result.iterations << "\n";
         std::cout << "Tracks left: " << result.tracks_left << "\n";
         std::cout << "Semaphores left: " << result.semaphores_left << "\n\n";
