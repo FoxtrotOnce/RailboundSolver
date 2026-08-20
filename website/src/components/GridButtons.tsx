@@ -1,11 +1,12 @@
 import React from "react"
 import { useGuiStore, useLevelStore } from "../store"
 import { useEffect, useState, useRef } from "react"
+import { checkWasmAvailability } from "../solver/wasmLoader"
 
 const Icons = {
   settings:
     <svg className={`w-8 h-8`} viewBox="0 0 32 32">
-      <g fill="currentColor" clip-path="url(#clip0_2314_42)">
+      <g fill="currentColor" clipPath="url(#clip0_2314_42)">
         <path d="M20.4 16a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm2 0a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z"/>
         <path d="M18.823.4a2.8 2.8 0 0 1 2.569 1.685l.08.208 1.104 3.225 3.484-.693.218-.034a2.8 2.8 0 0 1 2.616 1.166l.12.186 2.404 4.05a2.8 2.8 0 0 1-.339 3.315L28.81 16l2.27 2.492a2.8 2.8 0 0 1 .34 3.314l-2.404 4.051a2.8 2.8 0 0 1-2.955 1.317l-3.484-.694-1.104 3.228a2.8 2.8 0 0 1-2.649 1.892h-4.846a2.8 2.8 0 0 1-2.649-1.892l-1.105-3.228-3.483.694a2.8 2.8 0 0 1-2.955-1.317l-2.403-4.05a2.8 2.8 0 0 1 .339-3.315L3.99 16l-2.27-2.492a2.8 2.8 0 0 1-.339-3.314l2.403-4.05.12-.187A2.801 2.801 0 0 1 6.74 4.825l3.483.693 1.105-3.225.08-.208A2.8 2.8 0 0 1 13.977.4v2a.8.8 0 0 0-.757.541L11.775 7.16a.8.8 0 0 1-.914.525L6.35 6.787a.8.8 0 0 0-.844.376l-2.404 4.051a.8.8 0 0 0 .096.948l3.007 3.3a.8.8 0 0 1 0 1.077l-3.007 3.3a.8.8 0 0 0-.096.947l2.404 4.05a.8.8 0 0 0 .719.392l.125-.015 4.511-.898a.8.8 0 0 1 .914.525l1.445 4.22a.8.8 0 0 0 .63.53l.127.01h4.846a.8.8 0 0 0 .706-.425l.051-.116 1.445-4.219a.8.8 0 0 1 .913-.525l4.512.898a.8.8 0 0 0 .844-.377l2.403-4.05a.8.8 0 0 0-.016-.845l-.08-.102-3.006-3.3a.8.8 0 0 1 0-1.078l3.006-3.3a.8.8 0 0 0 .096-.947l-2.403-4.051a.8.8 0 0 0-.844-.376l-4.512.898a.8.8 0 0 1-.913-.525L19.58 2.94a.801.801 0 0 0-.63-.531l-.127-.01v-2Zm0 0v2h-4.846v-2h4.846Z"/>
       </g>
@@ -86,8 +87,36 @@ const GridButton: React.FC<{
 }
 
 export const GridButtons: React.FC = () => {
-  const { styles, setHyperparams, hyperparameters, displayLevelSettings } = useGuiStore()
-  const { clearLevel, solveLevel, pauseLevel, stepLevel, solvingWorker, pauseWorker } = useLevelStore()
+  const {
+    styles,
+    setHyperparams,
+    hyperparameters,
+    displayLevelSettings,
+    selectedSolver,
+    wasmAvailable,
+    setWasmAvailable,
+  } = useGuiStore()
+  const {
+    clearLevel,
+    solveLevel,
+    compareSolvers,
+    pauseLevel,
+    stepLevel,
+    solvingWorker,
+    solvingAdapter,
+    activeSolverId,
+    isComparing,
+    pauseWorker,
+  } = useLevelStore()
+  const isSolving = solvingWorker !== undefined || solvingAdapter !== undefined || isComparing
+  const isWasmSolving = activeSolverId === "wasm" || solvingAdapter?.id === "wasm"
+  const wasmReady = wasmAvailable === true
+
+  useEffect(() => {
+    if (wasmAvailable === null) {
+      checkWasmAvailability().then((v) => setWasmAvailable(v)).catch(() => setWasmAvailable(false))
+    }
+  }, [wasmAvailable, setWasmAvailable])
 
   return (
     <div className={`flex flex-col gap-3 rounded-[0.375rem] w-full items-end`}>
@@ -126,40 +155,66 @@ export const GridButtons: React.FC = () => {
         style={`${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border}`}
       />
       <div className={`w-10.5 h-0.25 rounded-full ${styles.border.bg}`} />
-      {!solvingWorker &&
-      <GridButton
-        content={<span>Solve</span>}
-        icon={Icons.start}
-        style={`${styles.background.text} bg-green-500`}
-        onClick={() => solveLevel()}
-      />}
-      {!pauseWorker && solvingWorker &&
+
+      {/* Keep one primary solve action. The engine is selected in the sidebar. */}
+      {!isSolving && (
+        <GridButton
+          content={
+            <div className={`flex flex-row items-center gap-2`}>
+              <span>Solve</span>
+              <span className={`rounded-full bg-black/20 px-2 py-0.5 text-xs tracking-wide`}>
+                {selectedSolver === "wasm" ? "WASM" : "TS"}
+              </span>
+            </div>
+          }
+          icon={Icons.start}
+          style={`${styles.background.text} ${selectedSolver === "wasm" ? "bg-purple-600" : "bg-green-500"}`}
+          onClick={() => solveLevel()}
+        />
+      )}
+      {!isSolving && wasmReady && (
+        <GridButton
+          content={<span>Compare engines</span>}
+          icon={<span className={`w-8 h-8 flex items-center justify-center font-bold text-sm`}>VS</span>}
+          style={`${styles.text.text} ${styles.base.bg} border-b-1 ${styles.border.border}`}
+          onClick={() => compareSolvers()}
+        />
+      )}
+      {isSolving && (
+        <GridButton
+          content={<span>{isComparing ? "Comparing engines…" : `Solving (${isWasmSolving ? "WASM" : "TS"})…`}</span>}
+          icon={isComparing ? <span className={`w-8 h-8 flex items-center justify-center font-bold text-sm animate-pulse`}>VS</span> : isWasmSolving ? Icons.pause : Icons.start}
+          style={`${styles.background.text} ${isComparing ? "bg-blue-600" : isWasmSolving ? "bg-purple-400" : "bg-green-400"} opacity-80`}
+        />
+      )}
+      {!isComparing && !pauseWorker && isSolving && !isWasmSolving &&
       <GridButton
         content={<span>Pause</span>}
         icon={Icons.pause}
         style={`${styles.background.text} bg-yellow-500`}
         onClick={() => pauseLevel(true)}
       />}
-      {pauseWorker &&
+      {!isComparing && pauseWorker && isSolving && !isWasmSolving &&
       <GridButton
         content={<span>Resume</span>}
         icon={Icons.start}
         style={`${styles.background.text} bg-neutral-300`}
         onClick={() => pauseLevel(false)}
       />}
-      {solvingWorker &&
+      {isSolving &&
       <GridButton
         content={<span>Stop</span>}
         icon={Icons.reset}
         style={`${styles.background.text} bg-red-500`}
         onClick={() => clearLevel(true)}
       />}
+      {!isSolving && selectedSolver === "typescript" &&
       <GridButton
         content={<span>Step</span>}
         icon={Icons.step}
         style={`${styles.background.text} bg-blue-500`}
         onClick={() => stepLevel()}
-      />
+      />}
     </div>
   )
 }

@@ -15,7 +15,8 @@ const resizerParams: Record<number, {cursor: string, hover_cursor: string, xMult
 
 export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
   const { styles, showGrid, gridSize } = useGuiStore();
-  const { permLevelData, renderedLevelData, solvingWorker, setDims, saveLevel, saveToUndoStack } = useLevelStore();
+  const { permLevelData, renderedLevelData, solvingWorker, solvingAdapter, setDims, saveLevel, saveToUndoStack } = useLevelStore();
+  const isSolving = solvingWorker !== undefined || solvingAdapter !== undefined;
   const [ resizerGrabbed, setResizerGrabbed ] = useState(-1)
   const [ resizeStartPos, setResizeStartPos ] = useState({x: 0, y: 0})
   const [animationFlag, setFlag] = useState(false);
@@ -214,7 +215,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
               <GridTile
                 is_rendered_grid={true}
                 pos={{ y: idx, x: jdx }}
-                disabled={solvingWorker !== undefined}
+                disabled={isSolving}
               />
             </div>
           ))
@@ -222,7 +223,7 @@ export const GameCanvas: React.FC<{ children?: React.ReactNode }> = () => {
       </div>
       {/* Grid Resizing Grabbers */}
       {/* NOTE - Grabbers are located on the top-most div, and are moved to the position of the grid in their d's. */}
-      {solvingWorker === undefined &&
+      {!isSolving &&
       <svg
         className={`absolute inset-0 pointer-events-none`}
         viewBox={`-${grid_x} -${grid_y} ${gridSize * 12 + 4 * 8} ${gridSize * 12 + 4 * 8}`}

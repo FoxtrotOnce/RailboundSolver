@@ -6,13 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:wasm": "bash ../cpp/wasm/build_wasm.sh",
+    "build:wasm:debug": "bash ../cpp/wasm/build_wasm.sh --debug",
+    "build:wasm:ps": "powershell -ExecutionPolicy Bypass -File ../cpp/wasm/build_wasm.ps1",
+    "build:all": "npm run build:wasm && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.10",
-    "framer-motion": "^12.19.1",
-    "motion": "^12.19.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.1.10",

@@ -47,6 +47,7 @@ export const ChangeModNum: React.FC = () => {
     <div className="transition-all duration-300 absolute flex items-center justify-center" style={{transform: `rotate(${(Number(showPalette) * -90).toString()}deg)`}} >
       {styles.mods.map((_, idx) => (
         <div
+          key={idx}
           className="transition-all duration-300 absolute"
           style={{
             left: Math.cos((idx * 2 * Math.PI) / styles.mods.length) * Number(showPalette) * 100 - 25,

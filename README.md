@@ -13,11 +13,36 @@ git clone https://github.com/FoxtrotOnce/RailboundSolver.git
 
 # Usage
 
-RailboundSolver cannot currently be used, but will be usable as soon as the website is finished. Stay tuned!
+### Website (dual solver)
+
+```bash
+npm install --prefix website
+npm run dev --prefix website   # choose TypeScript or C++ WASM in the Solver Engine sidebar
+```
+
+To use the C++ solver, which is 20–30× faster through WebAssembly:
+
+```bash
+./cpp/wasm/build_wasm.sh        # Linux/macOS/Git Bash (requires emcc)
+# or
+.\cpp\wasm\build_wasm.ps1      # Windows PowerShell
+npm run build:wasm --prefix website
+```
+
+See `website/WASM_GUIDE.md` and `cpp/wasm/README.md` for details.
+
+### CLI C++
+
+```bash
+cmake -B cpp/build -S cpp && cmake --build cpp/build
+./cpp/build/railbound_solver 1-15A
+```
 
 # To-do
 
-- Integrate RailboundSolver into a website for easier use
+- [x] Integrate RailboundSolver into a website for easier use
+- [x] Dual solver selection (TypeScript vs C++ WASM)
+  - [x] WebAssembly build pipeline (Emscripten) + JS/WASM loader + Worker
 
 # Documentation
 

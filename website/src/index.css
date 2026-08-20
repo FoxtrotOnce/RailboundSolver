@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+@keyframes solver-progress-slide {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(320%); }
+}
+
+.solver-progress-indeterminate {
+  width: 36%;
+  animation: solver-progress-slide 1.4s ease-in-out infinite;
+}
