@@ -71,6 +71,10 @@ cpp/
 ./railbound_solver 1-1 --bfs
 ```
 
+## Benchmark visualization
+
+Open [`benchmark.html`](./benchmark.html) in a browser for a self-contained, interactive view of [`benchmark.csv`](./benchmark.csv). It includes runtime and search-effort charts, chapter profiles, outlier details, filters, CSV loading, and print/PDF output. No build step or web server is required.
+
 ### Run tests
 
 ```bash
