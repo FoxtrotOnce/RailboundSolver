@@ -2,11 +2,6 @@ import {solve_level} from './main'
 import lvls from '../levels.json'
 import {Track, Mod, Car} from './classes'
 
-// for (const lvl in lvls) {
-//     console.log(lvls[lvl as keyof typeof lvls].semaphores)
-// }
-// throw Error
-
 type lvl_type = (typeof lvls)[keyof typeof lvls]
 const worlds = new Map<string, Map<string, lvl_type>>()
 for (const key in lvls) {
@@ -19,12 +14,6 @@ for (const key in lvls) {
     worlds.get(world)!.set(lvl_name, data)
 }
 
-// const no = new Set<string>(['7-5A'])
-// for (const [lvl_name, data] of worlds.get('9')!) {
-    // if (no.has(lvl_name)) {continue}
-    // console.log(lvl_name)
-    // solve_level(data)
-// }
 function visualize(input: {
     board: Track[][],
     mods: Mod[][],
@@ -34,8 +23,12 @@ function visualize(input: {
     Mod.print_values(input.mods)
     console.log(input.cars)
 }
-const lvl_name = "1-15A"
-console.log(lvl_name)
-const solved_data = await solve_level(lvls[lvl_name], visualize)
-console.log(`Finished in: ${solved_data!.time_elapsed}s`)
-process.exit(0)
+
+async function run() {
+    const lvl_name = "12-7A"
+    console.log(lvl_name)
+    const solved_data = await solve_level((lvls as any)[lvl_name], visualize)
+    console.log(`Finished in: ${solved_data!.time_elapsed}s, iterations: ${solved_data!.iterations}, tracks left: ${solved_data!.tracks_left}`)
+}
+
+run();

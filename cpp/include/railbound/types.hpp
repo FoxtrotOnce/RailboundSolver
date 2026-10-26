@@ -175,7 +175,11 @@ inline constexpr bool track_is_ncar_ending(Track t) noexcept {
     return t == Track::NCAR_ENDING_TRACK_LEFT ||
            t == Track::NCAR_ENDING_TRACK_RIGHT ||
            t == Track::NCAR_ENDING_TRACK_DOWN ||
-           t == Track::NCAR_ENDING_TRACK_UP;
+           t == Track::NCAR_ENDING_TRACK_UP ||
+           t == Track::STATION_LEFT ||
+           t == Track::STATION_RIGHT ||
+           t == Track::STATION_DOWN ||
+           t == Track::STATION_UP;
 }
 
 inline constexpr bool track_is_station(Track t) noexcept {
@@ -325,13 +329,13 @@ inline constexpr Direction TRACK_DIRECTIONS[static_cast<size_t>(Track::COUNT)][4
     // 33: NCAR_ENDING_TRACK_UP
     {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::UNKNOWN},
     // 34: STATION_LEFT
-    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::UNKNOWN, Direction::CRASH, Direction::CRASH, Direction::CRASH},
     // 35: STATION_RIGHT
-    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::UNKNOWN, Direction::CRASH, Direction::CRASH},
     // 36: STATION_DOWN
-    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH},
+    {Direction::CRASH, Direction::CRASH, Direction::UNKNOWN, Direction::CRASH},
     // 37: STATION_UP
-    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::CRASH}
+    {Direction::CRASH, Direction::CRASH, Direction::CRASH, Direction::UNKNOWN}
 };
 
 // Direction redirect map for (Track, Direction)

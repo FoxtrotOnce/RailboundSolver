@@ -2,6 +2,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <iostream>
 
 namespace railbound {
 
@@ -41,6 +42,7 @@ struct SmallTrackVec {
     bool empty() const noexcept { return count == 0; }
     size_t size() const noexcept { return count; }
     Track operator[](size_t i) const noexcept { return data[i]; }
+    Track& operator[](size_t i) noexcept { return data[i]; }
     Track* begin() noexcept { return data; }
     Track* end() noexcept { return data + count; }
     const Track* begin() const noexcept { return data; }
@@ -170,7 +172,265 @@ struct alignas(64) SearchState {
     int mvmts_since_solved{0};
     int available_semaphores{0};
     std::shared_ptr<std::vector<int>> heatmap_limits; // shape [num_all_cars, 4, H, W]
+    int heuristic_score{0};
 };
+
+static constexpr uint8_t INF_DIST = 255;
+
+void compute_distance_field(
+    const std::vector<std::vector<Track>>& board,
+    const std::vector<std::vector<Mod>>& mods,
+    const std::vector<std::vector<int>>& mod_nums,
+    const std::map<int, std::vector<Pos>>& tunnel_poses,
+    const uint8_t* perm_ptr,
+    int H, int W,
+    CarType target_car_type,
+    uint8_t* out_dist
+) {
+    int HW = H * W;
+    std::fill(out_dist, out_dist + HW * 4, INF_DIST);
+
+    std::deque<int> q;
+
+    for (int r = 0; r < H; ++r) {
+        for (int c = 0; c < W; ++c) {
+            Track t = board[r][c];
+            if (target_car_type == CarType::NORMAL) {
+                if (t == Track::CAR_ENDING_TRACK_RIGHT && c > 0) {
+                    int u = ((r * W + (c - 1)) * 4) + static_cast<int>(Direction::RIGHT);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if (t == Track::CAR_ENDING_TRACK_LEFT && c + 1 < W) {
+                    int u = ((r * W + (c + 1)) * 4) + static_cast<int>(Direction::LEFT);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if (t == Track::CAR_ENDING_TRACK_DOWN && r > 0) {
+                    int u = (((r - 1) * W + c) * 4) + static_cast<int>(Direction::DOWN);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if (t == Track::CAR_ENDING_TRACK_UP && r + 1 < H) {
+                    int u = (((r + 1) * W + c) * 4) + static_cast<int>(Direction::UP);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                }
+            } else if (target_car_type == CarType::NUMERAL) {
+                if ((t == Track::NCAR_ENDING_TRACK_RIGHT || t == Track::STATION_RIGHT) && c > 0) {
+                    int u = ((r * W + (c - 1)) * 4) + static_cast<int>(Direction::RIGHT);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if ((t == Track::NCAR_ENDING_TRACK_LEFT || t == Track::STATION_LEFT) && c + 1 < W) {
+                    int u = ((r * W + (c + 1)) * 4) + static_cast<int>(Direction::LEFT);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if ((t == Track::NCAR_ENDING_TRACK_DOWN || t == Track::STATION_DOWN) && r > 0) {
+                    int u = (((r - 1) * W + c) * 4) + static_cast<int>(Direction::DOWN);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                } else if ((t == Track::NCAR_ENDING_TRACK_UP || t == Track::STATION_UP) && r + 1 < H) {
+                    int u = (((r + 1) * W + c) * 4) + static_cast<int>(Direction::UP);
+                    out_dist[u] = 0;
+                    q.push_back(u);
+                }
+            }
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop_front();
+        uint8_t d_val = out_dist[u];
+
+        int cell = u / 4;
+        int d = u % 4;
+        int r = cell / W;
+        int c = cell % W;
+
+        for (int pd = 0; pd < 4; ++pd) {
+            int pr = r - DIR_VECTORS[pd].y;
+            int pc = c - DIR_VECTORS[pd].x;
+            if (pr < 0 || pr >= H || pc < 0 || pc >= W) continue;
+            if (board[pr][pc] == Track::ROADBLOCK) continue;
+
+            Track tr = board[r][c];
+            Mod m = mods[r][c];
+
+            if (m == Mod::TUNNEL && track_is_tunnel(tr)) {
+                int num = mod_nums[r][c];
+                auto tun_it = tunnel_poses.find(num);
+                if (tun_it != tunnel_poses.end() && tun_it->second.size() >= 2) {
+                    if (get_tunnel_exit_velo(tr) == static_cast<Direction>(d)) {
+                        const Pos& tin = (tun_it->second[0].y == r && tun_it->second[0].x == c)
+                                         ? tun_it->second[1]
+                                         : tun_it->second[0];
+                        for (int pd_in = 0; pd_in < 4; ++pd_in) {
+                            int prin = tin.y - DIR_VECTORS[pd_in].y;
+                            int pcin = tin.x - DIR_VECTORS[pd_in].x;
+                            if (prin >= 0 && prin < H && pcin >= 0 && pcin < W && board[prin][pcin] != Track::ROADBLOCK) {
+                                int pred_u = (prin * W + pcin) * 4 + pd_in;
+                                if (d_val < out_dist[pred_u]) {
+                                    out_dist[pred_u] = d_val;
+                                    q.push_front(pred_u);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            bool can_pass_fixed = false;
+            if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
+                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
+                if (redirected == static_cast<Direction>(d)) {
+                    can_pass_fixed = true;
+                } else if ((m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
+                    Track swapped = track_swap(tr);
+                    if (get_track_direction(swapped, static_cast<Direction>(pd)) == static_cast<Direction>(d)) {
+                        can_pass_fixed = true;
+                    }
+                }
+            }
+
+            if (can_pass_fixed) {
+                uint8_t cost = 0;
+                int pred_u = (pr * W + pc) * 4 + pd;
+                if (d_val + cost < out_dist[pred_u]) {
+                    out_dist[pred_u] = d_val + cost;
+                    q.push_front(pred_u);
+                }
+            } else {
+                bool can_transition = false;
+                if (tr == Track::EMPTY || !perm_ptr[r * W + c] || track_is_turn(tr) || track_is_straight(tr)) {
+                    if (pd == d) can_transition = true;
+                    else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
+                    else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                }
+
+                if (can_transition) {
+                    uint8_t cost = (tr == Track::EMPTY ? 1 : 0);
+                    int pred_u = (pr * W + pc) * 4 + pd;
+                    if (d_val + cost < out_dist[pred_u]) {
+                        out_dist[pred_u] = d_val + cost;
+                        q.push_back(pred_u);
+                    }
+                }
+            }
+        }
+    }
+}
+
+void compute_station_distance_field(
+    const std::vector<std::vector<Track>>& board,
+    const std::vector<std::vector<Mod>>& mods,
+    const std::vector<std::vector<int>>& mod_nums,
+    const std::map<int, std::vector<Pos>>& tunnel_poses,
+    const uint8_t* perm_ptr,
+    int H, int W,
+    const std::vector<Pos>& targets,
+    uint8_t* out_dist
+) {
+    int HW = H * W;
+    std::fill(out_dist, out_dist + HW * 4, INF_DIST);
+
+    std::deque<int> q;
+
+    for (const Pos& target : targets) {
+        int r = target.y;
+        int c = target.x;
+        for (int pd = 0; pd < 4; ++pd) {
+            int pr = r - DIR_VECTORS[pd].y;
+            int pc = c - DIR_VECTORS[pd].x;
+            if (pr < 0 || pr >= H || pc < 0 || pc >= W) continue;
+            if (board[pr][pc] == Track::ROADBLOCK) continue;
+            int u = (pr * W + pc) * 4 + pd;
+            if (out_dist[u] != 0) {
+                out_dist[u] = 0;
+                q.push_back(u);
+            }
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop_front();
+        uint8_t d_val = out_dist[u];
+
+        int cell = u / 4;
+        int d = u % 4;
+        int r = cell / W;
+        int c = cell % W;
+
+        for (int pd = 0; pd < 4; ++pd) {
+            int pr = r - DIR_VECTORS[pd].y;
+            int pc = c - DIR_VECTORS[pd].x;
+            if (pr < 0 || pr >= H || pc < 0 || pc >= W) continue;
+            if (board[pr][pc] == Track::ROADBLOCK) continue;
+
+            Track tr = board[r][c];
+            Mod m = mods[r][c];
+
+            if (m == Mod::TUNNEL && track_is_tunnel(tr)) {
+                int num = mod_nums[r][c];
+                auto tun_it = tunnel_poses.find(num);
+                if (tun_it != tunnel_poses.end() && tun_it->second.size() >= 2) {
+                    if (get_tunnel_exit_velo(tr) == static_cast<Direction>(d)) {
+                        const Pos& tin = (tun_it->second[0].y == r && tun_it->second[0].x == c)
+                                         ? tun_it->second[1]
+                                         : tun_it->second[0];
+                        for (int pd_in = 0; pd_in < 4; ++pd_in) {
+                            int prin = tin.y - DIR_VECTORS[pd_in].y;
+                            int pcin = tin.x - DIR_VECTORS[pd_in].x;
+                            if (prin >= 0 && prin < H && pcin >= 0 && pcin < W && board[prin][pcin] != Track::ROADBLOCK) {
+                                int pred_u = (prin * W + pcin) * 4 + pd_in;
+                                if (d_val < out_dist[pred_u]) {
+                                    out_dist[pred_u] = d_val;
+                                    q.push_front(pred_u);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            bool can_pass_fixed_st = false;
+            if (!track_is_empty(tr) && tr != Track::ROADBLOCK) {
+                Direction redirected = get_track_direction(tr, static_cast<Direction>(pd));
+                if (redirected == static_cast<Direction>(d)) {
+                    can_pass_fixed_st = true;
+                } else if ((m == Mod::SWAPPING_TRACK || m == Mod::SWITCH_RAIL) && track_is_3way(tr)) {
+                    Track swapped = track_swap(tr);
+                    if (get_track_direction(swapped, static_cast<Direction>(pd)) == static_cast<Direction>(d)) {
+                        can_pass_fixed_st = true;
+                    }
+                }
+            }
+
+            if (can_pass_fixed_st) {
+                uint8_t cost = 0;
+                int pred_u = (pr * W + pc) * 4 + pd;
+                if (d_val + cost < out_dist[pred_u]) {
+                    out_dist[pred_u] = d_val + cost;
+                    q.push_front(pred_u);
+                }
+            } else {
+                bool can_transition = false;
+                if (tr == Track::EMPTY || !perm_ptr[r * W + c] || track_is_turn(tr) || track_is_straight(tr)) {
+                    if (pd == d) can_transition = true;
+                    else if ((pd == 0 || pd == 1) && (d == 2 || d == 3)) can_transition = true;
+                    else if ((pd == 2 || pd == 3) && (d == 0 || d == 1)) can_transition = true;
+                }
+
+                if (can_transition) {
+                    uint8_t cost = (tr == Track::EMPTY ? 1 : 0);
+                    int pred_u = (pr * W + pc) * 4 + pd;
+                    if (d_val + cost < out_dist[pred_u]) {
+                        out_dist[pred_u] = d_val + cost;
+                        q.push_back(pred_u);
+                    }
+                }
+            }
+        }
+    }
+}
 
 inline size_t heat_idx(size_t car_idx, Direction dir, int y, int x, int HW, int W) noexcept {
     int d = static_cast<int>(dir);
@@ -345,6 +605,54 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
 
     const uint8_t* perm_ptr = is_permanent_track.data();
 
+    std::vector<uint8_t> normal_dist(HW * 4, INF_DIST);
+    std::vector<uint8_t> numeral_dist(HW * 4, INF_DIST);
+    if (cars_count > 0) {
+        compute_distance_field(board, mods, mod_nums, tunnel_poses, perm_ptr, H, W, CarType::NORMAL, normal_dist.data());
+    }
+    if (ncars_count > 0) {
+        compute_distance_field(board, mods, mod_nums, tunnel_poses, perm_ptr, H, W, CarType::NUMERAL, numeral_dist.data());
+    }
+    const uint8_t* norm_dist_ptr = normal_dist.data();
+    const uint8_t* num_dist_ptr = numeral_dist.data();
+
+    std::vector<std::vector<uint8_t>> car_station_dists(total_cars_count, std::vector<uint8_t>(HW * 4, INF_DIST));
+    for (size_t i = 0; i < total_cars_count; ++i) {
+        const auto& car = all_cars[i];
+        if (car.type == CarType::DECOY) continue;
+        size_t c_idx = car.car_index(cars_count, decoys_count);
+        Mod st_mod = car.get_station();
+        auto st_it = station_poses.find(st_mod);
+        if (st_it != station_poses.end()) {
+            auto num_it = st_it->second.find(car.num);
+            if (num_it != st_it->second.end() && !num_it->second.empty()) {
+                compute_station_distance_field(board, mods, mod_nums, tunnel_poses, perm_ptr, H, W, num_it->second, car_station_dists[c_idx].data());
+            }
+        }
+    }
+
+    auto get_active_dist_map = [&](const SearchState& st, const Car& car, size_t car_idx) -> const uint8_t* {
+        if (car.type != CarType::NORMAL && car.type != CarType::NUMERAL) return nullptr;
+        Mod st_mod = car.get_station();
+        auto st_it = station_poses.find(st_mod);
+        if (st_it != station_poses.end()) {
+            auto num_it = st_it->second.find(car.num);
+            if (num_it != st_it->second.end() && !num_it->second.empty()) {
+                bool has_unvisited = false;
+                for (const Pos& st_pos : num_it->second) {
+                    if (mod_at(st.mods_to_use, st_pos.y, st_pos.x, W) != Mod::DEACTIVATED_MOD) {
+                        has_unvisited = true;
+                        break;
+                    }
+                }
+                if (has_unvisited) {
+                    return car_station_dists[car_idx].data();
+                }
+            }
+        }
+        return (car.type == CarType::NUMERAL ? num_dist_ptr : norm_dist_ptr);
+    };
+
     auto generate_tracks = [&](SearchState& state, std::vector<SearchState>& next_states) {
         next_states.clear();
         // Remove decoys from generation if they crashed last frame
@@ -495,6 +803,7 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
         for (size_t c = 0; c < N; ++c) {
             const Car& car = state.cars_to_use[c];
             iterations++;
+            size_t car_idx = car.car_index(cars_count, decoys_count);
 
             int flat_car_pos = car.pos.y * W + car.pos.x;
             Track car_pos_tr = state.board_to_use[flat_car_pos];
@@ -507,7 +816,6 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
             }
 
             if (car.type != CarType::DECOY) {
-                size_t car_idx = car.car_index(cars_count, decoys_count);
                 if (car.on_correct_station(car_pos_mod, mod_nums[car.pos.y][car.pos.x])) {
                     state.station_stalled[car_idx] = true;
                     state.mods_to_use[flat_car_pos] = Mod::DEACTIVATED_MOD;
@@ -685,9 +993,13 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                 Pos current_pos_ahead = car.pos_ahead;
 
                 if (possibleTrack == Track::EMPTY) {
-                    cars_generated[c].push_back(car.crash());
-                    usable_tracks[c].push_back(Track::EMPTY);
-                    continue;
+                    if (car.type == CarType::DECOY) {
+                        cars_generated[c].push_back(car.crash());
+                        usable_tracks[c].push_back(Track::EMPTY);
+                        continue;
+                    } else {
+                        return;
+                    }
                 } else if (track_is_tunnel(possibleTrack)) {
                     int num = mod_nums[car.pos_ahead.y][car.pos_ahead.x];
                     auto tun_it = tunnel_poses.find(num);
@@ -703,6 +1015,16 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                     possible_redirect = get_tunnel_exit_velo(board[current_pos_ahead.y][current_pos_ahead.x]);
                 } else {
                     possible_redirect = get_track_direction(possibleTrack, car.direction);
+                }
+
+                if (possible_redirect == Direction::CRASH) {
+                    if (car.type == CarType::DECOY) {
+                        cars_generated[c].push_back(car.crash());
+                        usable_tracks[c].push_back(possibleTrack);
+                        continue;
+                    } else {
+                        return;
+                    }
                 }
 
                 if (track_is_car_ending(possibleTrack) || track_is_ncar_ending(possibleTrack)) {
@@ -836,6 +1158,78 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
             }
 
             if (usable_tracks[c].empty()) return;
+
+            // Prune per-car options that are unreachable (INF distance) for normal/numeral cars
+            if (car.type == CarType::NORMAL || car.type == CarType::NUMERAL) {
+                const uint8_t* dist_map2 = get_active_dist_map(state, car, car_idx);
+                if (dist_map2) {
+                    size_t write = 0;
+                    for (size_t i = 0; i < usable_tracks[c].size(); ++i) {
+                        Track tr = usable_tracks[c][i];
+                        const Car& gc = cars_generated[c][i];
+                        if (track_is_car_ending(tr) || track_is_ncar_ending(tr)) {
+                            if (write != i) {
+                                usable_tracks[c][write] = usable_tracks[c][i];
+                                cars_generated[c][write] = cars_generated[c][i];
+                            }
+                            ++write;
+                        } else {
+                            if (gc.pos.y >= 0 && gc.pos.y < H && gc.pos.x >= 0 && gc.pos.x < W) {
+                                int flat_ahead = (gc.pos.y * W + gc.pos.x) * 4 + static_cast<int>(gc.direction);
+                                int d = dist_map2[flat_ahead];
+                                if (d == INF_DIST) {
+                                    continue;
+                                }
+                            }
+                            if (write != i) {
+                                usable_tracks[c][write] = usable_tracks[c][i];
+                                cars_generated[c][write] = cars_generated[c][i];
+                            }
+                            ++write;
+                        }
+                    }
+                    if (write == 0) return;
+                    usable_tracks[c].count = static_cast<uint8_t>(write);
+                    cars_generated[c].count = static_cast<uint8_t>(write);
+                    if (write == 1) continue;
+                }
+            }
+
+            if (usable_tracks[c].size() > 1) {
+                int scores[8];
+                const uint8_t* dist_map = get_active_dist_map(state, car, car_idx);
+                for (size_t i = 0; i < usable_tracks[c].size(); ++i) {
+                    Track tr = usable_tracks[c][i];
+                    const Car& gc = cars_generated[c][i];
+                    if (track_is_car_ending(tr) || track_is_ncar_ending(tr)) {
+                        scores[i] = 0;
+                    } else if (car.type == CarType::DECOY) {
+                        scores[i] = (tr == Track::EMPTY ? 100 : 10);
+                    } else {
+                        scores[i] = 0;
+                        if (dist_map && gc.pos.y >= 0 && gc.pos.y < H && gc.pos.x >= 0 && gc.pos.x < W) {
+                            int flat_ahead = (gc.pos.y * W + gc.pos.x) * 4 + static_cast<int>(gc.direction);
+                            int d = dist_map[flat_ahead];
+                            if (d == INF_DIST) {
+                                scores[i] = 100000;
+                            } else {
+                                scores[i] = d * 4;
+                            }
+                        }
+                        if (track_is_placeholder_semaphore(tr)) scores[i] += 3;
+                        else if (track_is_empty(state.board_to_use[gc.pos.y * W + gc.pos.x])) scores[i] += 2;
+                    }
+                }
+                for (size_t i = 0; i < usable_tracks[c].size(); ++i) {
+                    for (size_t j = i + 1; j < usable_tracks[c].size(); ++j) {
+                        if (scores[j] < scores[i]) {
+                            std::swap(scores[i], scores[j]);
+                            std::swap(usable_tracks[c][i], usable_tracks[c][j]);
+                            std::swap(cars_generated[c][i], cars_generated[c][j]);
+                        }
+                    }
+                }
+            }
         }
 
         uint8_t target_mask = static_cast<uint8_t>((1 << N) - 1);
@@ -865,25 +1259,22 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
             }
         }
 
-        if (just_solved.first != -1) {
-            size_t sc = static_cast<size_t>(just_solved.first);
-            for (size_t i = sc; i < N - 1; ++i) {
-                cars_generated[i] = cars_generated[i + 1];
-                usable_tracks[i] = usable_tracks[i + 1];
-                state.stalled[i] = state.stalled[i + 1];
+        std::vector<size_t> to_remove;
+        if (just_solved.first != -1) to_remove.push_back(static_cast<size_t>(just_solved.first));
+        if (just_solved.second != -1) to_remove.push_back(static_cast<size_t>(just_solved.second));
+        std::sort(to_remove.rbegin(), to_remove.rend());
+        to_remove.erase(std::unique(to_remove.begin(), to_remove.end()), to_remove.end());
+
+        for (size_t sc : to_remove) {
+            if (sc < N) {
+                for (size_t i = sc; i < N - 1; ++i) {
+                    cars_generated[i] = cars_generated[i + 1];
+                    usable_tracks[i] = usable_tracks[i + 1];
+                    state.stalled[i] = state.stalled[i + 1];
+                }
+                state.stalled.pop_back();
+                N--;
             }
-            state.stalled.pop_back();
-            N--;
-        }
-        if (just_solved.second != -1) {
-            size_t sc = static_cast<size_t>(just_solved.second - (just_solved.first != -1 ? 1 : 0));
-            for (size_t i = sc; i < N - 1; ++i) {
-                cars_generated[i] = cars_generated[i + 1];
-                usable_tracks[i] = usable_tracks[i + 1];
-                state.stalled[i] = state.stalled[i + 1];
-            }
-            state.stalled.pop_back();
-            N--;
         }
 
         size_t combo_cars_count = N;
@@ -1012,7 +1403,25 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                 next_state.available_semaphores = semaphores_to_pass;
                 next_state.heatmap_limits = std::move(heatmap_limits_pass);
 
-                next_states.push_back(std::move(next_state));
+                bool unreachable = false;
+                for (const auto& c : next_state.cars_to_use) {
+                    if (c.type == CarType::NORMAL || c.type == CarType::NUMERAL) {
+                        size_t c_idx = c.car_index(cars_count, decoys_count);
+                        const uint8_t* d_map = get_active_dist_map(next_state, c, c_idx);
+                        if (d_map && c.pos.y >= 0 && c.pos.y < H && c.pos.x >= 0 && c.pos.x < W) {
+                            int f = (c.pos.y * W + c.pos.x) * 4 + static_cast<int>(c.direction);
+                            int d_val = d_map[f];
+                            if (d_val == INF_DIST) {
+                                unreachable = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!unreachable) {
+                    next_states.push_back(std::move(next_state));
+                }
             }
 
             // Increment indices
@@ -1062,15 +1471,37 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
             generate_tracks(stack.back(), next_states_buf);
             stack.pop_back();
 
+            if (lowest_tracks_remaining != -1) {
+                break;
+            }
+
+            if (next_states_buf.size() > 1) {
+                for (auto& s : next_states_buf) {
+                    int score = 0;
+                    for (const auto& c : s.cars_to_use) {
+                        if (c.type == CarType::NORMAL || c.type == CarType::NUMERAL) {
+                            size_t c_idx = c.car_index(cars_count, decoys_count);
+                            const uint8_t* d_map = get_active_dist_map(s, c, c_idx);
+                            if (d_map && c.pos.y >= 0 && c.pos.y < H && c.pos.x >= 0 && c.pos.x < W) {
+                                int f = (c.pos.y * W + c.pos.x) * 4 + static_cast<int>(c.direction);
+                                int weight = (c.num < 4) ? (1 << (3 - c.num)) : 1;
+                                score += d_map[f] * weight;
+                            }
+                        }
+                    }
+                    s.heuristic_score = score;
+                }
+                std::sort(next_states_buf.begin(), next_states_buf.end(), [](const SearchState& a, const SearchState& b) {
+                    return a.heuristic_score < b.heuristic_score;
+                });
+            }
+
             for (auto it = next_states_buf.rbegin(); it != next_states_buf.rend(); ++it) {
                 stack.push_back(std::move(*it));
             }
         }
     } else { // BFS
-        std::map<int, std::deque<SearchState>> queues;
-        for (int track_count = max_tracks; track_count >= 0; --track_count) {
-            queues[track_count] = std::deque<SearchState>{};
-        }
+        std::vector<std::deque<SearchState>> queues(max_tracks + 1);
         queues[max_tracks].push_back(std::move(initial_state));
 
         std::vector<SearchState> next_states_buf;
@@ -1112,7 +1543,7 @@ SolveResult Solver::solve(const Level& level, VisualizeCallback visualize) {
                 }
                 for (auto& s : next_states_buf) {
                     int av = s.available_tracks;
-                    if (queues.find(av) != queues.end()) {
+                    if (av >= 0 && static_cast<size_t>(av) < queues.size()) {
                         queues[av].push_back(std::move(s));
                     }
                 }
